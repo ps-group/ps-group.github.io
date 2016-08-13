@@ -6,7 +6,7 @@ permalink: /opengl/
 
 Все примеры в этой серии статей основаны на C++14 и SDL2 и доступны под OpenSource лицензией MIT (см. LICENSE.md).
 
-- [полезные ссылки](/opengl/links.html)
+- [дополнительные материалы и ссылки](/opengl/useful-links.html)
 - [соглашения о кодировании](/opengl/coding_conventions.html)
 - [подготовка окружения и сборка примеров](/opengl/building_examples.html)
 
