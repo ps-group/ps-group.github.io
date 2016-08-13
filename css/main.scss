@@ -84,6 +84,17 @@ pre.highlight code
 //         padding-left: $spacing-unit / 2;
 //     }
 // }
+@mixin media-query($device) {
+    @media screen and (max-width: $device) {
+        @content;
+    }
+}
 
 // Import partials from the `minima` theme.
-@import "minima";
+
+// Import partials.
+@import
+  "minima/base",
+  "minima/layout",
+  "minima/syntax-highlighting"
+;
