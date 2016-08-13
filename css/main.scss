@@ -94,7 +94,7 @@ pre.highlight code
 
 // Import partials.
 @import
-  "minima/base",
-  "minima/layout",
-  "minima/syntax-highlighting"
+  "minima/_base.scss",
+  "minima/_layout.scss",
+  "minima/_syntax-highlighting.scss"
 ;
