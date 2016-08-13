@@ -1,14 +1,21 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Default Web Page Title</title>
-    <link type="text/css" rel="stylesheet" href="/css/style.css">
-  </head>
-  <body>
-    <div id="page" class="fullwidth">
-      <h2>Defalt web page</h2>
-      <p>Let's start to fill it according your needs...</p>
-    </div>
-  </body>
-</html>
+---
+layout: default
+---
+
+<div class="home">
+
+  <h1 class="post-heading">Страницы</h1>
+  <ul class="post-list">
+    {% for page in site.pages %}
+    {% if page.layout == 'page' %}
+      <li>
+        <span class="post-meta">{{ page.date | date: "%b %-d, %Y" }}</span>
+        <h5>
+          <a class="post-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title | escape }}</a>
+        </h5>
+      </li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+
+</div>

@@ -1,0 +1,19 @@
+title: 'PS-Group'
+source:
+destination: '_site'
+safe: true
+url: 'http://ps-group.github.io'
+github_username: ps-group
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+collections:
+  opengl:
+    output: true
+    permalink: '/opengl/:path'
+defaults:
+    - scope:
+        type: opengl
+      values:
+        layout: opengl
