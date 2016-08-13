@@ -6,7 +6,7 @@ url: 'http://ps-group.github.io'
 github_username: ps-group
 markdown: kramdown
 highlighter: rouge
-theme: minima
+#theme: minima
 
 collections:
   opengl:

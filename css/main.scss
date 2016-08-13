@@ -90,11 +90,4 @@ pre.highlight code
     }
 }
 
-// Import partials from the `minima` theme.
-
-// Import partials.
-@import
-  "minima/_base.scss",
-  "minima/_layout.scss",
-  "minima/_syntax-highlighting.scss"
-;
+@import "minima";
