@@ -45,6 +45,7 @@ permalink: /opengl/
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_3](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_3)
 
  1. [Куда исчезают фонарики](/opengl/lesson_13.html)
+ 1. [Шахматный окрас](/opengl/lesson_14.html)
 
 Часть III будет готова к сентябрю.
 
