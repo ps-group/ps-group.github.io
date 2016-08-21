@@ -226,6 +226,12 @@ public:
 
         // Создаём контекст OpenGL, связанный с окном.
         m_pGLContext.reset(SDL_GL_CreateContext(m_pWindow.get()));
+        // Отсутствие контекста - это фатальная ошибка выполнения
+        if (!m_pGLContext)
+        {
+            std::cerr << "OpenGL context initialization failed" << std::endl;
+            std::abort();
+        }
     }
 
     void Clear()

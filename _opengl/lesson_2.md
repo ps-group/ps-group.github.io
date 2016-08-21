@@ -141,6 +141,7 @@ void PrintOpenGLInfo()
 ```
 
 Следуя "правилу трёх ударов", можно отрефакторить этот код:
+
 ```cpp
 void PrintOpenGLInfo()
 {
