@@ -6,7 +6,7 @@ layout: default
 <div class='subtron text-left'>
   <div class='container-narrow'>
     <h2 class="arcticle-breadcrumbs not-in-toc">
-      <a href='{{ site.baseurl }}/articles/'>Статьи</a>
+      <a href='{{ site.baseurl }}/opengl/'>OpenGL</a>
       <span class="docs-breadcrumbs-divider">/</span>
       {% if page.breadcrumb %}
       {{ page.breadcrumb }}
@@ -19,22 +19,9 @@ layout: default
 
 <section class='page-section docs strong-headers'>
   <div class='container-narrow'>
-      <script type="text/javascript">
-        $(document).ready(function(){
-            $("h2:not(.footer-heading):not(.not-in-toc),h3,h4,h5,h6").each(function(i,item){
-                var tag = $(item).get(0).localName;
-                $(item).attr("id","wow"+i);
-                $(".table-of-contents-rows").append('<a class="new'+tag+'" href="#wow'+i+'">&#8226;&nbsp;'+$(this).text()+'</a></br>');
-                $(".newh2").css("margin-left",0);
-                $(".newh3").css("margin-left",15);
-                $(".newh4").css("margin-left",30);
-                $(".newh5").css("margin-left",45);
-                $(".newh6").css("margin-left",60);
-            });
-        });
-    </script>
+    <script type="text/javascript" src="/js/table-of-contents.js"></script>
     <hr>
-    <div class="table-of-contents">
+    <div class="table-of-contents hidden">
     <h2 class="table-of-contents-title not-in-toc">Содержание</h2>
     <div class="table-of-contents-rows"></div>
     </div>

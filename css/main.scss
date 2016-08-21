@@ -66,6 +66,10 @@ pre.highlight code
     padding: 10px;
     display: inline-block;
 }
+.table-of-contents.hidden
+{
+    display: none;
+}
 .table-of-contents h2
 {
     margin: 0;

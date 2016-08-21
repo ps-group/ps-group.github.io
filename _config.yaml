@@ -1,7 +1,6 @@
 title: 'PS-Group'
 source:
 destination: '_site'
-safe: true
 url: 'http://ps-group.github.io'
 github_username: ps-group
 markdown: kramdown
