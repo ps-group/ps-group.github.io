@@ -580,6 +580,6 @@ void CWindow::OnKeyUp(const SDL_KeyboardEvent &event)
 
 ## Конец!
 
-Теперь вы можете взять [полный пример (github.com)](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_8) или посмотреть, каким будет результат запуска:
+Теперь вы можете взять [полный пример (github.com)](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_08) или посмотреть, каким будет результат запуска:
 
 ![Иллюстрация](figures/lesson_8_preview.png)

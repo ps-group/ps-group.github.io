@@ -12,7 +12,7 @@ permalink: /opengl/
 
 ## Часть I: старый добрый OpenGL 1.x
 
-Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_1](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_1)
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_1](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_1)
 
  1. [OpenGL и SDL2](/opengl/lesson_1.html)
  2. [Изучаем возможности OpenGL](/opengl/lesson_2.html)
@@ -23,19 +23,31 @@ permalink: /opengl/
 
 ## Часть II: рисуем тела
 
-Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_2](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_2)
+Дополнительная статья:
 
- 7. [Рисуем кубики](/opengl/lesson_7.html)
- 8. [Практикуемся с матрицами](/opengl/lesson_8.html)
- 9. [Да будет свет!](/opengl/lesson_9.html)
- 10. [Смешение цветов](/opengl/lesson_10.html)
- 11. [Гладкие объёмные тела](/opengl/lesson_11.html)
- 12. [Сфера с натянутой текстурой](/opengl/lesson_12.html)
+- [Используем Apitrace для отладки OpenGL](/opengl/apitrace.html)
+
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_2](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_2)
+
+ 1. [Рисуем кубики](/opengl/lesson_7.html)
+ 2. [Практикуемся с матрицами](/opengl/lesson_8.html)
+ 3. [Да будет свет!](/opengl/lesson_9.html)
+ 4. [Смешение цветов](/opengl/lesson_10.html)
+ 5. [Гладкие объёмные тела](/opengl/lesson_11.html)
+ 6. [Сфера с натянутой текстурой](/opengl/lesson_12.html)
 
 ## Часть III: программируемый конвейер
 
-Будет готова к сентябрю.
+Дополнительная статья:
+
+- [Как получить OpenGL 3.2](/opengl/opengl_3_2.html)
+
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_3](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_3)
+
+ 1. [Куда исчезают фонарики](/opengl/lesson_13.html)
+
+Часть III будет готова к сентябрю.
 
 ## Часть IV: сырые данные
 
-Будет готова к октябрю.
+Часть IV будет готова к октябрю.

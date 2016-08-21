@@ -601,6 +601,6 @@ void CWindow::OnKeyDown(const SDL_KeyboardEvent &event)
 
 ## Финальная версия
 
-[Полный пример к статье доступен на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_6). Вот так выглядит окно после запуска:
+[Полный пример к статье доступен на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_06). Вот так выглядит окно после запуска:
 
 ![Иллюстрация](figures/lesson_6_preview.png)

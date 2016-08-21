@@ -238,6 +238,6 @@ void CAbstractWindow::Show(const glm::ivec2 &size)
 
 ## Результат
 
-Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_7). А вот так выглядит окно после запуска, без освещения и настройки камеры:
+Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_07). А вот так выглядит окно после запуска, без освещения и настройки камеры:
 
 ![Иллюстрация](figures/lesson_7_preview.png)

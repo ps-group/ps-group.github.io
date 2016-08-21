@@ -583,4 +583,3 @@ void CWindow::OnKeyUp(const SDL_KeyboardEvent &event)
 Вы можете взять [полный пример к статье на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_12). А вот так выглядит окно после запуска:
 
 ![Скриншот](figures/lesson_12_preview.png)
-  狤呹鑔⁀

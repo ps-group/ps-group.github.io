@@ -344,7 +344,7 @@ protected:
     // CAbstractWindow interface
     void OnUpdateWindow(float deltaSeconds) override;
     void OnDrawWindow(const glm::ivec2 &size) override;
-    
+
     // IInputEventAcceptor interface
     void OnDragBegin(const glm::vec2 &pos) override;
     void OnDragMotion(const glm::vec2 &pos) override;
@@ -405,4 +405,4 @@ void CWindow::OnDragEnd(const glm::vec2 &pos)
 
 Подумайте, как можно исправить этот баг с помощью нового поля `glm::vec2 m_dragOffset` класса `CWindow`.
 
-Своё решение можете сравнить с [полным примером к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_4).
+Своё решение можете сравнить с [полным примером к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_04).

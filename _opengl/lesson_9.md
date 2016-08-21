@@ -427,7 +427,7 @@ void CIdentityCube::Draw() const
 
 ## Результат
 
-Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_9). А вот так выглядит окно после запуска:
+Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_09). А вот так выглядит окно после запуска:
 
 ![Иллюстрация](figures/lesson_9_preview.png)
 
