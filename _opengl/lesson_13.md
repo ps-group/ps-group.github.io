@@ -21,7 +21,7 @@ title: Куда исчезают фонарики
 
 ## Компиляция шейдеров
 
-Программист пишет шейдеры на GLSL и оставляет их виде исходного кода; компиляцией шейдера в ассемблер процессора видеокарты будет будет выполнять видеодрайвер. В процессе сборки графической программы исходный код шейдеров передаётся из памяти программы на сторону видеодрайвера, там собирается и превращается в ресурс типа `unsigned`, представляющий программу на стороне видеокарты:
+Программист пишет шейдеры на GLSL и оставляет их виде исходного кода; компиляцией шейдера в ассемблер процессора видеокарты будет заниматься видеодрайвер. В процессе сборки графической программы исходный код шейдеров передаётся из памяти программы компилятору в составе видеодрайвера, там собирается и превращается в ресурс типа `unsigned`, представляющий программу на стороне видеокарты:
 
 ![Схема](figures/shader_program_overview.png)
 
@@ -69,7 +69,7 @@ public:
     void DoWithProgram(TFunction && fn)const
     {
         Use();
-        // При выходе из функции надо обязательно сделать Unbind.
+        // При выходе из функции возвращаем Fixed Pipeline.
         BOOST_SCOPE_EXIT_ALL() {
             UseFixedPipeline();
         };
@@ -77,7 +77,10 @@ public:
     }
 
 private:
+    void FreeShaders();
+
     unsigned m_programId = 0;
+    std::vector<unsigned> m_shaders;
 };
 ```
 
@@ -89,7 +92,7 @@ CShaderProgram::CShaderProgram()
 {
 }
 
-// 0 означает "использовать фиксированный конвейер",
+// "0" означает "использовать фиксированный конвейер",
 // функция glCreateProgram никогда не вернёт 0
 CShaderProgram::CShaderProgram(fixed_pipeline_t)
     : m_programId(0)
@@ -98,6 +101,7 @@ CShaderProgram::CShaderProgram(fixed_pipeline_t)
 
 CShaderProgram::~CShaderProgram()
 {
+    FreeShaders();
     glDeleteProgram(m_programId);
 }
 
@@ -159,7 +163,10 @@ private:
 };
 ```
 
-Теперь можно представить реализации методов `CompileShader`, `Link` и `Validate`. Все они проверяют ошибку на своём шаге сборки и используют приватную функцию GetInfoLog для получения логов ошибки от компилятора GLSL на стороне видеодрайвера:
+Теперь можно представить реализации методов `CompileShader`, `Link` и `Validate`. Все они проверяют ошибку на своём шаге сборки и используют две дополнительные функции:
+
+- функцию `GetInfoLog` для получения логов ошибки от компилятора GLSL на стороне видеодрайвера
+- приватный метод `FreeShaders`, который после успешной компоновки программы освобождает память, занятую исходным кодом и ненужным объектным кодом шейдеров
 
 ```cpp
 // Чтобы не делать различий между Shader/Program,
@@ -200,7 +207,8 @@ void CShaderProgram::CompileShader(const std::string &source, ShaderType type)co
         throw std::runtime_error("Shader compiling failed: " + log);
     }
 
-    glAttachShader(m_programId, shader.Release());
+    m_shaders.emplace_back(shader.Release());
+    glAttachShader(m_programId, m_shaders.back());
 }
 
 void CShaderProgram::Link()const
@@ -213,6 +221,9 @@ void CShaderProgram::Link()const
         const auto log = GetInfoLog(m_programId, glGetProgramiv, glGetProgramInfoLog);
         throw std::runtime_error("Program linking failed: " + log);
     }
+    // Выполняем detach и delete после полного формирования программы
+    // http://gamedev.stackexchange.com/questions/47910
+    FreeShaders();
 }
 
 boost::optional<std::string> CShaderProgram::Validate()const
@@ -226,6 +237,16 @@ boost::optional<std::string> CShaderProgram::Validate()const
         return log;
     }
     return boost::none;
+}
+
+void CShaderProgram::FreeShaders()
+{
+    for (unsigned shaderId : m_shaders)
+    {
+        glDetachShader(m_programId, shaderId);
+        glDeleteShader(shaderId);
+    }
+    m_shaders.clear();
 }
 ```
 
@@ -341,7 +362,7 @@ void main(void)
 Добавим к нашему шейдеру вычисление переменной `Ispec`. Для этого нам понадобится функция `pow(value, degree)`, возводящая `value` в степень `degree`. Также мы применим:
 
 - свойство `gl_FrontLightProduct[i].specular`, хранящее результат покомпонентного умножения бликовой компоненты материала на бликовую компоненту i-го источника света
-- свойство `gl_FrontMaterial.shininess`, хранящее коэффициент GL_SNININESS, установленный для материала
+- свойство `gl_FrontMaterial.shininess`, хранящее коэффициент GL_SHININESS, установленный для материала
 
 ```glsl
 varying vec3 n;
@@ -420,13 +441,13 @@ vec3 lightDirection = normalize(gl_LightSource[li].position.xyz - delta);
 В третьем наборе примеров архитектура немного изменилась:
 
 - выделена библиотека `libchapter3`, куда попали классы `CWindow`, `CCamera`, `CTexture2D`, `CShaderProgram`
-- пользовательский класс теперь не расширяет класс `CAbstractWindow`, а всего лишь хранит ссылку на него и расширяет класс `CAbstractWindowClient`; в момент работы конструктора `CWindowCliuent` контекст OpenGL уже проинициализирован:
+- пользовательский класс теперь не расширяет класс `CAbstractWindow`, а всего лишь хранит ссылку на него и расширяет класс `CAbstractWindowClient`; в момент работы конструктора `CWindowClient` контекст OpenGL уже проинициализирован:
 
 #### Листинг main.cpp
 
 ```cpp
 #include "stdafx.h"
-#include "Window.h"
+#include "WindowClient.h"
 #include <SDL2/SDL.h>
 
 int main(int, char *[])
@@ -434,8 +455,9 @@ int main(int, char *[])
     try
     {
         CWindow window;
-        window.Show({800, 600});
-        window.DoGameLoop();
+        window.Show("OpenGL Demo", {800, 600});
+        CWindowClient client(window);
+        window.DoMainLoop();
     }
     catch (const std::exception &ex)
     {
@@ -448,7 +470,7 @@ int main(int, char *[])
 }
 ```
 
-- в классе CWindow добавлена проверка наличия версии OpenGL 3.2. Если эта версия недоступна, изучите статью [Как получить OpenGL 3.2](/opengl/opengl_3_2.html). Следующий фрагмент кода проверяет версию:
+- в классе CWindow добавлена проверка наличия версии OpenGL 3.2. Если эта версия недоступна, изучите статью ["Как получить OpenGL 3.2"](/opengl/opengl_3_2.html). Следующий фрагмент кода проверяет версию:
 
 ```cpp
 void CheckOpenglVersion()
@@ -466,6 +488,6 @@ void CheckOpenglVersion()
 
 ![Скриншот](figures/lesson_13_preview.png)
 
-- по умолчанию попиксельное освещение по модели Фонга с помощью шейдеров
+- по умолчанию включено попиксельное освещение по модели Фонга с помощью шейдеров
 - вторым включается попиксельное освещение по модели Ламберта с помощью шейдеров
 - третьим включается фиксированный конвейер с освещением по модели Блинна-Фонга (модификация модели Фонга) и интерполяцией по Гуро

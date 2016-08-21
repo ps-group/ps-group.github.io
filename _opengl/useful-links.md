@@ -33,6 +33,7 @@ title: 'Дополнительные материалы'
 
 - [эффект глубины резкости, Depth of Field (en.wikibooks.org)](https://en.wikibooks.org/wiki/OpenGL_Programming/Depth_of_Field)
 - [размытие при движении, Motion Blur (en.wikibooks.org)](https://en.wikibooks.org/wiki/OpenGL_Programming/Motion_Blur)
+- [эффект дырявого тела с помощью оператора discard в GLSL (opengl.org)](https://www.opengl.org/sdk/docs/tutorials/ClockworkCoders/discard.php)
 
 ## Книги
 
