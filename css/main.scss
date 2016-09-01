@@ -13,7 +13,7 @@ $base-line-height: 1.5;
 $spacing-unit:     30px;
 
 $text-color:       #111;
-$background-color: darken(#828282, 30%);
+$background-color: #402064;
 $brand-color:      #2a7ae2;
 
 $grey-color:       #828282;
@@ -30,6 +30,7 @@ $on-laptop:        920px;
 pre.highlight code
 {
     font-family: "Droid Sans Mono", "Lucida Console", monospace;
+    background: #f0f4f8 !important;
 }
 .page-content
 {
@@ -52,13 +53,14 @@ pre.highlight code
 .highlighter-rouge pre.highlight
 {
     border: 1px solid $grey-color;
+    background: #f0f4f8 !important;
 }
 // CUSTOM OVERRIDES END
 
 // CUSTOM TABLE OF CONTENTS
 .table-of-contents
 {
-    background-color: #eef;
+    background-color: #eee;
     border: 1px solid $grey-color;
     border-radius: 5px;
     margin-bottom: 15px;
