@@ -41,7 +41,10 @@ enum class ShaderType
 };
 ```
 
-Класс должен иметь средства для компиляции шейдеров, линковки и валидации программы. Также должна быть возможность привязать программу к состоянию OpenGL, реализуемая вызовом [glUseProgram](https://www.opengl.org/sdk/docs/man/html/glUseProgram.xhtml). Эту возможность мы обеспечим методами `Use`, `UseFixedPipeline` и template-методом `DoWithProgram(TFunction && fn)` так же, как ранее для класса CTexture2D:
+Класс должен иметь средства для компиляции шейдеров, линковки и валидации программы. Также должна быть возможность привязать программу к состоянию OpenGL, реализуемая вызовом [glUseProgram](https://www.opengl.org/sdk/docs/man/html/glUseProgram.xhtml). Эту возможность мы обеспечим методом `Use`. В отличии от ранее рассмотренного CTexture2D, у программы не будет метода отвязки от контекста по ряду причин:
+
+- в OpenGL ES, WebGL и в OpenGL 3.0 и выше с Core Profile фиксированный конвейер OpenGL отсутствует, и для рисования чего-либо программист должен обязательно использовать шейдеры; таким образом, отвязка программы от контекста в таких режимах просто лишена смысла
+- у класса CShaderProgram есть специальный конструктор, принимающий пустую структуру fixed_pipeline_t и формируюший в этом случае псевдо-программу фиксированного конвейера OpenGL (программа с индексом 0). Это избавляет от необходимости иметь метод для отвязки программы от контекста &mdash; мы можем просто привязать к контексту псевдо-программу с индексом 0
 
 ```cpp
 class CShaderProgram : private boost::noncopyable
@@ -63,18 +66,6 @@ public:
     boost::optional<std::string> Validate()const;
 
     void Use()const;
-    static void UseFixedPipeline();
-
-    template <class TFunction>
-    void DoWithProgram(TFunction && fn)const
-    {
-        Use();
-        // При выходе из функции возвращаем Fixed Pipeline.
-        BOOST_SCOPE_EXIT_ALL() {
-            UseFixedPipeline();
-        };
-        fn();
-    }
 
 private:
     void FreeShaders();
@@ -84,7 +75,7 @@ private:
 };
 ```
 
-Реализация конструкторов и методов, связанных с использованием программы, очень проста:
+Реализация конструкторов и метода `Use` достаточно проста:
 
 ```cpp
 CShaderProgram::CShaderProgram()
@@ -109,16 +100,11 @@ void CShaderProgram::Use() const
 {
     glUseProgram(m_programId);
 }
-
-void CShaderProgram::UseFixedPipeline()
-{
-    glUseProgram(0);
-}
 ```
 
 ## Реализация сборки программы в CShaderProgram
 
-Для надёжности и удобства заведём класс CShaderRaii, который аллоцирует и хранит ресурс-шейдер. Здесь мы не можем комфортно использовать специализацию unique_ptr, потому что ресурсы OpenGL представлены типом `unsigned`, который не является типом-указателем.
+Для надёжности и удобства заведём класс CShaderRaii, который выделяет и хранит ресурс-шейдер. Здесь мы не можем комфортно использовать специализацию unique_ptr, потому что ресурсы OpenGL представлены типом `unsigned`, который не является типом-указателем.
 
 ```cpp
 class CShaderRaii : private boost::noncopyable
