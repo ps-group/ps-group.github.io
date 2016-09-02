@@ -281,6 +281,57 @@ void CProgramInfo::PrintUniformInfo(unsigned index, std::ostream &stream) const
 }
 ```
 
+Вспомогательная функция TypeToString переводит целочисленный идентификатор типа данных GLSL в строковое название этого типа:
+
+```cpp
+
+namespace
+{
+// Преобразует идентификатор типа данных GLSL в строку
+std::string TypeToString(GLenum type)
+{
+    const std::pair<GLenum, const char *> TYPE_MAPPING[] =
+    {
+        {GL_FLOAT, "float"},
+        {GL_FLOAT_VEC2, "vec2"},
+        {GL_FLOAT_VEC3, "vec3"},
+        {GL_FLOAT_VEC4, "vec4"},
+        {GL_INT, "int"},
+        {GL_INT_VEC2, "ivec2"},
+        {GL_INT_VEC3, "ivec3"},
+        {GL_INT_VEC4, "ivec4"},
+        {GL_BOOL, "bool"},
+        {GL_BOOL_VEC2, "bvec2"},
+        {GL_BOOL_VEC3, "bvec3"},
+        {GL_BOOL_VEC4, "bvec4"},
+        {GL_FLOAT_MAT2, "mat2"},
+        {GL_FLOAT_MAT3, "mat3"},
+        {GL_FLOAT_MAT4, "mat4"},
+        {GL_FLOAT_MAT2x3, "mat2x3"},
+        {GL_FLOAT_MAT2x4, "mat2x4"},
+        {GL_FLOAT_MAT3x2, "mat3x2"},
+        {GL_FLOAT_MAT3x4, "mat3x4"},
+        {GL_FLOAT_MAT4x2, "mat4x2"},
+        {GL_FLOAT_MAT4x3, "mat4x3"},
+        {GL_SAMPLER_1D, "sampler1D"},
+        {GL_SAMPLER_2D, "sampler2D"},
+        {GL_SAMPLER_3D, "sampler3D"},
+        {GL_SAMPLER_CUBE, "samplerCube"},
+        {GL_SAMPLER_1D_SHADOW, "sampler1DShadow"},
+        {GL_SAMPLER_2D_SHADOW, "sampelr2DShadow"}
+    };
+    for (const auto &pair : TYPE_MAPPING)
+    {
+        if (pair.first == type)
+        {
+            return pair.second;
+        }
+    }
+    throw std::invalid_argument("Unknown variable type " + std::to_string(type));
+}
+}
+```
+
 И, наконец, общий метод, печатающий информацию о программе в поток. Эту информацию легко перенаправить в стандартный поток вывода или стандартный поток ошибок, передав в метод параметр `std::cout` или `std::cerr` соответственно:
 
 ```cpp
@@ -306,3 +357,265 @@ CProgramInfo CShaderProgram::GetProgramInfo() const
     return CProgramInfo(m_programId);
 }
 ```
+
+Подключим получение и вывод информации о программе в конструкторе класса CWindowClient после компоновки шейдерной программы:
+
+```cpp
+const std::string twistShader = CFilesystemUtils::LoadFileAsString("res/twist.vert");
+m_programTwist.CompileShader(twistShader, ShaderType::Vertex);
+m_programTwist.Link();
+
+std::cerr << "-- TWIST program info ---" << std::endl;
+CProgramInfo info = m_programTwist.GetProgramInfo();
+info.PrintProgramInfo(std::cerr);
+std::cerr << "-------------------------" << std::endl;
+```
+
+После запуска получаем следующий вывод:
+
+```
+-- TWIST program info ---
+Program id: 1
+ Active uniform count: 2
+  mat4 gl_ModelViewProjectionMatrixTranspose
+  float TWIST at 0
+-------------------------
+```
+
+## Установка значения uniform-переменной
+
+Запрашивать информацию о программе или расположение uniform-переменных можно сразу после того, как программа была скомпонована (*англ.* linked). Однако, получать и устанавливать значения uniform-переменных можно только после вызова glUseProgram всё время, пока программа используется.
+
+Класс CProgramUniform служит только для записи uniform-переменной без чтения. API OpenGL позволяет узнать установленное ранее значение, но мы используем OpenGL как средство вывода графических данных и не нуждаемся в обратной связи в данном случае. Если же потребуется отладить работу с OpenGL, отладчик APITrace позволит отследить состояние uniform-переменных.
+
+Класс CProgramUniform объявлен следующим образом:
+
+```cpp
+#pragma once
+#include <glm/fwd.hpp>
+
+class CShaderProgram;
+
+class CProgramUniform
+{
+public:
+    explicit CProgramUniform(int location);
+
+    void operator =(int value);
+    void operator =(float value);
+    void operator =(const glm::vec2 &value);
+    void operator =(const glm::ivec2 &value);
+    void operator =(const glm::vec3 &value);
+    void operator =(const glm::vec4 &value);
+    void operator =(const glm::mat3 &value);
+    void operator =(const glm::mat4 &value);
+
+    // Блокируем случайное использование других типов.
+    void operator =(bool) = delete;
+    void operator =(double value) = delete;
+    void operator =(unsigned value) = delete;
+    void operator =(const void *) = delete;
+
+private:
+    int m_location = -1;
+};
+```
+
+В реализации этого класса каждый оператор присваивания вызывает нужную функцию из семейства функций [glUniform*](https://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform.xml):
+
+```cpp
+CProgramUniform::CProgramUniform(int location)
+    : m_location(location)
+{
+}
+
+void CProgramUniform::operator =(int value)
+{
+    glUniform1i(m_location, value);
+}
+
+void CProgramUniform::operator =(float value)
+{
+    glUniform1f(m_location, value);
+}
+
+void CProgramUniform::operator =(const glm::vec2 &value)
+{
+    glUniform2fv(m_location, 1, glm::value_ptr(value));
+}
+
+void CProgramUniform::operator =(const glm::ivec2 &value)
+{
+    glUniform2iv(m_location, 1, glm::value_ptr(value));
+}
+
+void CProgramUniform::operator =(const glm::vec3 &value)
+{
+    glUniform3fv(m_location, 1, glm::value_ptr(value));
+}
+
+void CProgramUniform::operator =(const glm::vec4 &value)
+{
+    glUniform4fv(m_location, 1, glm::value_ptr(value));
+}
+
+void CProgramUniform::operator =(const glm::mat3 &value)
+{
+    glUniformMatrix3fv(m_location, 1, false, glm::value_ptr(value));
+}
+
+void CProgramUniform::operator =(const glm::mat4 &value)
+{
+    glUniformMatrix4fv(m_location, 1, false, glm::value_ptr(value));
+}
+```
+
+Установим значение uniform-переменной TWIST в `0.5f` и выведем Зонтик Уитни с использованием шейдера `twist.vert` в режиме Wireframe:
+
+```cpp
+m_programTwist.Use();
+CProgramUniform twist = m_programTwist.FindUniform("TWIST");
+twist = 0.5f;
+
+// Если программа активна, используем её и рисуем поверхность
+// в режиме Wireframe.
+if (m_programEnabled)
+{
+    m_programTwist.Use();
+    CProgramUniform twist = m_programTwist.FindUniform("TWIST");
+    twist = m_twistController.GetCurrentValue();
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    m_umbrellaObj.Draw();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+else
+{
+    m_programFixed.Use();
+    m_umbrellaObj.Draw();
+}
+```
+
+Получим такое изображение:
+
+![Иллюстрация](figures/twist_0.5.png)
+
+## Плавное изменения uniform-переменной TWIST
+
+Мы добавим вспомогательный класс, чтобы позволить пользователю программы с помощью клавиш. Класс предоставляет методы Update, OnKeyDown и метод для получения текущего значения параметра twist:
+
+```cpp
+#pragma once
+#include <SDL2/SDL_events.h>
+
+class CTwistValueController
+{
+public:
+    void Update(float deltaSeconds);
+    bool OnKeyDown(const SDL_KeyboardEvent &event);
+
+    float GetCurrentValue()const;
+
+private:
+    float m_currentTwistValue = 0;
+    float m_nextTwistValue = 0;
+};
+```
+
+В полях m_nextTwistValue и m_currentTwistValue хранится соответственно ожидаемое и догоняющее значения twist. Это позволяет сделать плавную анимацию изменения закручивания с помощью небольшого обновления `m_currentTwistValue` на каждом кадре. В то же время поле `m_nextTwistValue` хранит мгновенно изменяемое значение twist, которое увеличивается при нажатии клавиши "+" и уменьшается при нажатии "-".
+
+Методы OnKeyDown и GetCurrentValue реализованы просто:
+
+```cpp
+namespace
+{
+const float MIN_TWIST = -2.f;
+const float MAX_TWIST = 2.f;
+const float NEXT_TWIST_STEP = 0.2f;
+const float TWIST_CHANGE_SPEED = 1.f;
+}
+
+bool CTwistValueController::OnKeyDown(const SDL_KeyboardEvent &event)
+{
+    switch (event.keysym.sym)
+    {
+    // обрабатываем "=", потому что клавиша "+" - это "="+Shift
+    case SDLK_EQUALS:
+    case SDLK_PLUS:
+        m_nextTwistValue = std::min(m_nextTwistValue + NEXT_TWIST_STEP, MAX_TWIST);
+        return true;
+    case SDLK_MINUS:
+        m_nextTwistValue = std::max(m_nextTwistValue - NEXT_TWIST_STEP, MIN_TWIST);
+        return true;
+    default:
+        return false;
+    }
+}
+
+float CTwistValueController::GetCurrentValue() const
+{
+    return m_currentTwistValue;
+}
+```
+
+Метод Update реализует основную фишку класса: если значения m_currentTwistValue и m_nextTwistValue различаются, то значение m_currentTwistValue чуть-чуть изменится в сторону m_nextTwistValue, при этом прирост значения зависит от параметра метода `deltaSeconds`:
+
+```cpp
+// При каждом вызове Update величина twist "догоняет" назначенное значение.
+void CTwistValueController::Update(float deltaSeconds)
+{
+    const float twistDiff = fabsf(m_nextTwistValue - m_currentTwistValue);
+    if (twistDiff > std::numeric_limits<float>::epsilon())
+    {
+        const float sign = (m_nextTwistValue > m_currentTwistValue) ? 1 : -1;
+        const float growth = deltaSeconds * TWIST_CHANGE_SPEED;
+        if (growth > twistDiff)
+        {
+            // расчётный прирост выше, чем реальная разница
+            // между значениями, и мы просто присваиваем
+            m_currentTwistValue = m_nextTwistValue;
+        }
+        else
+        {
+            // прибавляем небольшой прирост к текущему значению twist.
+            m_currentTwistValue += sign * growth;
+        }
+    }
+}
+```
+
+## Результат
+
+Программа обрабатывает три способа для управления шейдером:
+
+- "+" ("=") увеличивает параметр закручивания
+- "-" уменьшает параметр закручивания
+- "Пробел" отключает шейдер закручивания и включает фиксированный конвейер
+
+Для удобства информация о сочетаниях клавиш добавлена в заголовок окна, определяемый в функци `main`:
+
+```cpp
+int main(int, char *[])
+{
+    try
+    {
+        CWindow window;
+        window.Show("OpenGL Demo (+/- to control twist, SPACE to disable shader)", {800, 600});
+        CWindowClient client(window);
+        window.DoMainLoop();
+    }
+    catch (const std::exception &ex)
+    {
+        const char *title = "Fatal Error";
+        const char *message = ex.what();
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, message, nullptr);
+    }
+
+    return 0;
+}
+```
+
+После запуска программы мы получаем следующее:
+
+![Иллюстрация](figures/lesson_15_preview.png)
+

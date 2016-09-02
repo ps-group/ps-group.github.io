@@ -12,7 +12,7 @@ permalink: /opengl/
 
 ## Часть I: старый добрый OpenGL 1.x
 
-Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_1](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_1)
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_1](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_1)
 
  1. [OpenGL и SDL2](/opengl/lesson_1.html)
  2. [Изучаем возможности OpenGL](/opengl/lesson_2.html)
@@ -27,7 +27,7 @@ permalink: /opengl/
 
 - [Используем Apitrace для отладки OpenGL](/opengl/apitrace.html)
 
-Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_2](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_2)
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_2](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_2)
 
  1. [Рисуем кубики](/opengl/lesson_7.html)
  2. [Практикуемся с матрицами](/opengl/lesson_8.html)
@@ -42,10 +42,11 @@ permalink: /opengl/
 
 - [Как получить OpenGL 3.2](/opengl/opengl_3_2.html)
 
-Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_3](https://github.com/PS-Group/cg_course_examples/blob/dev/chapter_3)
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_3](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_3)
 
  1. [Куда исчезают фонарики](/opengl/lesson_13.html)
- 1. [Шахматный окрас](/opengl/lesson_14.html)
+ 2. [Шахматный окрас](/opengl/lesson_14.html)
+ 3. [Скручивание](/opengl/lesson_15.html)
 
 Часть III будет готова к сентябрю.
 
