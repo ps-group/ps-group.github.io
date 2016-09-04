@@ -137,7 +137,7 @@ glm::vec3 GetPositionOnSphere(float u, float v)
 
 Настало время украсить поверхность сферы текстурой. Для примера мы возьмём текстуру Земли:
 
-![Текстура](figures/daily_earth.jpg)
+![Текстура](figures/daily_earth.png)
 
 Двумерные текстуры в OpenGL хранятся в видеопамяти, и загружаются программистом как массивы пикселей с помощью [glTexImage2D](https://www.opengl.org/sdk/docs/man2/xhtml/glTexImage2D.xml). Массив пикселей из BMP-файла можно получить с помощью загрузки объекта [SDL_Surface](http://wiki.libsdl.org/SDL_Surface) функцией [SDL_LoadBMP](http://wiki.libsdl.org/SDL_LoadBMP). Но что делать, если текстуру загрузить не удалось? Благодаря следованию правилам современного C++ и применению умных указателей, мы можем использовать механизм исключений и не бояться утечек ресурсов. Добавим обработку фатальных исключений программы в main:
 
@@ -212,7 +212,7 @@ public:
     void DoWhileBinded(TFunction && fn)
     {
         Bind();
-        // При выходе из функции надо обязательно сделать Unbind.
+        // При выходе из функции гарантированно выполняем Unbind.
         BOOST_SCOPE_EXIT_ALL() {
             Unbind();
         };
