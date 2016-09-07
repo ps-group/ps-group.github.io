@@ -10,8 +10,9 @@ permalink: /sfml/
 
 ## Задания
 
- 1. [Аналоговые часы на SFML](/sfml/1.2-clocks.html)
- 2. [Мини-игра на SFML](/sfml/1.4-minigames.html)
+ 1. [Рефакторинг C++ кода](/sfml/1.1-refactor.html)
+ 2. [Аналоговые часы на SFML](/sfml/1.2-clocks.html)
+ 3. [Мини-игра на SFML](/sfml/1.4-minigames.html)
 
 ## Частые ошибки
 
