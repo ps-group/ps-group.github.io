@@ -11,8 +11,15 @@ collections:
   opengl:
     output: true
     permalink: '/opengl/:path'
+  sfml:
+    output: true
+    permalink: '/sfml/:path'
 defaults:
     - scope:
         type: opengl
       values:
         layout: opengl
+    - scope:
+        type: sfml
+      values:
+        layout: sfml
