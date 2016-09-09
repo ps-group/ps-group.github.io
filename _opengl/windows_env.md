@@ -26,11 +26,13 @@ title: 'Настройка окружения на Windows'
 
 ![Скриншот](img/property_manager_tab.png)
 
-Затем раскройте список Property Sheets (внешних файлов, которые среда сборки MSBuild интерпретирует при загрузке проекта vcxproj). Добавьте туда новый Property Sheet:
+Затем раскройте список Property Sheets (внешних файлов, которые среда сборки MSBuild интерпретирует при загрузке проекта vcxproj). Вы можете добавить туда новый Property Sheet:
 
 ![Скриншот](img/property_manager_add_sheet.png)
 
-После этого можно настроить Property Sheet так же, как настраивается проект:
+Вы также можете вместо добавления изменить существующий Property Sheet с названием "Microsoft.Cpp.Win32.user" (или "Microsoft.Cpp.x64.user" для 64-битной конфигурации), поскольку этот Property Sheet лежит в личном каталоге пользователя и по умолчанию включается во все C++-проекты системой сборки MSBuild.
+
+Выбранный Property Sheet можно настроить так же, как настраивается проект:
 
 ![Скриншот](img/customize_property_sheet.png)
 
