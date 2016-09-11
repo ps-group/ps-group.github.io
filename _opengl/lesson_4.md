@@ -224,6 +224,7 @@ void CMovableFlower::Draw() const
 - Добавить в `CWindow` обработчики событий, позволяющие реализовать захват и перетаскивание цветка.
 
 Спецификация метода HitTest будет выглядеть примерно так:
+
 ```cpp
 class CFlower
 {
@@ -255,6 +256,7 @@ bool CMovableFlower::HitTest(const glm::vec2 &point) const
 ![Иллюстрация](figures/flower_hit_test.png)
 
 #### метод CFlower::HitTest
+
 ```cpp
 bool CFlower::HitTest(const glm::vec2 &point) const
 {
@@ -273,6 +275,7 @@ bool CFlower::HitTest(const glm::vec2 &point) const
 Теперь изменим `sdl::DispatchEvent`, но сначала упростим интерфейс `IInputEventAcceptor`:
 
 #### класс IInputEventAcceptor
+
 ```cpp
 // Принимает события SDL, разделённые по категориям.
 // Деление условное и может быть изменено.
@@ -292,6 +295,7 @@ public:
 Новая диспетчеризация событий:
 
 #### листинг DispatchEvent.cpp
+
 ```cpp
 #include "stdafx.h"
 #include "DispatchEvent.h"
@@ -365,6 +369,7 @@ private:
 Реализовать такой обход можно на итераторах и сырых циклах, но в современном C++ принято вместо этого использовать функциональные алгоритмы и интервалы. Воспользуемся инвертирующим адаптером `boost::adaptors::reverse` и алгоритмом `find_if`, соединённым с лямбда-функцией:
 
 #### методы OnDrag*
+
 ```cpp
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/adaptor/reversed.hpp>
@@ -405,4 +410,4 @@ void CWindow::OnDragEnd(const glm::vec2 &pos)
 
 Подумайте, как можно исправить этот баг с помощью нового поля `glm::vec2 m_dragOffset` класса `CWindow`.
 
-Своё решение можете сравнить с [полным примером к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_04).
+Своё решение можете сравнить с [полным примером к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_1/lesson_04).
