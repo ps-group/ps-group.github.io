@@ -9,6 +9,7 @@ permalink: /sfml/
 - [соглашения о кодировании](/sfml/coding_conventions.html)
 - [рабочий процесс в течении проекта](/sfml/workflow-knowledge.html)
 - [как правильно применять Интернет в учёбе](/sfml/how-to-use-web.html)
+- [рекомендации по работе с Git](/sfml/git-workflow.html)
 
 ## Задания
 
