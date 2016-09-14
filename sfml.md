@@ -16,6 +16,17 @@ permalink: /sfml/
  2. [Аналоговые часы на SFML](/sfml/1.2-clocks.html)
  3. [Мини-игра на SFML](/sfml/1.4-minigames.html)
 
+## Пример реализации клона Packman
+
+В примере новые возможности добавляются отдельными слоями. Каждый пример сопровождается статьей и имеет свой каталог [в репозитории sfml-packman](https://github.com/ps-group/sfml-packman).
+
+- [Создаём проект](/packman/1.html)
+- [Управление персонажем](/packman/2.html)
+- [Стены и проходы лабиринта](/packman/3.html)
+- [Обработка столкновений](/packman/4.html)
+- [Призраки](/packman/5.html)
+- [Печенье](/packman/6.html)
+
 ## Частые ошибки
 
 - [Проектирование собственных структур на C++](/sfml/structs-design.html)

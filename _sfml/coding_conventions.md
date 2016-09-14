@@ -132,10 +132,6 @@ void foo()
 }
 ```
 
-### Запрещённые элементы языка
-
-В рамках курса ради уменьшения числа ошибок введены [искуственные ограничения для C++](../common-issues/cpp-limitations.md).
-
 ### Дополнительные материалы
 - Стив Макконнелл, "Совершенный Код" ("Code Complete")
 - [видео доклада "Цена ошибки" на C++ Russia 2015](https://www.youtube.com/watch?v=fqmk67ivDTU&index=9&list=PLrs_DcVZNww22J_uDSJn7bLNOlly7n8p2)

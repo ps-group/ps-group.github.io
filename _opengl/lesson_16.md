@@ -33,43 +33,55 @@ vec4 texture2D(sampler2D sampler, vec2 coord [, float bias]);
 
 ## Разрабатываем каркас приложения
 
-Для демонстрации наложения текстуры мы воспользуемся одним из предыдущих примеров, в котором на сферу накладывалась текстура Земли. Непосредственно операции с текстурой будут выглядеть так:
+Для демонстрации наложения текстуры мы воспользуемся одним из предыдущих примеров, в котором на сферу накладывалась текстура Земли. Однако, ради лучшего разделения кода мы выделим класс CEarthProgramContext, который будет загружать и настраивать не только шейдерную программу для рисования Земли, но и всё данные этой программы:
+
+### EarthProgramContext.h
 
 ```cpp
-class CWindowClient : public CAbstractWindowClient
+#pragma once
+#include "libchapter3.h"
+
+class CEarthProgramContext
 {
 public:
-    // ... публичный интерфейс
+    CEarthProgramContext();
+
+    void Use();
 
 private:
     CTexture2DUniquePtr m_pEarthTexture;
-    // ... остальные поля
+    CShaderProgram m_programEarth;
 };
+```
 
-CWindowClient::CWindowClient(CWindow &window)
+### EarthProgramContext.cpp
+
+```cpp
+#include "stdafx.h"
+#include "EarthProgramContext.h"
+
+CEarthProgramContext::CEarthProgramContext()
 {
-    // ... инициализация полей класса
+    std::string path = CFilesystemUtils::GetResourceAbspath("res/img/earth_colormap.jpg");
+    m_pEarthTexture = LoadTexture2D(path);
 
-    std::string path = CFilesystemUtils::GetResourceAbspath("res/img/earth.bmp");
-    m_pEarthTexture = LoadTexture2DFromBMP(path);
+    const std::string vertShader = CFilesystemUtils::LoadFileAsString("res/copytexture.vert");
+    const std::string fragShader = CFilesystemUtils::LoadFileAsString("res/copytexture.frag");
+    m_programEarth.CompileShader(vertShader, ShaderType::Vertex);
+    m_programEarth.CompileShader(fragShader, ShaderType::Fragment);
+    m_programEarth.Link();
 }
 
-void CWindowClient::OnUpdateWindow(float deltaSeconds)
+void CEarthProgramContext::Use()
 {
-    // ... настройка камеры и освещения
+    m_pEarthTexture->Bind();
 
-    m_programQueue.front()->Use();
-    m_pEarthTexture->DoWhileBinded([this]{
-        m_sphereObj.Draw();
-    });
+    m_programEarth.Use();
+    m_programEarth.FindUniform("colormap") = 0;
 }
 ```
 
-Запустив программу, убедимся, что сфера действительно рисуется:
-
-![Скриншот](figures/sphere_lesson_16.png)
-
-## Простые шейдеры, применяющие текстуры
+### Простые шейдеры, применяющие текстуры
 
 В первом варианте шейдеров пиксели текстуры будут напрямую копироваться на поверхность, без учёта освещения и без добавления дополнительных деталей. Вершинный шейдер просто копирует значение во встроенную varying-переменную gl_TexCoord:
 
@@ -88,12 +100,12 @@ void main()
 Фрагментный шейдер использует функцию texture2D для получения цвета фрагмента из цвета соответствующего пикселя текстуры.
 
 ```glsl
-uniform sampler2D mainTexture;
+uniform sampler2D colormap;
 
 void main()
 {
     // Calculate fragment color by fetching the texture
-    gl_FragColor = texture2D(mainTexture, gl_TexCoord[0].st);
+    gl_FragColor = texture2D(colormap, gl_TexCoord[0].st);
 }
 ```
 
@@ -121,9 +133,9 @@ void main()
 
 Поскольку цвет облаков, преимущественно, белый, либо серый, отводить 24-битное изображение для их хранения было бы расточительно. Поэтому на хранение информации об облачности можно отвести всего 8 бит. Как же разумно распорядиться оставшимися разрядами? Одним из возможных вариантов решения данной задачи является хранение дополнительной информации о земной поверхности. Например, о том, принадлежит ли данная точка сферы суше или воде. Используя эту информацию, фрагментный шейдер при расчете освещения мог бы использовать различные модели освещения для суши и воды. 
 
-Используемая нами дополнительная текстура Земли пока что кодирует лишь маску облаков и выглядит следующим образом:
+Используемая нами дополнительная текстура Земли пока что кодирует лишь маску облаков и выглядит следующим образом (показана уменьшенная копия):
 
-![Текстура](figures/earth_clouds.png)
+![Текстура](figures/earth_red_clouds.jpg)
 
 Величина красный канала изображения хранит инвертированную интенсивность облаков, т.е. чем ближе значение канала в данном пикселе к нулю, тем выше облачность. В соответствии с этим обновим фрагментный шейдер:
 
@@ -318,3 +330,99 @@ void main()
 ```
 
 ![Скриншот](figures/lesson_16_phong_earth.png)
+
+## Добавляем ночную Землю
+
+Ночью Земля светится огнями тысяч городов:
+
+![Текстура](figures/earth_at_night.jpg)
+
+Мы доработаем шейдер, чтобы накладывать текстуру ночной Земли на ту часть планеты, которая повёрнута обратной стороной к источнику света, симулирующему Солнце.
+
+### Добавляем текстуру ночной Земли
+
+В класс CEarthProgramContext мы добавим новое поле `CTexture2DUniquePtr m_pNightTexture;`. Инициализировать его будем также в конструкторе:
+
+```cpp
+CEarthProgramContext::CEarthProgramContext()
+{
+    std::string path = CFilesystemUtils::GetResourceAbspath("res/img/earth_colormap.jpg");
+    m_pEarthTexture = LoadTexture2D(path);
+    path = CFilesystemUtils::GetResourceAbspath("res/img/earth_clouds.jpg");
+    m_pCloudTexture = LoadTexture2D(path);
+    path = CFilesystemUtils::GetResourceAbspath("res/img/earth_at_night.jpg");
+    m_pNightTexture = LoadTexture2D(path);
+    // ...остальной код пропущен
+}
+```
+
+При применении программы к контексту OpenGL будем использовать текстурный слот с индексом 2:
+
+```cpp
+
+void CEarthProgramContext::Use()
+{
+    // переключаемся на текстурный слот #2
+    glActiveTexture(GL_TEXTURE2);
+    m_pNightTexture->Bind();
+    // переключаемся на текстурный слот #1
+    glActiveTexture(GL_TEXTURE1);
+    m_pCloudTexture->Bind();
+    // переключаемся обратно на текстурный слот #0
+    // перед началом рендеринга активным будет именно этот слот.
+    glActiveTexture(GL_TEXTURE0);
+    m_pEarthTexture->Bind();
+
+    m_programEarth.Use();
+    m_programEarth.FindUniform("colormap") = 0; // GL_TEXTURE0
+    m_programEarth.FindUniform("surfaceDataMap") = 1; // GL_TEXTURE1
+    m_programEarth.FindUniform("nightColormap") = 2; // GL_TEXTURE2
+}
+```
+
+### Изменяем фрагментный шейдер
+
+Внутри фрагментного шейдера потребуется сделать несколько изменений:
+
+- компоненту освещения ambient лучше убрать, т.к. теперь мы используем разные текстуры для ночной и дневной сторон Земли, а модель ambient расчитана как унифицированное добавление к цвету, грубо компенсирующее рассеяное освещение окружающей среды
+- для запроса данных текстуры заведём новую uniform-переменную:
+
+```
+// ...other uniforms...
+uniform sampler2D nightColormap;
+
+// ...varying variables, structures and functions...
+
+void main()
+{
+    LightFactors factors = GetLight0Factors();
+
+    // Get base color by fetching the texture
+    vec4 color = texture2D(colormap, gl_TexCoord[0].st);
+    // Get night earth color by fetching the texture
+    vec4 nightColor = texture2D(nightColormap, gl_TexCoord[0].st);
+    // Extract surface data where each channel has own meaning
+    vec4 surfaceData = texture2D(surfaceDataMap, gl_TexCoord[0].st);
+    // Red channel keeps inverted cloud luminance
+    float cloudGray = surfaceData.r;
+    // Green channel keeps 1 for water and 0 for earth.
+    float waterFactor = surfaceData.g;
+
+    vec4 diffuseColor = mix(color, vec4(factors.diffuse), cloudGray);
+    vec4 diffuseIntensity = mix(nightColor, diffuseColor, vec4(factors.diffuse))
+            * gl_FrontLightProduct[0].diffuse;
+
+    vec4 specularIntensity = waterFactor * factors.specular
+            * gl_FrontLightProduct[0].specular;
+
+    gl_FragColor = diffuseIntensity + specularIntensity;
+}
+```
+
+### Результат
+
+После запуска получим изображение, где дневная сторона Земли плавно переходит в ночную, на которой горит множество огней больших городов.
+
+![Скриншот](figures/lesson_16_preview.png)
+
+Полный код к данной статье вы можете найти [в каталоге примера в репозитории на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_16).
