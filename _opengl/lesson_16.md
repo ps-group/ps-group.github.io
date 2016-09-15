@@ -81,10 +81,193 @@ void CEarthProgramContext::Use()
 }
 ```
 
-### Простые шейдеры, применяющие текстуры
+### Вращение сферы
+
+Применение шейдерной программы и отображение сферы будет выполняться в классе CWindowClient. На сцене присутствует сфера (с белым материалом) и источник света. Для большей наглядности сфера получит вращение вокруг своей оси.
+
+Ниже показано определение класса CWindowClient:
+
+```cpp
+#pragma once
+#include "libchapter3.h"
+#include "IdentitySphere.h"
+#include "EarthProgramContext.h"
+#include <vector>
+
+class CWindowClient
+        : public CAbstractWindowClient
+{
+public:
+    CWindowClient(CWindow &window);
+
+protected:
+    // IWindowClient interface
+    void OnUpdateWindow(float deltaSeconds) override;
+    void OnKeyDown(const SDL_KeyboardEvent &) override;
+    void OnKeyUp(const SDL_KeyboardEvent &) override;
+
+private:
+    void CheckOpenGLVersion();
+    void UpdateRotation(float deltaSeconds);
+    void SetupView(const glm::ivec2 &size);
+
+    CIdentitySphere m_sphereObj;
+    CCamera m_camera;
+    CPhongModelMaterial m_sphereMat;
+    CDirectedLightSource m_sunlight;
+    CEarthProgramContext m_programContext;
+    glm::mat4 m_earthTransform;
+};
+```
+
+В реализации, помимо прочего, проверяется версия OpenGL: для работы шейдеров и поддержки нескольких текстур достаточно верси 2.0
+
+```cpp
+void CWindowClient::CheckOpenGLVersion()
+{
+    // Мы требуем наличия OpenGL 2.0
+    // В OpenGL 2.0 шейдерные программы вошли в спецификацию API.
+    // Ещё в OpenGL 1.2 мультитекстурирование также вошло в спецификацию,
+    // см. http://opengl.org/registry/specs/ARB/multitexture.txt
+    if (!GLEW_VERSION_2_0)
+    {
+        throw std::runtime_error("Sorry, but OpenGL 2.0 is not available");
+    }
+}
+```
+
+Полный листинг `WindowClient.cpp` представлен ниже:
+
+```
+#include "stdafx.h"
+#include "WindowClient.h"
+
+namespace
+{
+const float CAMERA_INITIAL_ROTATION = 0.1f;
+const float CAMERA_INITIAL_DISTANCE = 3;
+const int SPHERE_PRECISION = 40;
+
+void SetupOpenGLState()
+{
+    // включаем механизмы трёхмерного мира.
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+}
+
+template <class T>
+void DoWithTransform(const glm::mat4 &mat, T && callback)
+{
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(mat));
+    callback();
+    glPopMatrix();
+}
+
+void SetupModelViewProjection(const glm::mat4 &modelView, const glm::mat4 &projection)
+{
+    glLoadMatrixf(glm::value_ptr(modelView));
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(glm::value_ptr(projection));
+    glMatrixMode(GL_MODELVIEW);
+}
+}
+
+CWindowClient::CWindowClient(CWindow &window)
+    : CAbstractWindowClient(window)
+    , m_sphereObj(SPHERE_PRECISION, SPHERE_PRECISION)
+    , m_camera(CAMERA_INITIAL_ROTATION, CAMERA_INITIAL_DISTANCE)
+    , m_sunlight(GL_LIGHT0)
+{
+    const glm::vec3 SUNLIGHT_DIRECTION = {-1.f, 0.2f, 0.7f};
+    const glm::vec4 WHITE_RGBA = {1, 1, 1, 1};
+    const glm::vec4 BLACK_RGBA = {0, 0, 0, 1};
+
+    window.SetBackgroundColor(BLACK_RGBA);
+    CheckOpenGLVersion();
+    SetupOpenGLState();
+
+    m_sphereMat.SetDiffuse(WHITE_RGBA);
+    m_sphereMat.SetAmbient(WHITE_RGBA);
+    m_sphereMat.SetSpecular(0.7f * WHITE_RGBA);
+    m_sphereMat.SetShininess(30);
+
+    m_sunlight.SetDirection(SUNLIGHT_DIRECTION);
+    m_sunlight.SetDiffuse(WHITE_RGBA);
+    m_sunlight.SetAmbient(0.4f * WHITE_RGBA);
+    m_sunlight.SetSpecular(WHITE_RGBA);
+}
+
+void CWindowClient::OnUpdateWindow(float deltaSeconds)
+{
+    UpdateRotation(deltaSeconds);
+    m_camera.Update(deltaSeconds);
+    SetupView(GetWindow().GetWindowSize());
+
+    m_sphereMat.Setup();
+    m_sunlight.Setup();
+    m_programContext.Use();
+
+    DoWithTransform(m_earthTransform, [&] {
+        m_sphereObj.Draw();
+    });
+}
+
+void CWindowClient::OnKeyDown(const SDL_KeyboardEvent &event)
+{
+    m_camera.OnKeyDown(event);
+}
+
+void CWindowClient::OnKeyUp(const SDL_KeyboardEvent &event)
+{
+    m_camera.OnKeyUp(event);
+}
+
+void CWindowClient::CheckOpenGLVersion()
+{
+    // Мы требуем наличия OpenGL 2.0
+    // В OpenGL 2.0 шейдерные программы вошли в спецификацию API.
+    // Ещё в OpenGL 1.2 мультитекстурирование также вошло в спецификацию,
+    // см. http://opengl.org/registry/specs/ARB/multitexture.txt
+    if (!GLEW_VERSION_2_0)
+    {
+        throw std::runtime_error("Sorry, but OpenGL 2.0 is not available");
+    }
+}
+
+void CWindowClient::UpdateRotation(float deltaSeconds)
+{
+    const float ROTATION_SPEED = 0.2f;
+    const float deltaRotation = ROTATION_SPEED * deltaSeconds;
+    m_earthTransform = glm::rotate(m_earthTransform, deltaRotation,
+                                   glm::vec3(0, 1, 0));
+}
+
+void CWindowClient::SetupView(const glm::ivec2 &size)
+{
+    const glm::mat4 mv = m_camera.GetViewTransform();
+
+    // Матрица перспективного преобразования вычисляется функцией
+    // glm::perspective, принимающей угол обзора, соотношение ширины
+    // и высоты окна, расстояния до ближней и дальней плоскостей отсечения.
+    const float fieldOfView = glm::radians(70.f);
+    const float aspect = float(size.x) / float(size.y);
+    const float zNear = 0.01f;
+    const float zFar = 100.f;
+    const glm::mat4 proj = glm::perspective(fieldOfView, aspect, zNear, zFar);
+
+    glViewport(0, 0, size.x, size.y);
+    SetupModelViewProjection(mv, proj);
+}
+```
+
+## Простые шейдеры, применяющие текстуры
 
 В первом варианте шейдеров пиксели текстуры будут напрямую копироваться на поверхность, без учёта освещения и без добавления дополнительных деталей. Вершинный шейдер просто копирует значение во встроенную varying-переменную gl_TexCoord:
 
+### Шейдер copytexture.vert
 ```glsl
 void main()
 {
@@ -99,6 +282,7 @@ void main()
 
 Фрагментный шейдер использует функцию texture2D для получения цвета фрагмента из цвета соответствующего пикселя текстуры.
 
+### Шейдер copytexture.frag
 ```glsl
 uniform sampler2D colormap;
 
@@ -121,7 +305,7 @@ uniform sampler2D mainTexture;
 void main()
 {
     // Calculate fragment color by fetching the texture
-    gl_FragColor = 1.0 - texture2D(mainTexture, gl_TexCoord[0].st);
+    gl_FragColor = vec4(1.0) - texture2D(mainTexture, gl_TexCoord[0].st);
 }
 ```
 
@@ -139,6 +323,7 @@ void main()
 
 Величина красный канала изображения хранит инвертированную интенсивность облаков, т.е. чем ближе значение канала в данном пикселе к нулю, тем выше облачность. В соответствии с этим обновим фрагментный шейдер:
 
+### Шейдер cloud_earth.frag
 ```glsl
 uniform sampler2D colormap;
 uniform sampler2D surfaceDataMap;
@@ -149,8 +334,8 @@ void main()
     vec4 color = texture2D(colormap, gl_TexCoord[0].st);
     // Extract surface data where each channel has own meaning
     vec4 surfaceData = texture2D(surfaceDataMap, gl_TexCoord[0].st);
-    // Red channel keeps inverted cloud luminance
-    float cloudGray = 1.0 - surfaceData.r;
+    // Red channel keeps cloud luminance
+    float cloudGray = surfaceData.r;
     vec4 cloudsColor = vec4(cloudGray, cloudGray, cloudGray, 0.0);
     gl_FragColor = color + cloudsColor;
 }
@@ -163,13 +348,22 @@ void main()
 - для включения слота используется функция-команда [glActiveTexture(GLenum slot)](https://www.opengl.org/sdk/docs/man/docbook4/xhtml/glActiveTexture.xml), после вызова которой все вызовы glBindTexture будут привязывать текстуру к слоту с указанным номером
 
 ```cpp
-void CWindowClient::OnUpdateWindow(float deltaSeconds)
+CEarthProgramContext::CEarthProgramContext()
 {
-    m_camera.Update(deltaSeconds);
-    SetupView(GetWindow().GetWindowSize());
+    std::string path = CFilesystemUtils::GetResourceAbspath("res/img/earth_colormap.jpg");
+    m_pEarthTexture = LoadTexture2D(path);
+    path = CFilesystemUtils::GetResourceAbspath("res/img/earth_clouds.jpg");
+    m_pCloudTexture = LoadTexture2D(path);
 
-    m_sunlight.Setup();
+    const std::string vertShader = CFilesystemUtils::LoadFileAsString("res/copytexture.vert");
+    const std::string fragShader = CFilesystemUtils::LoadFileAsString("res/cloud_earth.frag");
+    m_programEarth.CompileShader(vertShader, ShaderType::Vertex);
+    m_programEarth.CompileShader(fragShader, ShaderType::Fragment);
+    m_programEarth.Link();
+}
 
+void CEarthProgramContext::Use()
+{
     // переключаемся на текстурный слот #1
     glActiveTexture(GL_TEXTURE1);
     m_pCloudTexture->Bind();
@@ -178,25 +372,19 @@ void CWindowClient::OnUpdateWindow(float deltaSeconds)
     glActiveTexture(GL_TEXTURE0);
     m_pEarthTexture->Bind();
 
-    // Активной будет первая программа из очереди.
-    const CShaderProgram &program = *m_programQueue.front();
-    program.Use();
-    program.FindUniform("colormap") = 0; // GL_TEXTURE0
-    program.FindUniform("surfaceDataMap") = 1; // GL_TEXTURE1
-
-    m_pEarthTexture->DoWhileBinded([this]{
-        m_sphereObj.Draw();
-    });
+    m_programEarth.Use();
+    m_programEarth.FindUniform("colormap") = 0; // GL_TEXTURE0
+    m_programEarth.FindUniform("surfaceDataMap") = 1; // GL_TEXTURE1
 }
 ```
 
 ![Скриншот](figures/lesson_16_clouds.png)
 
-## Совмещаем с моделью освещения Фонга
+## Добавляем освещение по модели Фонга
 
 В данный момент планета отображается без учёта освещения от Солнца. Теперь мы совместим показанный в одном из прошлых примеров шейдер для расчёта освещения по Фонгу с уже написанным шейдером.
 
-В вершинном шейдере будут объявлены две varying-переменные для нормали и для направления на камеру, чтобы расчитывать интенсивность освещения по модели Фонга попиксельно, и тем самым получать плавную освещённость без артефактов. Также происходит копирование текстурных координат.
+В вершинном шейдере будут объявлены две varying-переменные для нормали и для направления на камеру, чтобы расчитывать интенсивность освещения по модели Фонга попиксельно, и тем самым получать плавную освещённость без артефактов. Также происходит копирование текстурных координат.ч
 
 ```glsl
 varying vec3 normal;
@@ -209,6 +397,13 @@ void main(void)
     gl_Position = ftransform();
     gl_TexCoord[0] = gl_MultiTexCoord0;
 }
+```
+
+Этот шейдер теперь будет использоваться вместо `copytexture.vert` в классе CEarthProgramContext:
+
+```cpp
+const std::string vertShader = CFilesystemUtils::LoadFileAsString("res/cloud_earth.vert");
+const std::string fragShader = CFilesystemUtils::LoadFileAsString("res/cloud_earth.frag");
 ```
 
 Мы также добавим фрагментный шейдер, в котором выполняется одновременно освещение по модели Фонга и уже рассмотренное ранее совмещение двух текстур (цветовой карты поверхности Земли и карты облаков).
@@ -247,9 +442,9 @@ LightFactors GetLight0Factors()
 }
 ```
 
-При совмещении цветов облаков и поверхности земли мы применим фунцию mix.
-
 ### Функция mix
+
+При совмещении цветов облаков и поверхности земли мы применим фунцию mix.
 
 ```glsl
 float mix(float x, float y, float a)  
@@ -260,14 +455,16 @@ vec4 mix(vec4 x, vec4 y, vec4 a)
 
 Функция mix возвращает результат линейного смешения между x и y, то есть произведение `x * (1 - a)`, сложенное с произведением `y * a`. Входные параметры могут быть скалярами или векторами с плавающей запятой. В случае использования векторов операция совершается покомпонентно.
 
+```glsl
 float mix(float x, float y, float a)  
 vec2 mix(vec2 x, vec2 y, float a)  
 vec3 mix(vec3 x, vec3 y, float a)  
 vec4 mix(vec4 x, vec4 y, float a)
+```
 
 Есть также перегрузка функции `mix`, в которой третий параметр всегда является скаляром с плавающей точкой.
 
-### Листинг фрагментного шейдера
+### Шейдер cloud_earth.frag
 
 ```glsl
 uniform sampler2D colormap;
@@ -311,8 +508,8 @@ void main()
     vec4 color = texture2D(colormap, gl_TexCoord[0].st);
     // Extract surface data where each channel has own meaning
     vec4 surfaceData = texture2D(surfaceDataMap, gl_TexCoord[0].st);
-    // Red channel keeps inverted cloud luminance
-    float cloudGray = 1.0 - surfaceData.r;
+    // Red channel keeps cloud luminance
+    float cloudGray = surfaceData.r;
 
     vec4 diffuseColor = mix(color, vec4(factors.diffuse), cloudGray);
     vec4 diffuseIntensity = diffuseColor * factors.diffuse
@@ -330,6 +527,47 @@ void main()
 ```
 
 ![Скриншот](figures/lesson_16_phong_earth.png)
+
+## Разный расчёт освещения для суши и воды
+
+На данном этапе материал планеты имеет компоненту освещения specular, который даёт блик как на поверхности Земли, так и на воде. Более реалистичным выглядит применение компоненты освещения specular только для водной поверхности. Чтобы это реализовать, мы добавим маску водной поверхности в зелёный канал изображения, использованного ранее для облаков (показана уменьшенная копия текстуры):
+
+![Текстура](figures/earth_clouds.jpg)
+
+Во фрагментном шейдере будем получать интенсивность воды (т.е. 0.0 для суши и 1.0 для воды) в переменную `waterFactor`, на которую умножается величина бликовой (specular) компоненты освещения:
+
+```glsl
+void main()
+{
+    LightFactors factors = GetLight0Factors();
+
+    // Get base color by fetching the texture
+    vec4 color = texture2D(colormap, gl_TexCoord[0].st);
+    // Extract surface data where each channel has own meaning
+    vec4 surfaceData = texture2D(surfaceDataMap, gl_TexCoord[0].st);
+    // Red channel keeps cloud luminance
+    float cloudGray = surfaceData.r;
+    // Green channel keeps 1 for water and 0 for earth.
+    float waterFactor = surfaceData.g;
+
+    vec4 diffuseColor = mix(color, vec4(factors.diffuse), cloudGray);
+    vec4 diffuseIntensity = diffuseColor * factors.diffuse
+            * gl_FrontLightProduct[0].diffuse;
+
+    vec4 ambientColor = mix(color, vec4(1.0), cloudGray);
+    vec4 ambientIntensity = ambientColor
+            * gl_FrontLightProduct[0].ambient;
+
+    vec4 specularIntensity = waterFactor * factors.specular
+            * gl_FrontLightProduct[0].specular;
+
+    gl_FragColor = ambientIntensity + diffuseIntensity + specularIntensity;
+}
+```
+
+Таким будет результат:
+
+![Скриншот](figures/lesson16_earth_water_specular.png)
 
 ## Добавляем ночную Землю
 
@@ -403,7 +641,7 @@ void main()
     vec4 nightColor = texture2D(nightColormap, gl_TexCoord[0].st);
     // Extract surface data where each channel has own meaning
     vec4 surfaceData = texture2D(surfaceDataMap, gl_TexCoord[0].st);
-    // Red channel keeps inverted cloud luminance
+    // Red channel keeps cloud luminance
     float cloudGray = surfaceData.r;
     // Green channel keeps 1 for water and 0 for earth.
     float waterFactor = surfaceData.g;
@@ -419,7 +657,7 @@ void main()
 }
 ```
 
-### Результат
+## Результат
 
 После запуска получим изображение, где дневная сторона Земли плавно переходит в ночную, на которой горит множество огней больших городов.
 

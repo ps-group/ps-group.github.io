@@ -44,12 +44,13 @@ permalink: /opengl/
 
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_3](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_3)
 
- 1. [Куда исчезают фонарики](/opengl/lesson_13.html)
+ 1. [Плавное освещение](/opengl/lesson_13.html)
  2. [Шахматный окрас](/opengl/lesson_14.html)
  3. [Скручивание](/opengl/lesson_15.html)
+ 4. [Текстуры в шейдерах](/opengl/lesson_16.html)
 
-Часть III будет готова к сентябрю.
+Часть III будет готова к октябрю.
 
 ## Часть IV: сырые данные
 
-Часть IV будет готова к октябрю.
+Часть IV будет готова к ноябрю.
