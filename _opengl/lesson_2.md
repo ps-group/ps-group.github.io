@@ -28,13 +28,15 @@ OpenGL старательно обрабатывает ошибки, такие 
 
 - Если функция возвращает `GL_NO_ERROR`, ошибок не было
 - В противном случае код ошибки обозначает категорию ошибки без конкретных указаний
-- Функция не только возвращает код ошибки, но и очищает флаг ошибки в драйвере; при этом за один вызов может быть очищен флаг только для одной категории ошибок, поэтому `glGetError` следует вызывать в цикле, пока он не вернёт `GL_NO_ERROR`
+- Функция не только возвращает код ошибки, но и очищает флаг ошибки в драйвере
 
 Условно, код может выглядеть так:
+
 ```cpp
-void DumpGLErrors()
+void ValidateGLErrors()
 {
-    for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError())
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
     {
         std::string message;
         // с помощью switch превращаем GLenum в строковое описание
@@ -45,61 +47,60 @@ void DumpGLErrors()
 
 Функцию можно улучшить, если учесть следующее:
 - Распечатать строку ошибки можно в поток ошибок `std::cerr`
-- В UNIX-системах любое графическое приложение может быть запущено из консоли, что позволит увидеть его поток ошибок при запуске как в IDE, так и вручную
-- В Windows графические приложения не связываются с окном консоли, но можно вставит специальную инструкцию `__debugbreak();`, которая вызовет останов в отладочной конфигурации, запущенной под отладчиком (так же, как обычный breakpoint).
+- Любую ошибку можно считать фатальной, вызывая `std::abort` для аварийного завершения программы после вывода текста ошибки
+- Функцию можно сделать статическим методом класса CUtils
 
-#### Листинг DumpGLErrors
+Представим улучшенную версию:
 
 ```cpp
-void DumpGLErrors()
+void CUtils::ValidateOpenGLErrors()
 {
-    for (GLenum error = glGetError(); error != GL_NO_ERROR; error = glGetError())
-    {
-        std::string message;
-        switch (error)
-        {
-        case GL_INVALID_ENUM:
-            message = "invalid enum passed to GL function (GL_INVALID_ENUM)";
-            break;
-        case GL_INVALID_VALUE:
-            message = "invalid parameter passed to GL function (GL_INVALID_VALUE)";
-            break;
-        case GL_INVALID_OPERATION:
-            message = "cannot execute some of GL functions in current state (GL_INVALID_OPERATION)";
-            break;
-        case GL_STACK_OVERFLOW:
-            message = "matrix stack overflow occured inside GL (GL_STACK_OVERFLOW)";
-            break;
-        case GL_STACK_UNDERFLOW:
-            message = "matrix stack underflow occured inside GL (GL_STACK_UNDERFLOW)";
-            break;
-        case GL_OUT_OF_MEMORY:
-            message = "no enough memory to execute GL function (GL_OUT_OF_MEMORY)";
-            break;
-        default:
-            message = "error in some GL extension (framebuffers, shaders, etc)";
-            break;
-        }
-        std::cerr << "OpenGL error: " << message << std::endl;
-#ifdef _WIN32
-        __debugbreak();
-#endif
-    }
+	GLenum error = glGetError();
+	if (error != GL_NO_ERROR)
+	{
+		std::string message;
+		switch (error)
+		{
+		case GL_INVALID_ENUM:
+			message = "invalid enum passed to GL function (GL_INVALID_ENUM)";
+			break;
+		case GL_INVALID_VALUE:
+			message = "invalid parameter passed to GL function (GL_INVALID_VALUE)";
+			break;
+		case GL_INVALID_OPERATION:
+			message = "cannot execute some of GL functions in current state (GL_INVALID_OPERATION)";
+			break;
+		case GL_STACK_OVERFLOW:
+			message = "matrix stack overflow occured inside GL (GL_STACK_OVERFLOW)";
+			break;
+		case GL_STACK_UNDERFLOW:
+			message = "matrix stack underflow occured inside GL (GL_STACK_UNDERFLOW)";
+			break;
+		case GL_OUT_OF_MEMORY:
+			message = "no enough memory to execute GL function (GL_OUT_OF_MEMORY)";
+			break;
+		default:
+			message = "error in some GL extension (framebuffers, shaders, etc)";
+			break;
+		}
+		std::cerr << "OpenGL error: " << message << std::endl;
+		std::abort();
+	}
 }
 ```
 
-После добавления этого метода в `CAbstractWindow::Impl` можно улучшить основной цикл приложения:
+После добавления этого метода можно улучшить основной цикл приложения:
 
 ```cpp
 // Очистка буфера кадра, обновление и рисование сцены, вывод буфера кадра.
 if (running)
 {
-    m_pImpl->Clear();
-    const float deltaSeconds = chronometer.GrabDeltaTime();
-    OnUpdateWindow(deltaSeconds);
-    OnDrawWindow(m_pImpl->GetWindowSize());
-    m_pImpl->DumpGLErrors();
-    m_pImpl->SwapBuffers();
+	m_pImpl->Clear();
+	const float deltaSeconds = chronometer.GrabDeltaTime();
+	OnUpdateWindow(deltaSeconds);
+	OnDrawWindow(m_pImpl->GetWindowSize());
+	CUtils::ValidateOpenGLErrors();
+	m_pImpl->SwapBuffers();
 }
 ```
 
@@ -127,7 +128,7 @@ if (running)
 - константа с именем GL_VENDOR возвращает имя поставщика реализации OpenGL. Например, строка `"Intel Open Source Technology Center"` обозначает "Видеодрайвер предоставлен OpenSource-подразделением корпорации Intel".
 - константа с именем GL_EXTENSIONS содержит полный список расширений, разделённый пробелами. Список обычно насчитывает свыше ста расширений.
 
-#### Функция печати информации о контексте
+### Функция печати информации о контексте
 ```cpp
 void PrintOpenGLInfo()
 {
@@ -181,42 +182,31 @@ void PrintOpenGLInfo()
 
 Библиотека GLEW требует явного вызова функции glewInit для своей инициализации. Сделать вызов следует только один раз. Чтобы не накладывать на класс `CAbstractWindow` лишних ограничений, нужно гарантировать, что при первом конструировании объекта `CAbstractWindow` функция будет вызвана, а при последующих &mdash; уже нет. Также надо установить глобальную переменную-флаг `glewExperimental`, чтобы GLEW оборачивала функции из версий OpenGL 3.x и 4.x.
 
-Для этой цели можно использовать стандартный заголовок `<mutex>` и описанную в нём функцию [std::call_once](http://en.cppreference.com/w/cpp/thread/call_once).
+Для этой цели можно использовать два подхода
+
+- взять из стандартного заголовока `<mutex>` функцию [std::call_once](http://en.cppreference.com/w/cpp/thread/call_once)
+- завести в функции статическую переменную типа bool, которая будет устанавливаться в false в инициализаторе (который для статических переменных внутри функции вызывается ровно один раз)
+
+В многопоточной среде было бы правильным использовать call_once, чтобы исключить возможность повторного вызова инициализации во время выполнения "glewInit" в другом потоке. Однако, ни контекст OpenGL, ни GLEW не могут использоваться из нескольких потоков одновременно. Поэтому call_once нам не потребуется, и достаточно статической переменной типа bool:
 
 ```cpp
-class CAbstractWindow::Impl
+void CUtils::InitOnceGLEW()
 {
-public:
-    Impl()
-        : m_pWindow(nullptr, SDL_DestroyWindow)
-        , m_pGLContext(nullptr, SDL_GL_DeleteContext)
-    {
-    }
-    void ShowFixedSize(glm::ivec2 const& size)
-    {
-        m_size = size;
-        // Создаём окно
-        // Создаём контекст OpenGL, связанный с окном.
-        // Затем инициализируем GLEW
-        InitGlewOnce();
-    }
-    
-    void InitGlewOnce()
-    {
-        // Вызываем инициализацию GLEW только один раз за время работы приложения.
-        std::call_once(g_glewInitOnceFlag, []() {
-            glewExperimental = GL_TRUE;
-            if (GLEW_OK != glewInit())
-            {
-                std::cerr << "GLEW initialization failed, aborting." << std::endl;
-                std::abort();s
-            }
-        });
-    }
+	static bool didInit = false;
+	if (!didInit)
+	{
+		glewExperimental = GL_TRUE;
+		GLenum status = glewInit();
+		if (status != GLEW_OK)
+		{
+			std::cerr << "GLEW initialization failed: " << glewGetErrorString(status) << std::endl;
+			std::abort();
+		}
+	}
 }
 ```
 
-### Узнаём о расширениях через GLEW
+## Узнаём о расширениях через GLEW
 
 Читать полный список расширений, полученный через `glGetString(GL_EXTENSIONS)`, не очень удобно. Сканировать его программно слишком трудоёмко в плане вычислений.
 
@@ -306,13 +296,22 @@ Has vertex buffers
 Has framebuffers
 ```
 
-### Соединяем вместе
+На машине с Windows 8 и видеокартой Intel вывод отличается:
 
-Новый код для мониторинга ошибок и инициализации GLEW следует поместить в базовый класс `CAbstractWindow`, он понадобится в дальнейшем.
+```
+OpenGL version: 4.4.0 - Build 20.19.15.4377
+OpenGL vendor: Intel
+Has vertex shaders
+Has fragment shaders
+Has vertex buffers
+Has framebuffers
+```
+
+## Создаём работоспособное приложение
 
 Код запроса версии OpenGL разместим в классе `CWindow`, потому что в дальнейших примерах нам уже не нужно будет печатать что-либо в консоль.
 
-#### листинг Window.h
+### Файл Window.h
 
 ```cpp
 #pragma once
@@ -334,19 +333,13 @@ private:
 #### листинг Window.cpp
 
 ```cpp
+#include "stdafx.h"
 #include "Window.h"
 #include <mutex>
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <cctype>
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <GL/glew.h>
-#include <GL/gl.h>
 
 namespace
 {
