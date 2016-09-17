@@ -2,7 +2,7 @@
 title: Рисуем на OpenGL
 ---
 
-В данном уроке мы научимся использовать систему событий SDL2 и рисовать фигуры путём передачи команд дискретному автомату &mdash; способ, вошедший ещё в первую версию OpenGL.
+В данном уроке мы научимся использовать систему событий SDL2 и рисовать фигуры путём передачи команд дискретному автомату. Этот метод доступен с первой версии OpenGL и называется Immediate Mode.
 
 ## CoreProfile и CompatibilityProfile
 
@@ -45,7 +45,7 @@ union SDL_Event
 }
 ```
 
-Чтобы сделать диспетчеризацию событий в отдельные ветви выполнения, подойдёт инструкция `switch`. Чтобы не писать одинаковый и потенциально ошибочный код со `switch` в разных местах, вынесем диспетчеризацию отдельно от `CAbstractWindow`.
+Чтобы выполнить диспетчеризацию событий в отдельные ветви выполнения, подойдёт инструкция `switch`. Чтобы не писать одинаковый и потенциально ошибочный код со `switch` в разных местах, вынесем диспетчеризацию отдельно от `CAbstractWindow`.
 
 #### Листинг DispatchEvent.h
 
@@ -165,7 +165,7 @@ void CAbstractWindow::DoGameLoop()
         const float deltaSeconds = chronometer.GrabDeltaTime();
         OnUpdateWindow(deltaSeconds);
         OnDrawWindow(m_pImpl->GetWindowSize());
-        m_pImpl->DumpGLErrors();
+        CUtils::ValidateOpenGLErrors();
         m_pImpl->SwapBuffers();
     }
 }
@@ -378,7 +378,7 @@ void FillEllipse(float xCenter, float yCenter, float rx, float ry, int pointCoun
 }
 ```
 
-## Соединяем вместе
+## Результат
 
 В конечном счёте, методы рисования окна и настройки проецирования можно добавить в класс CWindow, а три функции рисования примитивов &mdash; разместить в анонимном пространстве имён в `Window.cpp`. Тогда тела методов могут выглядеть следующим образом:
 
