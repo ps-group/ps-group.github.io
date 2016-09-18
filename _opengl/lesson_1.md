@@ -44,6 +44,9 @@ OpenGL работает с графическим контекстом OpenGL. �
 Базовый пример кода на SDL2 приведён в документации функции [SDL_GL_CreateContext](wiki.libsdl.org/SDL_GL_CreateContext):
 
 ```cpp
+// Инициализируем SDL2 один раз за время работы программы.
+SDL_Init(SDL_INIT_EVERYTHING);
+
 // Специальное значение SDL_WINDOWPOS_CENTERED для x и y заставит SDL2
 // разместить окно в центре монитора по осям x и y.
 // Здесь для примера используется 0, т.е. окно появится в левом верхнем углу экрана.
@@ -131,14 +134,141 @@ void ShowWindow(glm::vec2 const& size)
 }
 ```
 
-## Соединяем вместе
+## Вспомогательный модуль Utils
 
-- Для абстрагирования создания окна и контекста мы заведём класс `CAbstractWindow`, который будет предоставлять приложению "шаблонные методы" OnUpdateWindow() и OnDrawWindow().
+Для упрощения дальнейшей разработки напишем вспомогательный модуль Utils, выраженный в заголовочных файлах "Utils.h" и "Utils.cpp".
+
+Прежде всего, позаботимся об автоматическом удалении объектов `SDL_Window*` и `SDL_GLContext`. Мы могли бы написать собственные RAII-классы с перегруженными конструкторами, деструкторами, операторами "*" и "->". Однако, этот подход похож на переизобретение колеса: нужный RAII-класс уже давно входит в состав библиотеки STL, осталось лишь его применить.
+
+Класс "unique_ptr" позволяет задать вторым шаблонным параметром тип функтора, способного удалить объект. Функтором может быть указатель на функцию, лямбда-функция или структура с перегруженным оператором "()". Мы могли бы специализировать и начать использовать unique_ptr следующим образом:
+
+```cpp
+// Используем unique_ptr с явно заданной функцией удаления вместо delete.
+using SDLWindowPtr = std::unique_ptr<SDL_Window, void(*)(SDL_Window*)>;
+using SDLGLContextPtr = std::unique_ptr<void, void(*)(SDL_GLContext)>;
+
+void foo()
+{
+	SDLWindowPtr pWindow(nullptr, SDL_DestroyWindow);
+	SDLGLContextPtr pGLContext(nullptr, SDL_GL_DeleteContext);
+	
+	pWindow.reset(/*...create window...*/);
+	pGLContext.reset(/*...create GL context...*/);
+}
+```
+
+Однако, такой подход неудобен:
+
+- у типов SDLWindowPtr и SDLGLContextPtr нет конструктора по-умолчанию
+- из-за этого каждый член класса такого типа придётся явно инициализировать, а затем присваивать с помощью reset
+
+Для избавления от таких сложностей мы создадим структуру-функтор, потому что структура может иметь  конструктор по-умолчанию, и благодаря этому специализация класса unique_ptr не будет требовать явной передачи функции удаления в конструктор, т.е. тоже получит адекватный конструктор по-умолчанию. Чтобы не захламлять общую область видимости, поместим определение вспомогательных структур в пространство имён "detail":
+
+```cpp
+namespace detail
+{
+struct SDLWindowDeleter
+{
+	void operator()(SDL_Window *ptr)
+	{
+		SDL_DestroyWindow(ptr);
+	}
+};
+struct SDLGLContextDeleter
+{
+	void operator()(SDL_GLContext ptr)
+	{
+		SDL_GL_DeleteContext(ptr);
+	}
+};
+}
+
+// Используем unique_ptr с явно заданным функтором удаления вместо delete.
+using SDLWindowPtr = std::unique_ptr<SDL_Window, detail::SDLWindowDeleter>;
+
+// Используем unique_ptr с явно заданным функтором удаления вместо delete.
+using SDLGLContextPtr = std::unique_ptr<void, detail::SDLGLContextDeleter>;
+```
+
+Также мы добавим класс CUtils, содержащий только статические методы, и класс CChronometer, отвечающий за измерение промежутков времени между кадрами:
+
+```cpp
+class CUtils
+{
+public:
+	CUtils() = delete;
+
+	static void InitOnceSDL2();
+	static void ValidateSDL2Errors();
+};
+
+class CChronometer
+{
+public:
+	CChronometer();
+	float GrabDeltaTime();
+
+private:
+	std::chrono::system_clock::time_point m_lastTime;
+};
+```
+
+Реализация выглядит следующим образом:
+
+```cpp
+#include "stdafx.h"
+#include "Utils.h"
+#include <SDL2/SDL.h>
+#include <iostream>
+
+// Вызывает инициализацию SDL2 только один раз за время работы приложения.
+// (в многопоточной среде нам потребуется std::call_once вместо static bool)
+void CUtils::InitOnceSDL2()
+{
+	static bool didInit = false;
+
+	if (!didInit)
+	{
+		if (0 != SDL_Init(SDL_INIT_EVERYTHING))
+		{
+			std::cerr << "SDL2 initialization failed: " << SDL_GetError() << std::endl;
+			std::abort();
+		}
+	}
+}
+
+void CUtils::ValidateSDL2Errors()
+{
+	std::string message = SDL_GetError();
+	if (!message.empty())
+	{
+		std::cerr << "SDL2 error: " << message << std::endl;
+		std::abort();
+	}
+}
+
+CChronometer::CChronometer()
+	: m_lastTime(std::chrono::system_clock::now())
+{
+}
+
+float CChronometer::GrabDeltaTime()
+{
+	auto newTime = std::chrono::system_clock::now();
+	auto timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(newTime - m_lastTime);
+	m_lastTime = newTime;
+	return 0.001f * float(timePassed.count());
+};
+```
+
+## Создаём работоспособное приложение
+
+- Для абстрагирования создания окна и контекста мы заведём класс `CAbstractWindow`, который будет предоставлять приложению так называемые "шаблонные методы" OnUpdateWindow() и OnDrawWindow().
 - Также мы применим идиому [pointer to implementation](https://habrahabr.ru/post/118010/), чтобы спрятать структуры SDL2 от пользователя класса `CAbstractWindow`.
 - Класс `CAbstractWindow` унаследован приватно от `boost::noncopyable`, чтобы запретить ненамеренное копирование объекта окна.
 - Для игр и трёхмерных приложений обычно удобнее фиксировать размер окна или даже раскрыть его на весь экран. Поэтому, в классе `CAbstractWindow` мы пока не будем думать об изменении размера окна.
 
-#### Листинг AbstractWindow.h
+### Файл AbstractWindow.h
 
 ```cpp
 #pragma once
@@ -154,10 +284,12 @@ public:
     CAbstractWindow();
     virtual ~CAbstractWindow();
 
-    void ShowFixedSize(glm::vec2 const& size);
+    void ShowFixedSize(glm::ivec2 const& size);
     void DoGameLoop();
 
 protected:
+    void SetBackgroundColor(glm::vec4 const& color);
+
     virtual void OnWindowEvent(const SDL_Event &event) = 0;
     virtual void OnUpdateWindow(float deltaSeconds) = 0;
     virtual void OnDrawWindow() = 0;
@@ -168,56 +300,25 @@ private:
 };
 ```
 
-#### Листинг AbstractWindow.cpp
+### Файл AbstractWindow.cpp
 
 ```cpp
+#include "stdafx.h"
 #include "AbstractWindow.h"
-#include <SDL2/SDL_video.h>
-#include <GL/gl.h>
-#include <glm/vec2.hpp>
-#include <chrono>
-#include <type_traits>
+#include "Utils.h"
 
 namespace
 {
-const char WINDOW_TITLE[] = "SDL2/OpenGL Demo";
-
-// Используем unique_ptr с явно заданной функцией удаления вместо delete.
-using SDLWindowPtr = std::unique_ptr<SDL_Window, void(*)(SDL_Window*)>;
-using SDLGLContextPtr = std::unique_ptr<void, void(*)(SDL_GLContext)>;
-
-class CChronometer
-{
-public:
-    CChronometer()
-        : m_lastTime(std::chrono::system_clock::now())
-    {
-    }
-
-    float GrabDeltaTime()
-    {
-        auto newTime = std::chrono::system_clock::now();
-        auto timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(newTime - m_lastTime);
-        m_lastTime = newTime;
-        return 0.001f * float(timePassed.count());
-    }
-
-private:
-    std::chrono::system_clock::time_point m_lastTime;
-};
+const char WINDOW_TITLE[] = "SDL2+OpenGL Demo (press R, G, B to change window color)";
 }
 
 class CAbstractWindow::Impl
 {
 public:
-    Impl()
-        : m_pWindow(nullptr, SDL_DestroyWindow)
-        , m_pGLContext(nullptr, SDL_GL_DeleteContext)
-    {
-    }
+    void ShowFixedSize(glm::ivec2 const& size)
+	{
+		CUtils::InitOnceSDL2();
 
-    void ShowFixedSize(glm::vec2 const& size)
-    {
         // Специальное значение SDL_WINDOWPOS_CENTERED вместо x и y заставит SDL2
         // разместить окно в центре монитора по осям x и y.
         // Для использования OpenGL вы ДОЛЖНЫ указать флаг SDL_WINDOW_OPENGL.
@@ -226,18 +327,21 @@ public:
 
         // Создаём контекст OpenGL, связанный с окном.
         m_pGLContext.reset(SDL_GL_CreateContext(m_pWindow.get()));
-        // Отсутствие контекста - это фатальная ошибка выполнения
         if (!m_pGLContext)
         {
-            std::cerr << "OpenGL context initialization failed" << std::endl;
-            std::abort();
+			CUtils::ValidateSDL2Errors();
         }
     }
 
-    void Clear()
+    void SetBackgroundColor(const glm::vec4 &color)
     {
-        // Заливка кадра чёрным цветом средствами OpenGL
-        glClearColor(0,0,0,1);
+        m_clearColor = color;
+    }
+
+    void Clear()const
+    {
+        // Заливка кадра цветом фона средствами OpenGL
+        glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
@@ -252,6 +356,7 @@ public:
 private:
     SDLWindowPtr m_pWindow;
     SDLGLContextPtr m_pGLContext;
+    glm::vec4 m_clearColor;
 };
 
 CAbstractWindow::CAbstractWindow()
@@ -263,7 +368,7 @@ CAbstractWindow::~CAbstractWindow()
 {
 }
 
-void CAbstractWindow::ShowFixedSize(const glm::vec2 &size)
+void CAbstractWindow::ShowFixedSize(const glm::ivec2 &size)
 {
     m_pImpl->ShowFixedSize(size);
 }
@@ -297,19 +402,51 @@ void CAbstractWindow::DoGameLoop()
         }
     }
 }
+
+void CAbstractWindow::SetBackgroundColor(const glm::vec4 &color)
+{
+    m_pImpl->SetBackgroundColor(color);
+}
 ```
 
-#### Листинг main.cpp
+### Файл main.cpp
+
+В файле main мы опишем также класс CWindow, который на данном этапе будет только
+
+- реализовывать абстрактный класс CAbstractWindow
+- обрабатывать клавиши R, G, B, чтобы менять цвет фона окна соответственно на красный, зелёный и синий
+
 ```cpp
+#include "stdafx.h"
 #include "AbstractWindow.h"
-#include <glm/vec2.hpp>
+#include <SDL2/SDL.h>
+
+// Выключаем макроподмену main на SDL_main,
+// т.к. приложение собирается c SUBSYSTEM:CONSOLE
+#ifdef _WIN32
+#undef main
+#endif
 
 class CWindow : public CAbstractWindow
 {
 protected:
     void OnWindowEvent(const SDL_Event &event) override
     {
-        (void)event;
+        if (event.type == SDL_KEYDOWN)
+        {
+            switch (event.key.keysym.sym)
+            {
+            case SDLK_r:
+                SetBackgroundColor({1, 0, 0, 1});
+                break;
+            case SDLK_g:
+                SetBackgroundColor({0, 1, 0, 1});
+                break;
+            case SDLK_b:
+                SetBackgroundColor({0, 0, 1, 1});
+                break;
+            }
+        }
     }
 
     void OnUpdateWindow(float deltaSeconds) override
@@ -327,5 +464,7 @@ int main()
     CWindow window;
     window.ShowFixedSize({800, 600});
     window.DoGameLoop();
+
+    return 0;
 }
 ```

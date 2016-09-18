@@ -213,7 +213,7 @@ public:
     {
         Bind();
         // При выходе из функции гарантированно выполняем Unbind.
-        BOOST_SCOPE_EXIT_ALL() {
+        BOOST_SCOPE_EXIT_ALL(&) {
             Unbind();
         };
         fn();

@@ -138,7 +138,7 @@ void CFlowerParticle::Advance(float dt, const glm::vec2 &acceleration)
 {
     m_lifetime -= dt;
     m_velocity += dt * acceleration;
-    SetPosition(m_velocity + GetPosition());
+    SetPosition(dt * m_velocity + GetPosition());
 }
 ```
 
@@ -171,6 +171,7 @@ public:
     ~CParticleSystem();
 
     void SetEmitter(std::unique_ptr<CParticleEmitter> && pEmitter);
+	void SetGravity(const glm::vec2 &gravity);
 
     // @param dt - разница во времени с предыдущим вызовом Advance.
     void Advance(float dt);
@@ -179,10 +180,11 @@ public:
 private:
     std::unique_ptr<CParticleEmitter> m_pEmitter;
     std::vector<std::unique_ptr<CFlowerParticle>> m_flowers;
+	glm::vec2 m_gravity;
 };
 ```
 
-Конструктор, деструктор и сеттер свойства emitter строятся достаточно просто:
+Конструктор, деструктор и методы для установки свойств строятся достаточно просто:
 
 ```cpp
 CParticleSystem::CParticleSystem() = default;
@@ -192,9 +194,14 @@ void CParticleSystem::SetEmitter(std::unique_ptr<CParticleEmitter> &&pEmitter)
 {
     m_pEmitter = std::move(pEmitter);
 }
+
+void CParticleSystem::SetGravity(const glm::vec2 &gravity)
+{
+	m_gravity = gravity;
+}
 ```
 
-При рисовании мы должны обойти список живых цветов и нарисовать их. При вызове Advance нужно сгенерировать новые частицы, затем продвинуть в будущее на время `deltaSeconds` состояние каждого цветка и в конце удалить отжившие своё цветы. Это можно сделать с помощью цикла while, цикла range-based for и алгоритмов remove_if/erase:
+При вызове Advance нужно сгенерировать новые частицы, затем продвинуть в будущее на время `deltaSeconds` состояние каждого цветка и в конце удалить отжившие своё цветы. Это можно сделать с помощью цикла while, цикла range-based for и алгоритмов remove_if/erase:
 
 ```cpp
 void CParticleSystem::Advance(float dt)
@@ -209,16 +216,19 @@ void CParticleSystem::Advance(float dt)
     // Продвигаем время жизни всех цветов.
     for (const auto &pFlower : m_flowers)
     {
-        pFlower->Advance(dt, GRAVITY);
+        pFlower->Advance(dt, m_gravity);
     }
-    // Удаляем устаревшие цветы.
-    auto pred = [](const auto &pFlower) {
+    // Удаляем "умершие" цветы.
+    auto newEnd = std::remove_if(m_flowers.begin(), m_flowers.end(), [](const auto &pFlower) {
         return !pFlower->IsAlive();
-    };
-    auto newEnd = std::remove_if(m_flowers.begin(), m_flowers.end(), pred);
+    });
     m_flowers.erase(newEnd, m_flowers.end());
 }
+```
 
+При рисовании мы должны обойти список живых цветов и нарисовать их
+
+```
 void CParticleSystem::Draw()
 {
     for (const auto &pFlower : m_flowers)
@@ -372,13 +382,14 @@ CWindow::CWindow()
 {
     auto pEmitter = std::make_unique<CParticleEmitter>();
     pEmitter->SetPosition({0, 600});
-    pEmitter->SetAngleRange(0.7f * float(M_PI), 0.9f * float(M_PI));
-    pEmitter->SetEmitIntervalRange(0.04f, 0.12f);
+	pEmitter->SetAngleRange(glm::radians(110.f), glm::radians(160.f));
+    pEmitter->SetEmitIntervalRange(0.15f, 0.25f);
     pEmitter->SetLifetimeRange(10.f, 20.f);
     pEmitter->SetPetalsCountRangle(5, 9);
     pEmitter->SetRadiusRange(40.f, 75.f);
-    pEmitter->SetSpeedRange(8.f, 15.f);
-    m_system.SetEmitter(std::move(pEmitter));
+    pEmitter->SetSpeedRange(200.f, 400.f);
+	m_system.SetEmitter(std::move(pEmitter));
+	m_system.SetGravity({0, 98});
 
     SetBackgroundColor(QUIET_GREEN);
 }
@@ -392,6 +403,67 @@ void CWindow::OnDrawWindow(const glm::ivec2 &size)
 {
     SetupView(size);
     m_system.Draw();
+}
+```
+
+## Явное ограничение FPS
+
+Если запустить созданное приложение, можно заметить, что на некоторых видеокартах скорость системы частиц оказывается крайне низкой. Причина неожиданно проста &mdash; просто представьте, что будет, если с момента предыдущего кадра произошло менее одной миллисекунды:
+
+```
+float CChronometer::GrabDeltaTime()
+{
+	auto newTime = system_clock::now();
+	auto timePassed = duration_cast<milliseconds>(newTime - m_lastTime);
+	m_lastTime = newTime;
+	return 0.001f * float(timePassed.count());
+};
+```
+
+Из кода метода `CChronometer::GrabDeltaTime` понятно, что при интервале менее чем в одну миллисекунду deltaTime будет нулевым, и продвижение всей системы частиц вперёд во времени будет также нулевым.
+
+Исправить проблему в рамках метода "GrabDeltaTime" затрудительно, потому что системные часы, скрытые за классом `system_clock`, имеют ограничения по точности, и малые интервалы времени измеряются неточно. Поэтому вместо более точного расчёта промежутков времени мы просто установим минимальный промежуток между двумя кадрами, равный `1second / 60.0 = 16ms`, что обеспечит нам около 60 кадров в секунду. Для реализации этой возможности добавим метод `CChronometer::WaitNextFrameTime(const milliseconds &framePeriod)`, который на основе момента времени предыдущего кадра и переданного снаружи параметра "framePeriod" вычисляет момент начала следующего кадра и дожидается его:
+
+```
+#include <thread> // для функции std::this_thread::sleep_until
+
+void CChronometer::WaitNextFrameTime(const milliseconds &framePeriod)
+{
+	system_clock::time_point nextFrameTime = m_lastTime + framePeriod;
+	std::this_thread::sleep_until(nextFrameTime);
+}
+```
+
+Теперь можно исправить метод `CAbstractWindow::DoGameLoop()`, чтобы после вызова `SwapBuffers()` ожидать времени, подходящего для рисования следующего кадра:
+
+```cpp
+void CAbstractWindow::DoGameLoop()
+{
+	const std::chrono::milliseconds FRAME_PERIOD(16);
+    SDL_Event event;
+    CChronometer chronometer;
+    while (true)
+    {
+        while (SDL_PollEvent(&event) != 0)
+        {
+            if (!m_pImpl->ConsumeEvent(event))
+            {
+                OnWindowEvent(event);
+            }
+        }
+        if (m_pImpl->IsTerminated())
+        {
+            break;
+        }
+        // Очистка буфера кадра, обновление и рисование сцены, вывод буфера кадра.
+        m_pImpl->Clear();
+        const float deltaSeconds = chronometer.GrabDeltaTime();
+        OnUpdateWindow(deltaSeconds);
+        OnDrawWindow(m_pImpl->GetWindowSize());
+		CUtils::ValidateOpenGLErrors();
+        m_pImpl->SwapBuffers();
+		chronometer.WaitNextFrameTime(FRAME_PERIOD);
+    }
 }
 ```
 
