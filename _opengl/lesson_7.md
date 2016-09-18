@@ -719,15 +719,15 @@ bool CCamera::OnKeyUp(const SDL_KeyboardEvent &event)
 
 glm::mat4 CCamera::GetViewTransform() const
 {
-    glm::vec3 direction = {-1.f, 0.f, 0.5f};
+    glm::vec3 direction = {0.f, 0.5f, 1.f};
     // Нормализуем вектор (приводим к единичной длине),
-    // затем поворачиваем вокруг оси Z.
+    // затем поворачиваем вокруг оси Y.
     // см. http://glm.g-truc.net/0.9.3/api/a00199.html
-    direction = glm::rotateZ(glm::normalize(direction), m_rotationRadians);
+    direction = glm::rotateY(glm::normalize(direction), m_rotationRadians);
 
     const glm::vec3 eye = direction * m_distance;
     const glm::vec3 center = {0, 0, 0};
-    const glm::vec3 up = {0, 0, 1};
+    const glm::vec3 up = {0, 1, 0};
 
     // Матрица моделирования-вида вычисляется функцией glm::lookAt.
     // Она даёт матрицу, действующую так, как будто камера смотрит

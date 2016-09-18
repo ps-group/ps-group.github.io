@@ -1,8 +1,8 @@
 ---
-title: 'Включаем свет'
+title: 'Включаем свет и туман'
 ---
 
-В этом уроке мы впервые применим на сцене механизм освещения. Пока что мы будем использовать фиксированный конвейер OpenGL, тем самым лишая себя целого ряда эффектов, доступных в любой современной 3D игре.
+В этом уроке мы впервые применим на сцене механизмы освещения и наложения тумана. Пока что мы будем использовать фиксированный конвейер OpenGL, хотя освещение и туман можно было бы реализовать более гибко с помощью шейдеров.
 
 ## Модель освещения в фиксированном конвейере OpenGL
 
@@ -425,11 +425,11 @@ void CIdentityCube::Draw() const
 }
 ```
 
-## Результат
+## Запуск и проверка
 
-Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_08). А вот так выглядит окно после запуска:
+После добавления источника света окно запущенной программы должно будет так:
 
-![Иллюстрация](figures/lesson_8_preview.png)
+![Иллюстрация](figures/lesson_8_lighting.png)
 
 Если же что-то не работает, используйте следующий чеклист:
 
@@ -439,3 +439,128 @@ void CIdentityCube::Draw() const
 - установлен ли цвет материала с помощью [glMaterial](https://www.opengl.org/sdk/docs/man2/xhtml/glMaterial.xml) или [glColorMaterial](https://www.opengl.org/sdk/docs/man2/xhtml/glColorMaterial.xml)?
 - правильно ли выбраны нормали граней объектов?
 - установлена ли матрица GL_MODELVIEW камеры прежде, чем установлен источник света?
+
+## Наложение тумана
+
+OpenGL позволяет накладывать туман на выводимые примитивы. При этом цвет фрагмента
+смешивается с цветом тумана с использованием коэффициента смешивания, зависящего от
+расстояния от фрагмента до наблюдателя.
+
+Для того, чтобы включить наложение тумана, необходимо вызвать функцию glEnable с
+параметром GL_FOG. Для управления параметрами тумана служит семейство функций [glFog*](https://www.opengl.org/sdk/docs/man2/xhtml/glFog.xml), позволяющих задать цвет тумана (fog color), плотность (density), начальную и конечную дистанцию для линейного тумана (start depth и end depth).
+
+В OpenGL коэффициент смешивания для тумана может быть рассчитан по одной из следующих формул:
+
+![Формулы](figures/opengl_fog_formulaes.png)
+
+Полученный коэффициент f приводится к диапазону от 0 до 1. На его основе результирующий цвет фрагмента вычисляется по следующей формуле:
+
+![Формула](figures/fog_color_formulae.png)
+
+Настройку окна выделим в отдельный метод "SetupFog", который будем вызывать в "OnDrawWindow". Также мы добавим обработку клавиши "F", которая должна включать и выключать отображение тумана, и изменим цвет фона с чёрного на цвет тумана (инача на чёрный фон туман накладываться не будет).
+
+```cpp
+// В класс CWindow добавим поле типа bool
+class CWindow
+{
+    // ...
+    bool m_isFogEnabled = true;
+}
+
+namespace
+{
+const glm::vec4 LIGHT_YELLOW_RGBA = {1.f, 1.f, 0.5f, 1.f};
+// ...
+}
+
+CWindow::CWindow()
+    : m_camera(CAMERA_INITIAL_ROTATION, CAMERA_INITIAL_DISTANCE)
+    , m_sunlight(GL_LIGHT0)
+{
+    // цвет меняем на цвет тумана, потому что OpenGL
+    // не накладывает туман на фон кадра
+    SetBackgroundColor(LIGHT_YELLOW_RGBA);
+    // ...
+}
+
+void CWindow::OnDrawWindow(const glm::ivec2 &size)
+{
+    SetupView(size);
+    SetupFog();
+    // ...
+}
+
+void CWindow::SetupFog()
+{
+    if (m_isFogEnabled)
+    {
+        const float density = 0.2f;
+        glEnable(GL_FOG);
+        glFogi(GL_FOG_MODE, GL_EXP2);
+        glFogfv(GL_FOG_COLOR, glm::value_ptr(LIGHT_YELLOW_RGBA));
+        glFogf(GL_FOG_DENSITY, density);
+    }
+    else
+    {
+        glDisable(GL_FOG);
+    }
+}
+
+void CWindow::OnKeyDown(const SDL_KeyboardEvent &event)
+{
+    if (m_camera.OnKeyDown(event))
+    {
+        return;
+    }
+    if (event.keysym.sym == SDLK_f)
+    {
+        m_isFogEnabled = !m_isFogEnabled;
+    }
+}
+```
+
+Результат:
+
+![Скриншот](figures/lesson_8_fog)
+
+## Боремся с алиасингом
+
+Если увеличить фрагмент изображения в 6 раз, можно заметить, что края фигур достаточно резкие (это явление называется алиасингом):
+
+![Иллюстрация](figures/cube_aliasing.png)
+
+В двумерной графике для борьбы с алиасингом разработаны модифицированные алгоритмы рисования точек, линий и растровых изображений, которые сразу же заполняют буфер кадра со сглаживанием.
+
+В трёхмерной графике такой подход затруднителен &mdash; примитивов и операций достаточно много, реализовать универсальный метод рисования со сглаживанием для каждого фрагмента практически невозможно. Однако, есть универсальное решение, работающее на уровне постобработки кадра: достаточно делить примитивы на фрагменты не на уровне пикселей, а на уровне подпикселей (subpixels), и затем выводить конечный цвет пикселя путём интерполяции входящих в него подпикселей.
+
+Настраивать такой режим сглаживания следует ещё при создании окна. В библиотеке SDL2 за это отвечают два атрибута SDL_GL: "SDL_GL_MULTISAMPLEBUFFERS" и "SDL_GL_MULTISAMPLESAMPLES". Мы установим эти атрибуты в методе Show класса окна:
+
+```cpp
+class CAbstractWindow::Impl
+{
+public:
+    void Show(const std::string &title, const glm::ivec2 &size)
+    {
+        m_size = size;
+
+		CUtils::InitOnceSDL2();
+
+        // Выбираем Compatiblity Profile
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
+        // Включаем режим сглаживания с помощью субпиксельного рендеринга.
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+        // ...
+```
+
+После таких изменений края становятся сглаженными, что можно заметить при увеличении фрагмента скриншота в 6 раз:
+
+![Иллюстрация](figures/cub_antialiased.png)
+
+## Результат
+
+Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_08). А вот так выглядит окно после запуска:
+
+![Иллюстрация](figures/lesson_8_preview.png)
