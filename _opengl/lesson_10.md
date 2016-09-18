@@ -1,559 +1,460 @@
 ---
-title: 'Смешение цветов'
+title: 'График двумерной функции'
 ---
 
-В этом уроке мы впервые применим механизм смешивания цветов, чтобы сделать грани куба полупрозрачными. Также мы научимся строить новый многогранник &mdash; тетраэдр.
+В этом примере мы научимся рисовать гладкие поверхности без объёма &mdash; графики двумерных функций.
 
-## Физика полупрозрачности
+## Вспомогательный класс материала
 
-Полупрозрачные тела частично пропускают свет насквозь. Остальная доля света поглощается, рассеивается или отражается (в зависимости от свойств материала и спектра падающего излучения). Свет, проходящий скозь тело, дважды преломляется, и степень преломления может быть разной для волн различной длины.
+Далее мы будем рисовать график функции новым способом, который не позволяет задать цвет вершины один раз вызовом `glColor*`. Это не мешает задавать цвет иным способом, но мы всё-таки прекратим использовать `GL_COLOR_MATERIAL` и применим функции-команды для явной установки свойств материала, который будет одинаковым для всей поверхности.
 
-Полная эмуляция полупрозрачности на компьютере выполнима (например, путём трассировки лучей). Однако, такие задачи не принято выполнять в реальном времени. Вместо физически реалистичной эмуляции OpenGL предлагает модель смешивания цветов, позволяющую эмулировать полупрозрачную поверхность путём смешения цвета фона, лежащего за поверхностью, с цветом самой поверхности. Смешение можно выполнять с весовыми коэффициентами, которые зависят от alpha-компоненты RGBA-цветов материала и фона, а также от выбранной формулы смешивания (выбор формул смешивания достаточно большой, но ограниченный).
+Материал в фиксированном конвейере OpenGL содержит 4 разных цвета (emission, ambient, diffuse, specular) и один параметр (shininess), влияющий размер пятна бликового (т.е. specular) компонета освещения:
 
-## Режим смешивания
-
-Для включения режима смешивания, позволяющего вывести полупрозрачные тела, следует вызвать `glEnable(GL_BLEND)`. При этом вывод непрозрачных тел лучше всего выполнить заранее, до вывода первой полупрозрачной грани со смешиванием цветов. В противном случае, полупрозрачная грань заполнит буфер глубины и тем самым "закроет" фрагменты расположенных сзади "фоновых" граней, сделав их невидимыми. После чего конвейер OpenGL отбросит фоновые фрагменты граней, и вы получите отсутствие фона позади полупрозрачного объекта.
-
-Результат этой ошибки можно увидеть на скриншоте &mdash; грани тетраэдра выброшены полупрозрачным кубом в ходе теста глубины:
-
-![Скриншот](figures/blending_incorrect_order.png)
-
-## Формулы смешивания
-
-OpenGL позволяет задавать способ смешения с помощью установки весовых коэффициентов функции смешивания. Для изменения функции смешивания служит функция-команда [glBlendFunc](https://www.opengl.org/sdk/docs/man2/xhtml/glBlendFunc.xml), которая принимает константы перечислимого типа, задающие способ выбора коэффициентов смешивания. Первый параметр задаёт способ выбора весового коэффициента для фонового фрагмента, второй &mdash; для фрагмента полупрозрачной поверхности, рисуемой поверх фона со смешиванием. Несколько примеров:
-
-- `glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)` задаёт формулу "непрозрачность * цвет_поверхности + (1 - непрозрачность) * цвет_фона", где под "непрозрачностью" подразумевается alpha-канал рисуемой поверхности. В результате цвет полупрозрачной поверхности накладывается на фон привычным для человека образом.
-- `glBlendFunc(GL_ONE, GL_ZERO)` задаёт формулу, эквивалентную отсутствию смешивания: цвет фрагментов новой поверхности замещает собой цвет фоновых фрагментов.
-- `glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA)` применяет уже показанную ранее формулу "непрозрачность * цвет_поверхности + (1 - непрозрачность) * цвет_фона", но в качестве "непрозрачности" берёт константу, установленную вызовом [glBlendColor](https://www.opengl.org/sdk/docs/man/html/glBlendColor.xhtml).
-- `glBlendFunc(GL_SRC_ALPHA, GL_ONE)` устанавливает аддитивную формулу "непрозрачность_поверхности * цвет_поверхности + цвет фона", которая при большом числе смешиваний или высокой непрозрачности поверхности может дать очень яркий, возможно, даже белый цвет. Такой метод может пригодиться при рисовании некоторых систем частиц &mdash; например, языков пламени.
-
+#### Новый класс в Lights.h
 ```cpp
-// включает смешивание цветов
-// перед выводом полупрозрачных тел
-void enableBlending()
-{
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-// отключает смешивание цветов
-// перед выводом непрозрачных тел
-void disableBlending()
-{
-    glDisable(GL_BLEND);
-}
-```
-
-## Алгоритм вывода полупрозрачных тел
-
-Кроме включения смешивания и выбора функции смешивания, перед выводом полупрозрачных тел рекомендуется ещё и отключить запись в буфер глубины. Тем самым мы гарантируем, что вывод полупрозрачной грани не приведёт к изменению граничной глубины, при которой фрагмент, попадающий в пиксель экрана, будет выброшен.
-
-Изменим вспомогательные функции:
-```cpp
-// включает смешивание цветов
-// перед выводом полупрозрачных тел
-void enableBlending()
-{
-    glDepthMask(GL_FALSE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-// отключает смешивание цветов
-// перед выводом непрозрачных тел
-void disableBlending()
-{
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-}
-```
-
-В ситуациях, когда полупрозрачные тела или их отдельные грани накладываются друг на друга, следует отсортировать тела либо отдельные грани по глубине (удалённости от камеры) и выводить так, чтобы для каждой пары из двух визуально пересекающихся тел (граней) первым рисовалось более далёкое от камеры тело (грань), а затем &mdash; более близкое. Только тогда смешивание будет работать правильно.
-
-Общий алгоритм действий:
-
-- включить возможность записи в буфер глубины вызовом `glDepthMask(GL_TRUE)` (или `disableBlending()`)
-- нарисовать все непрозрачные объекты сцены
-- выключить возможность записи в буфер глубины, включить смешивание
-- отсортировать все полупрозрачные объекты (или непосредственно грани) в порядке от дальних к ближним (по отношению к камере)
-- нарисовать все полупрозрачные объекты (грани)
-
-Неверная сортировка полупрозрачных граней может привести к подобному результату (верхняя грань куба слева задана жёлтым цветом, но теперь она едва заметна):
-
-![Иллюстрация](figures/blending_incorrect_order_2.png)
-
-## Выделение интерфейса IBody
-
-Чтобы упростить дальнейшее расширение кода, введём интерфейс IBody в файле "IBody.h":
-
-```cpp
-#pragma once
-#include <memory>
-
-class IBody
+class CPhongModelMaterial
 {
 public:
-    virtual ~IBody() = default;
-    virtual void Update(float deltaTime) = 0;
-    virtual void Draw()const = 0;
-};
+    void Setup() const;
 
-using IBodyUniquePtr = std::unique_ptr<IBody>;
+    glm::vec4 GetEmission() const;
+    glm::vec4 GetAmbient() const;
+    glm::vec4 GetDiffuse() const;
+    glm::vec4 GetSpecular() const;
+    float GetShininess() const;
+
+    void SetAmbient(const glm::vec4 &GetAmbient);
+    void SetEmission(const glm::vec4 &GetEmission);
+    void SetDiffuse(const glm::vec4 &GetDiffuse);
+    void SetSpecular(const glm::vec4 &GetSpecular);
+    void SetShininess(float GetShininess);
+
+private:
+    glm::vec4 m_emission;
+    glm::vec4 m_ambient;
+    glm::vec4 m_diffuse;
+    glm::vec4 m_specular;
+    float m_shininess = 10.f;
+};
 ```
 
-Теперь в приватных данных класса CWindow можно хранить всего лишь два массива &mdash; один для непрозрачных тел, другой для полупрозрачных:
+Реализация геттеров и сеттеров тривиальна, интересен только метод Setup, который применяет параметры материала к состоянию OpenGL:
 
 ```cpp
-// фрагмент объявления CWindow
-private:
-    std::vector<IBodyUniquePtr> m_opaqueBodies;
-    std::vector<IBodyUniquePtr> m_transparentBodies;
-
-// изменения в обновлении состояния сцены
-void CWindow::OnUpdateWindow(float deltaSeconds)
+void CPhongModelMaterial::Setup() const
 {
-    m_camera.Update(deltaSeconds);
-    for (const IBodyUniquePtr &pBody : m_opaqueBodies)
-    {
-        pBody->Update(deltaSeconds);
-    }
-    for (const IBodyUniquePtr &pBody : m_transparentBodies)
-    {
-        pBody->Update(deltaSeconds);
-    }
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glm::value_ptr(m_emission));
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, glm::value_ptr(m_ambient));
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, glm::value_ptr(m_diffuse));
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, glm::value_ptr(m_specular));
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, m_shininess);
+}
+```
+
+Теперь мы добавим объект нового класса в CWindow:
+
+```cpp
+class CWindow
+{
+    // часть определения класса пропущена
+private:
+    CPhongModelMaterial m_material;
+};
+
+CWindow::CWindow()
+// часть конструктора пропущена
+{
+    m_material.SetAmbient(YELLOW_RGBA);
+    m_material.SetDiffuse(YELLOW_RGBA);
+    m_material.SetSpecular(FADED_WHITE_RGBA);
+    m_material.SetShininess(MATERIAL_SHININESS);
 }
 
-// изменения в рисовании кадра сцены
 void CWindow::OnDrawWindow(const glm::ivec2 &size)
 {
     SetupView(size);
     m_sunlight.Setup();
-    for (const IBodyUniquePtr &pBody : m_opaqueBodies)
-    {
-        pBody->Draw();
-    }
-    enableBlending();
-    for (const IBodyUniquePtr &pBody : m_transparentBodies)
-    {
-        pBody->Draw();
-    }
-    disableBlending();
+    m_material.Setup();
+    // m_surface - график двумерной функции.
+    m_surface.Draw();
 }
 ```
 
-## Вывод задних граней
+## Аппроксимация графиков двумерных функций
 
-В полупрозрачном теле видны не только задние, но и передние грани. Чтобы их нарисовать, можно воспользоваться трюком: нарисовать трёхмерное тело дважды, изменив способ определения передних граней при первом рисовании. Для изменения способа определения передних граней достаточно вызвать функцию `glFrontFace(GL_CW)`, т.к. по умолчанию OpenGL считает передними гранями только грани, вершины которых перечислены против часовой стрелки (режим `GL_CCW`). Всё это приводит нас к простой модификации метода `CIdentityCube::Draw`:
+С низкоуровневой визуализацией объектов, состоящих из плоских граней, мы познакомились. Теперь займёмся аппроксимацией криволинейных поверхностей: функций вида `z=f(x, y)`.
+
+Для начала, равномерно разобьем отображаемую область функции на область `SizeX*SizeY` ячеек. Затем вычислим значение функции в узлах сетки &mdash; это значение станет координатой Z вершины.
+
+![Иллюстрация](figures/xy_mesh.png)
+
+## Новый класс CDottedFunctionSurface
+
+Новый класс добавлен в файл `FunctionSurface.h`. Он реализует интерфейс IBody, заглушая метод Update (поверхность функции статична и не нуждается в обновлениях). Также добавлен вспомогательный синоним типа и структура данных SVertexP3N, описывающая вершину с трёхмерным вектором позиции и вектором нормали.
 
 ```cpp
-void CIdentityCube::Draw() const
+#pragma once
+
+#include "IBody.h"
+#include <functional>
+#include <vector>
+#include <glm/fwd.hpp>
+#include <glm/vec3.hpp>
+
+using Function2D = std::function<float(float, float)>;
+
+// Вершина с трёхмерной позицией и нормалью.
+struct SVertexP3N
 {
-    if (m_alpha < 0.99f)
+    glm::vec3 position;
+    glm::vec3 normal;
+
+    SVertexP3N() = default;
+    SVertexP3N(const glm::vec3 &position)
+        : position(position)
     {
-        glFrontFace(GL_CW);
-        OutputFaces();
-        glFrontFace(GL_CCW);
     }
-    OutputFaces();
-}
-
-void CIdentityCube::OutputFaces() const
-{
-    // выводит треугольники, составляющие грани куба,
-    // вместе с цветами и нормалями вершин.
-}
-```
-
-## Платоновы тела
-
-Существует ровно пять [платоновых тел](https://ru.wikipedia.org/wiki/%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%D0%B3%D1%80%D0%B0%D0%BD%D0%BD%D0%B8%D0%BA) тетраэдр, октаэдр, икосаэдр, куб, додекаэдр.
-
-![Иллюстрация](figures/Platonic_solids.jpg)
-
-Каждый из этих пяти многогранников является выпуклым, каждая грань является правильной двумерной фигурой, и к каждой вершине сходится одинаковое число рёбер. Такие тела обладают высокой степенью симметрии, а способы расчёта координат их вершин широко известны.
-
-Более подробно о триангуляции платоновых тел рассказывается в книге Френсиса Хилла, "OpenGL. Программирование компьютерной графики." (ISBN 5-318-00219-6), раздел 6.3 "Многогранники". Схожая информация есть и в других источниках в литературе и в сети Интернет.
-
-Правильный тетраэдр &mdash; это правильный многогранник, состоящий из четырёх граней, каждая из которых является правильным треугольником (с равными сторонами и равными углами по 60°). Как и другие платоновы тела, тетраэдр является выпуклым и обладает высокой степенью симметрии. Сделав простое построение, можно аналитически расчитать соотношения между его сторонами и особыми внутренними линиями, такими, ка высота тетраэдра (перпендикуляр из вершины к противоположной грани). Вычислим эти отношения:
-
-![Иллюстрация](figures/tetrahedron.png)
-
-## Вершины и грани тетраэдра
-
-После построения несложно составить массив вершин и массив индексов граней: достаточно смотреть на построение и записывать. Если для удобства взять за длину стороны базового тетраэдра число √3, получатся такие массивы:
-
-```cpp
-// Сторона тетраэдра равна √3,
-// расстояние от центра грани до вершины равно 1.
-const Vertex TETRAHEDRON_VERTICES[] = {
-    {0.f, 0.f, -1.0f},
-    {sqrtf(1.5f), 0.f, 0.5f},
-    {-sqrtf(1.5f), 0.f, 0.5f},
-    {0.f, sqrtf(2.f), 0.f},
 };
 
-const STriangleFace TETRAHEDRON_FACES[] = {
-    {0, 1, 2, 0},
-    {0, 3, 1, 0},
-    {2, 1, 3, 0},
-    {0, 2, 3, 0},
-};
-```
-
-## Класс CIdentityTetrahedron
-
-Теперь объявим класс базового тетраэдра, у которого будет только одно свойство &mdash; единый цвет поверхности.
-
-```cpp
-class CIdentityTetrahedron final : public IBody
+class CDottedFunctionSurface final : public IBody
 {
 public:
-    void Update(float deltaTime) final;
-    void Draw()const final;
+    CDottedFunctionSurface(const Function2D &fn);
 
-    void SetColor(const glm::vec4 &color);
+    /// Инициализирует сетку треугольников
+    /// @param rangeX - диапазон, где x - нижняя граница, y - верхняя граница
+    /// @param rangeZ - диапазон, где x - нижняя граница, y - верхняя граница
+    void Tesselate(const glm::vec2 &rangeX, const glm::vec2 &rangeZ, float step);
 
-private:
-    void OutputFaces()const;
-
-    glm::vec4 m_color;
-};
-```
-
-Для реализации рисования воспользуемся ранее увиденным трюком с вызовом glFrontFace:
-
-```cpp
-void CIdentityTetrahedron::Update(float deltaTime)
-{
-    (void)deltaTime;
-}
-
-void CIdentityTetrahedron::Draw() const
-{
-    if (m_color.a < 0.99f)
-    {
-        glFrontFace(GL_CW);
-        OutputFaces();
-        glFrontFace(GL_CCW);
-    }
-    OutputFaces();
-}
-
-void CIdentityTetrahedron::SetColor(const glm::vec4 &color)
-{
-    m_color = color;
-}
-
-void CIdentityTetrahedron::OutputFaces() const
-{
-    // менее оптимальный способ рисования: прямая отправка данных
-    // могла бы работать быстрее, чем множество вызовов glColor/glVertex.
-    glBegin(GL_TRIANGLES);
-
-    for (const STriangleFace &face : TETRAHEDRON_FACES)
-    {
-        const Vertex &v1 = TETRAHEDRON_VERTICES[face.vertexIndex1];
-        const Vertex &v2 = TETRAHEDRON_VERTICES[face.vertexIndex2];
-        const Vertex &v3 = TETRAHEDRON_VERTICES[face.vertexIndex3];
-        glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
-
-        glColor4fv(glm::value_ptr(m_color));
-        glNormal3fv(glm::value_ptr(normal));
-        glVertex3fv(glm::value_ptr(v1));
-        glVertex3fv(glm::value_ptr(v2));
-        glVertex3fv(glm::value_ptr(v3));
-    }
-    glEnd();
-}
-```
-
-## Введение объектов-декораторов
-
-В связи с добавлением тетраэдра перемещение и анимирование куба было переделано с применением шаблона проектирования "Декоратор". Декоратор &mdash; класс, который оборачивает реальное трёхмерное тело и изменяет способ его рисования. Для удобства выделен класс абстрактного декоратора, который реализует интерфейс IBody и имеет методы для установки и получения единственного дочернего IBody:
-
-```cpp
-class CAbstractDecorator : public IBody
-{
-public:
-    void SetChild(IBodyUniquePtr && pChild);
-
-protected:
-    void UpdateChild(float deltaTime);
-    void DrawChild()const;
-
-private:
-    IBodyUniquePtr m_pChild;
-};
-
-void CAbstractDecorator::SetChild(IBodyUniquePtr &&pChild)
-{
-    m_pChild = std::move(pChild);
-}
-
-void CAbstractDecorator::UpdateChild(float deltaTime)
-{
-    assert(m_pChild.get());
-    m_pChild->Update(deltaTime);
-}
-
-void CAbstractDecorator::DrawChild() const
-{
-    assert(m_pChild.get());
-    m_pChild->Draw();
-}
-```
-
-Перемещение двух кубов в разные позиции теперь реализуется с помощью CTransformDecorator:
-
-```cpp
-class CTransformDecorator : public CAbstractDecorator
-{
-public:
-    void Update(float deltaTime);
-    void Draw()const;
-
-    void SetTransform(const glm::mat4 &transform);
-
-private:
-    glm::mat4 m_transform;
-};
-
-void CTransformDecorator::Draw() const
-{
-    glPushMatrix();
-    glMultMatrixf(glm::value_ptr(m_transform));
-    DrawChild();
-    glPopMatrix();
-}
-```
-
-Анимирование куба реализуется в классе CAnimatedDecorator:
-
-```cpp
-class CAnimatedDecorator : public CAbstractDecorator
-{
-public:
-    void Update(float deltaTime);
-    void Draw()const;
-
-private:
-    enum Animation
-    {
-        Rotating,
-        Pulse,
-        Bounce,
-    };
-
-    glm::mat4 GetAnimationTransform()const;
-
-    Animation m_animation = Rotating;
-    float m_animationPhase = 0;
-};
-
-void CAnimatedDecorator::Draw() const
-{
-    const glm::mat4 matrix = GetAnimationTransform();
-    glPushMatrix();
-    glMultMatrixf(glm::value_ptr(matrix));
-    DrawChild();
-    glPopMatrix();
-}
-```
-
-После изменения способа анимирования и перемещения куба в класс CWindow добавлен метод InitBodies, который инициализирует линейные массивы непрозрачных и полупрозрачных тел.
-
-## Нормали гладких поверхностей
-
-OpenGL не способен напрямую рисовать криволинейные поверхности. Тем не менее, можно аппроксимировать поверхность с помощью треугольников. Тогда возникает другая проблема &mdash; как избежать появления слишком большого числа треугольников?
-
-Например, если мы разбиваем сферу на 1000 делений по широте и 1000 делений по долготе, а каждый полученный сектор представляем двумя треугольниками, получается 2 миллиона треугольников &mdash; слишком много для такого простого тела, как сфера.
-
-![Иллюстрация](figures/flat_sphere.jpg)
-
-Можно достигнуть эффекта гладкости иным способом: воспользоваться интерполяцией освещения. На изображении выше сфера слева и сфера справа представлены одинаковым числом треугольников (это можно заметить, глядя на угловатые края правой сферы). Однако, для сферы справа освещение расчитывается в каждом фрагменте треугольника (с использованием программируемого конвейера и GLSL). Поэтому зритель не замечает угловатость сферы &mdash; мозг в процессе восстановления трёхмерной картинки из двухмерного кадра на сетчатке глаза будет считать сферу гладкой, потому что она *выглядит* гладкой.
-
-В фиксированном конвейере OpenGL не получится достичь максимальной гладкости: расчёт цвета с учётом освещения всё равно происходит лишь для вершин треугольника, и полученный цвет лишь интерполируется по фрагментам. В таком режиме нельзя создать изображение с правильными бликами, аналогичное сфере справа &mdash; но можно приблизиться к нему.
-
-За установку модели закрашивания грани отвечает функция [glShadeModel](https://www.opengl.org/sdk/docs/man2/xhtml/glShadeModel.xml):
-
-- режим `glShadeModel(GL_SMOOTH)` выставлен по-умолчанию: в таком режиме каждая вершина треугольника имеет свою нормаль и свой результат расчёта освещения, но фрагменты треугольника получают усреднённое значение цвета (с соответствующими весовыми коэффициентами).
-- режим `glShadeModel(GL_FLAT)` приведёт к тому, что для треугольника будет выбрана лишь одна нормаль одной вершины, остальные будут отброшены. В итоге весь треугольник при расчёте освещения будет окрашен в единый цвет.
-
-## Библиотека GLU
-
-Библиотека GLU (OpenGL Utilities) развивалась параллельно с первыми версиями OpenGL. Она поставляется производителям видеодрайверов как часть OpenGL, и содержит
-
-- функции для некоторых операций над матрицами (однако, функции для матриц в GLM удобнее и мощнее, чем в GLU)
-- функции для некоторых операций над текстурами (генерация уменьшенных копий текстуры)
-- функции для операций над многоугольниками на плоскости (разделение на треугольники и логические операции над областями многоугольников)
-- функции для рисования сферы, цилиндра и кругового диска
-
-Последнее обновление спецификации GLU произошло в 1998-м году, и на данный момент библиотека считается устаревшей. Кроме того, GLU отсутствует в мобильном OpenGL ES и в WebGL, оставаясь работоспособной только в составе видеодрайверов для настольных компьютеров. Не стоит привыкать к использованию GLU &mdash; однако, мы применим GLU в рамках статьи для рисования сферы и цилиндра. Мы воспользуемся типом `GLUquadric` и связанными с ним функциями.
-
-## Класс CSphereQuadric
-
-Класс реализует интерфейс IBody, используя спецификатор `final`. Единственное поле класса хранит указатель на структуру `GLUquadric`, реализация которой скрыта внутри GLU.
-
-```cpp
-// новые заголовки
-#include <GL/glu.h>
-#include <boost/noncopyable.hpp>
-
-class CSphereQuadric final
-        : public IBody
-        , private boost::noncopyable
-{
-public:
-    CSphereQuadric();
-    ~CSphereQuadric();
-
+    // IBody interface.
     void Update(float) final {}
-    void Draw()const final;
-
-    void SetColor(const glm::vec3 &color);
+    void Draw() const final;
 
 private:
-    GLUquadric *m_quadric = nullptr;
-    glm::vec3 m_color;
+    Function2D m_fn;
+    std::vector<SVertexP3N> m_vertices;
 };
 ```
 
-Конструктор и деструктор написаны согласно [идиоме RAII](https://ru.wikipedia.org/wiki/%D0%9F%D0%BE%D0%BB%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D0%B5_%D1%80%D0%B5%D1%81%D1%83%D1%80%D1%81%D0%B0_%D0%B5%D1%81%D1%82%D1%8C_%D0%B8%D0%BD%D0%B8%D1%86%D0%B8%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F). Копирование класса CSphereQuadric запрещено путём приватного наследования от `boost::noncopyable`, чтобы обеспечить уникальное владение ресурсом.
+Для инициализации объекта этого класса в CWindow мы раелизуем функцию GetSincFromXY, двумерный вариант тригонометрической функции sinc, также известной как [кардинальный синус](https://ru.wikipedia.org/wiki/Sinc):
 
 ```cpp
-CSphereQuadric::CSphereQuadric()
-    : m_quadric(gluNewQuadric())
-    , m_color({1, 1, 1})
+//////////////////////////////////////////////
+// Window.h
+
+class CWindow
 {
+    // часть определения класса пропущена
+private:
+    CSolidFunctionSurface m_surface;
+};
+
+//////////////////////////////////////////////
+// Window.cpp
+
+namespace
+{
+float GetSincFromXY(float x, float y)
+{
+    const float radius = std::hypotf(x, y);
+    if (radius < std::numeric_limits<float>::epsilon())
+    {
+        return 1;
+    }
+    return sinf(radius) / radius;
+}
+} // anonymous namespace
+
+CWindow::CWindow()
+    : m_surface(GetSincFromXY)
+// часть конструктора пропущена
+{
+    // график будет рисоваться в квадрате 20x20 с шагом 0,s5.
+    m_surface.Tesselate({-10, 10}, {-10, 10}, 0.5f);
 }
 
-CSphereQuadric::~CSphereQuadric()
+void CWindow::OnDrawWindow(const glm::ivec2 &size)
 {
-    gluDeleteQuadric(m_quadric);
+    SetupView(size);
+    m_sunlight.Setup();
+    m_material.Setup();
+    m_surface.Draw();
 }
 ```
 
-Для рисования вызывается фунция [gluSphere](https://www.opengl.org/sdk/docs/man2/xhtml/gluSphere.xml), в параметрах которой передаётся радиус сферы и число делений по широте/долготе, от которого прямо зависит число созданных для приближения сферы треугольников.
+## Заполнение массива вершин графика функции
+
+Метод Tesselate заполняет массив несвязных вершин, используя вспомогательные функции GetPosition и CalculateNormals, а также вспомогательный конструктор структуры SVertexP3N, принимающий только позицию без нормали:
 
 ```cpp
-void CSphereQuadric::Draw() const
+namespace
 {
-    const double radius = 1;
-    const int slices = 20;
-    const int stacks = 20;
-    glColor3fv(glm::value_ptr(m_color));
-    gluSphere(m_quadric, radius, slices, stacks);
+glm::vec3 GetPosition(const Function2D &fn, float x, float z)
+{
+    const float y = fn(x, z);
+    return {x, y, z};
 }
 
-void CSphereQuadric::SetColor(const glm::vec3 &color)
+// вычисляет нормали численным методом,
+// с помощью векторного произведения.
+void CalculateNormals(std::vector<SVertexP3N> &vertices,
+                      const Function2D &fn, float step)
 {
-    m_color = color;
+    for (SVertexP3N &v : vertices)
+    {
+        const glm::vec3 &position = v.position;
+        glm::vec3 dir1 = GetPosition(fn, position.x, position.z + step) - position;
+        glm::vec3 dir2 = GetPosition(fn, position.x + step, position.z) - position;
+        v.normal = glm::normalize(glm::cross(dir1, dir2));
+    }
+}
+} // anonymous namespace
+
+CDottedFunctionSurface::CDottedFunctionSurface(const Function2D &fn)
+    : m_fn(fn)
+{
+}
+
+void CDottedFunctionSurface::Tesselate(const glm::vec2 &rangeX, const glm::vec2 &rangeZ, float step)
+{
+    m_vertices.clear();
+    // вычисляем позиции вершин.
+    for (float x = rangeX.x; x < rangeX.y; x += step)
+    {
+        for (float z = rangeZ.x; z < rangeZ.y; z += step)
+        {
+            m_vertices.push_back(SVertexP3N(GetPosition(m_fn, x, z)));
+        }
+    }
+    CalculateNormals(m_vertices, m_fn, step);
 }
 ```
 
-Результат добавления сферы на сцену:
+## Применение glVertexPointer
 
-![Скриншот](figures/glu_sphere.png)
+В методе Draw мы наконец откажемся от рисования Immediate Mode (то есть от блоков glBegin/glEnd). Ранее мы отдельно задавали различные "текущие" атрибуты вершины, а функция glVertex кроме установки атрибута "позиция" ещё и порождала новую вершину.
 
-Ради эксперимента включим для сферы упомянутый ранее режим "плоского" расчёта освещения, в котором одна грань может иметь только одну нормаль:
+Создатели OpenGL ещё в начали 1990-х годов поняли, что такой подход неэффективен: накладные расходы на постоянные проверки данных при каждом вызове `glNormal*/glColor*/glVertex*` слишком велики. Применение дисплейных списоков, показаное ранее в статье ["Тригонометрия и цветы"](lesson_4.md), частично решает проблему, но также имеется интерфейс для вывода целых массивов вершин несколькими вызовами функций-команд OpenGL: glVertexPointer и glDrawArrays.
+
+У вывода целого массива вершин есть важное преимущество: такой метод работает во всех версиях и режимах OpenGL, включая
+
+- OpenGL 3.0+ в режиме Core Profile,
+- OpenGL ES для мобильных устройств
+- WebGL, реализуемый барузерами и похожий на OpenGL ES
+
+Структура данных SVertexP3N была описана с расчётом на glVertexPointer, потому что такой метод рисования приспособлен для массивов пользовательских структур и умеет гибко адаптироваться под разные способы описания вершины. В нашем случае структура содержит вектор позиции и вектор нормали, их привязка осуществляется функциями [glVertexPointer](https://www.opengl.org/sdk/docs/man2/xhtml/glVertexPointer.xml) и [glNormalPointer](https://www.opengl.org/sdk/docs/man2/xhtml/glNormalPointer.xml). Вместе с привязкой следует вызвать [glEnableClientState](https://www.opengl.org/sdk/docs/man2/xhtml/glEnableClientState.xml), чтобы сообщить видеодрайверу, что вы планируете использовать установленный указатель на массив данных для рисования примитивов. В нашем случае вершины и нормали упакованы вместе в один массив `std::vector<SVertexP3N> m_vertices`, но для OpenGL это будут два разных разреженных массива:
 
 ```cpp
-void CSphereQuadric::Draw() const
+// Включаем режим vertex array и normal array.
+glEnableClientState(GL_VERTEX_ARRAY);
+glEnableClientState(GL_NORMAL_ARRAY);
+
+// Выполняем привязку vertex array и normal array
+// Параметр stride задаёт число байт, прибавляемых к указателю
+// для перехода к следующей вершине
+// Если stride равен 0, OpenGL вычислит stride самостоятельно,
+// исходя из предположения, что массив не содержит пропусков.
+const size_t stride = sizeof(SVertexP3N);
+// Разреженный массив нормалей получается из плотного массива вершин.
+glNormalPointer(GL_FLOAT, stride, glm::value_ptr(vertices[0].normal));
+// Разреженный массив позиций получается из плотного массива вершин.
+glVertexPointer(3, GL_FLOAT, stride, glm::value_ptr(vertices[0].position));
+
+// Рисуем группу примитивов, используя glDrawArrays или glDrawElements
+
+// Выключаем режим vertex array и normal array,
+// чтобы не нарушить работу legacy-кода.
+glDisableClientState(GL_VERTEX_ARRAY);
+glDisableClientState(GL_NORMAL_ARRAY);
+```
+
+## Рисование с помощью glDrawArrays
+
+Функция [glDrawArrays](https://www.opengl.org/sdk/docs/man/html/glDrawArrays.xhtml) разбирает привязанный массив вершин последовательно, разбивая их на группы по количеству вершин в примитиве. Например, при рисовании отдельных треугольников массивом из 9 вершин будет собрано 3 треугольника (по 3 вершины на каждый). При рисовании веера треугольников из 9 вершин будет собрано 7 треугольников (одна вершина станет общим центром веера, остальные сформируют его границу). Значение каждого атрибута вершины берётся из привязанного массива атрибутов.
+
+Сейчас мы хотим нарисовать группу примитивов GL_POINT размера `m_vertices.size()`, начиная с 0-го элемента массива:
+
+```cpp
+void CDottedFunctionSurface::Draw() const
 {
-    glShadeModel(GL_FLAT);
-    const double radius = 1;
-    const int slices = 20;
-    const int stacks = 20;
-    glColor3fv(glm::value_ptr(m_color));
-    gluSphere(m_quadric, radius, slices, stacks);
-    glShadeModel(GL_SMOOTH);
+    glPointSize(5.f);
+    // Включаем режим vertex array и normal array.
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    // Выполняем привязку vertex array и normal array
+    const size_t stride = sizeof(SVertexP3N);
+    glNormalPointer(GL_FLOAT, stride, glm::value_ptr(m_vertices[0].normal));
+    glVertexPointer(3, GL_FLOAT, stride, glm::value_ptr(m_vertices[0].position));
+
+    // Выполняем рисование массива вершин.
+    glDrawArrays(GL_POINTS, 0, GLsizei(m_vertices.size()));
+
+    // Выключаем режим vertex array и normal array.
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
 }
 ```
 
-![Скриншот](figures/glu_sphere_flat.png)
+Метод следует отрефакторить, поскольку сейчас он выполняет сразу две задачи: сначала привязывает массивы данных вершин, а затем рисует группу примитивов GL_POINT. Задачу привязки массива `std::vector<SVertexP3N> m_vertices` к OpenGL можно выделить в отдельную шаблонную функцию, которая в шаблонном параметре принимает ссылку на функтор, испольщующий привязанные массивы в своих целях. Функтором выступит лямбда-функция:
 
-## Класс CConoidQuadric
+```cpp 
+namespace
+{
+const float DOT_SIZE = 5.f;
 
-Класс усечённого конуса CConoidQuadric также реализует интерфейс IBody, используя спецификатор `final`, и хранит внутри указатель на объект типа `GLUquadric`. С помощью CConoidQuadric можно нарисовать не только усечённый конус, но и обычный конус либо цилиндр &mdash; результат рисования зависит от значения свойства TopRadius. По умолчанию `TopRadius = 1.`, рисуется цилиндр:
+/// Привязывает вершины к состоянию OpenGL,
+/// затем вызывает 'callback'.
+template <class T>
+void DoWithBindedArrays(const std::vector<SVertexP3N> &vertices, T && callback)
+{
+    // Включаем режим vertex array и normal array.
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    // Выполняем привязку vertex array и normal array
+    const size_t stride = sizeof(SVertexP3N);
+    glNormalPointer(GL_FLOAT, stride, glm::value_ptr(vertices[0].normal));
+    glVertexPointer(3, GL_FLOAT, stride, glm::value_ptr(vertices[0].position));
+
+    // Выполняем внешнюю функцию.
+    callback();
+
+    // Выключаем режим vertex array и normal array.
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+}
+} // anonymous namespace
+
+void CDottedFunctionSurface::Draw() const
+{
+    glPointSize(DOT_SIZE);
+    DoWithBindedArrays(m_vertices, [this] {
+        glDrawArrays(GL_POINTS, 0, GLsizei(m_vertices.size()));
+    });
+}
+```
+
+Благодаря установке размера точек равным 5 на большом расстоянии от камеры точки формируют непрерывную поверхность. Однако, вблизи камеры поверхность рассыпается:
+
+![Скриншот](figures/dotted_function_2d.png)
+
+## Замощение поверхности лентой треугольников
+
+Теперь мы соединим вершины при помощи лент из треугольников (GL_TRIANGLE_STRIP). На первый взгляд, нам необходимо SizeY лент длиной по `2*SizeX` треугольников каждая:
+
+![Иллюстрация](figures/xy_triangle_strip.png)
+
+В качестве альтернативы можно было бы соединить вершины в виде набора вееров из треугольников (GL_TRIANGLE_FAN), но это потребовало бы большего количества  групп примитивов:
+
+![Иллюстрация](figures/xy_triangle_fan.png)
+
+Для сокращения SizeY лент треугольников до единственной ленты мы будем «сшивать» соседние ленты треугольников, добавляя пару дополнительных вершин в конце каждой ленты &mdash; в результате вырожденный треугольник нулевой площади совершит переход к следующему ряду треугольников. Также потребуется постоянно менять направление обхода рядов ленты:
+
+![Иллюстрация](figures/xy_single_triangle_strip.png)
+
+Такой прием позволит нарисовать всю сетку с помощью одной ленты из треугольников, что положительно скажется на эффективности ее обработки OpenGL.
+
+>С использованием расширения [GL_NV_primitive_restart](https://www.opengl.org/registry/specs/NV/primitive_restart.txt) можно выполнять «перезапуск» группы примитивов и без добавления вырожденных граней и необходимости менять направление обхода рядов ленты.
+
+## Новый класс CSolidFunctionSurface
+
+Для решения проблем с рассыпанием добавим в `FunctionSurface.h` новый класс CSolidFunctionSurface. Этот класс будет, подобно классам CIdentityCube и CIdentityTetrahedron, использовать опосредованный доступ к вершинам через массив, содержащий лишь индексы в массиве вершин.
 
 ```cpp
-// определение класса
-class CConoidQuadric final
-        : public IBody
-        , private boost::noncopyable
+class CSolidFunctionSurface final : public IBody
 {
 public:
-    CConoidQuadric();
-    ~CConoidQuadric();
+    CSolidFunctionSurface(const Function2D &fn);
 
+    /// Инициализирует индексированную сетку треугольников
+    /// @param rangeX - диапазон, где x - нижняя граница, y - верхняя граница
+    /// @param rangeZ - диапазон, где x - нижняя граница, y - верхняя граница
+    void Tesselate(const glm::vec2 &rangeX, const glm::vec2 &rangeZ, float step);
+
+    // IBody interface.
     void Update(float) final {}
-    void Draw()const final;
-
-    /// @param value - in range [0..1]
-    void SetTopRadius(double value);
-    void SetColor(const glm::vec3 &color);
+    void Draw() const final;
 
 private:
-    GLUquadric *m_quadric = nullptr;
-    double m_topRadius = 1.;
-    glm::vec3 m_color;
+    Function2D m_fn;
+    // содержит "палитру" вершин.
+    std::vector<SVertexP3N> m_vertices;
+    // содержит индексы в палитре вершин.
+    std::vector<uint32_t> m_indicies;
 };
-
-// конструктор и деструктор
-
-CConoidQuadric::CConoidQuadric()
-    : m_quadric(gluNewQuadric())
-    , m_color({1, 1, 1})
-{
-}
-
-CConoidQuadric::~CConoidQuadric()
-{
-    gluDeleteQuadric(m_quadric);
-}
 ```
 
-Для рисования используется три функции-команды GLU: [gluCylinder](https://www.opengl.org/sdk/docs/man2/xhtml/gluCylinder.xml) рисует только боковую поверхность усечённого конуса, а две "крышки" (верхняя и нижняя) рисуются двумя дисками с помощью [gluDisk](https://www.opengl.org/sdk/docs/man2/xhtml/gluDisk.xml). Здесь также использованы устаревшие низкоуровневые средства для работы с матрицами &mdash; это оправдано, потому что библиотека GLU устарела одновременно с OpenGL 1.x, и весь код рисования усечённого конуса одинаково устарел для OpenGL 2.x и выше. Реализация рисования:
+Теперь функция Tesselate станет сложнее: в неё добавился код, который делит вершины по треугольникам, занося индексы в массив `m_indicies`. Благодаря описанному ранее трюку с переходом на новый ряд через вырожденный треугольник (с нулевой площадью) мы можем представить всю поверхность одной изогнутой сеткой треугольников:
 
 ```cpp
-// Рисует усечённый конус высотой 2,
-// с радиусом основания 1 и радиусом верхнего торца m_topRadius.
-void CConoidQuadric::Draw() const
+CSolidFunctionSurface::CSolidFunctionSurface(const Function2D &fn)
+    : m_fn(fn)
 {
-    const double baseRadius = 1;
-    const double height = 2;
-    const int slices = 20;
-    const int stacks = 1;
-    glColor3fv(glm::value_ptr(m_color));
-    glTranslatef(0, 0, 1);
-    gluCylinder(m_quadric, baseRadius, m_topRadius, height, slices, stacks);
-    glFrontFace(GL_CW);
-    gluDisk(m_quadric, 0, baseRadius, slices, stacks);
-    glFrontFace(GL_CCW);
-    glTranslatef(0, 0, 2);
-    gluDisk(m_quadric, 0, baseRadius, slices, stacks);
-    glTranslatef(0, 0, -1);
 }
 
-void CConoidQuadric::SetTopRadius(double value)
+void CSolidFunctionSurface::Tesselate(const glm::vec2 &rangeX, const glm::vec2 &rangeZ, float step)
 {
-    m_topRadius = glm::clamp(value, 0.0, 1.0);
-}
+    m_vertices.clear();
+    const unsigned columnCount = unsigned((rangeX.y - rangeX.x) / step);
+    const unsigned rowCount = unsigned((rangeZ.y - rangeZ.x) / step);
 
-void CConoidQuadric::SetColor(const glm::vec3 &color)
-{
-    m_color = color;
+    // вычисляем позиции вершин.
+    for (unsigned ci = 0; ci < columnCount; ++ci)
+    {
+        const float x = rangeX.x + step * float(ci);
+        for (unsigned ri = 0; ri < rowCount; ++ri)
+        {
+            const float z = rangeZ.x + step * float(ri);
+            m_vertices.push_back(SVertexP3N(GetPosition(m_fn, x, z)));
+        }
+    }
+    CalculateNormals(m_vertices, m_fn, step);
+    // вычисляем индексы вершин.
+    for (unsigned ci = 0; ci < columnCount - 1; ++ci)
+    {
+        if (ci % 2 == 0)
+        {
+            for (unsigned ri = 0; ri < rowCount; ++ri)
+            {
+                unsigned index = ci * rowCount + ri;
+                m_indicies.push_back(index + rowCount);
+                m_indicies.push_back(index);
+            }
+        }
+        else
+        {
+            for (unsigned ri = rowCount - 1; ri < rowCount; --ri)
+            {
+                unsigned index = ci * rowCount + ri;
+                m_indicies.push_back(index);
+                m_indicies.push_back(index + rowCount);
+            }
+        }
+    }
 }
 ```
 
-После добавления цилиндра на сцену мы получим интересное явление, которое называется [Z-Fighting](https://en.wikipedia.org/wiki/Z-fighting): грань куба и диск цилиндра накладываются друг на друга, и фрагменты граней имеют одинаковую глубину. Спецификация OpenGL оставляет поведение в таких ситуациях неопределённым: на разных кадрах разные фрагменты грани куба и диска цилиндра будут "выигрывать" конфликт глубины и попадать на экран.
+## Рисование с помощью glDrawElements
 
-![Скриншот](figures/glu_conoid.png)
+Функция [glDrawElements](https://www.opengl.org/sdk/docs/man2/xhtml/glDrawElements.xml) является альтернативой для glDrawArrays, дающей косвенный доступ к вершинам через дополнительный массив индексов &mdash; именно такой метод рисования нам и нужен. Используя ранее описанную функцию DoWithBindedArrays, выполняем рисование группы примитивов GL_TRIANGLE_STRIP:
 
-Универсального решения для Z-Fighting не существует. Но для большинства приложений Z-Fighting не является проблемой &mdash; например, в трёхмерных играх поверхности не могут накладываться друг на друга из-за работы физического движка, который не позволяет объектам совмещаться друг с другом.
+```cpp
+void CSolidFunctionSurface::Draw() const
+{
+    DoWithBindedArrays(m_vertices, [this] {
+        glDrawElements(GL_TRIANGLE_STRIP, GLsizei(m_indicies.size()),
+                       GL_UNSIGNED_INT, m_indicies.data());
+    });
+}
+```
+
+В результате мы получаем поверхность, плотно замощённую треугольниками:
+
+![Скриншот](figures/solid_function_2d.png)
 
 ## Результат
 
-Вы можете взять [полный пример к статье на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_10). В этом примере на сцене находятся два куба, тетраэдр, сфера и цилиндр, к некоторым из них прикреплены объекты-декораторы:
+Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_10). А вот так выглядит окно после запуска:
 
-![Иллюстрация](figures/lesson_10_preview.png)
+![Скриншот](figures/solid_function_2d.png)

@@ -1,585 +1,441 @@
 ---
-title: Практикуемся с матрицами
+title: 'Включаем свет'
 ---
 
-В этом уроке мы разберём математические приниципы, стоящие за преобразованиями координат в OpenGL. Также мы научимся применять простые трансформации к объектам и придавать движение камере.
+В этом уроке мы впервые применим на сцене механизм освещения. Пока что мы будем использовать фиксированный конвейер OpenGL, тем самым лишая себя целого ряда эффектов, доступных в любой современной 3D игре.
 
-## Трёхмерная система координат
+## Модель освещения в фиксированном конвейере OpenGL
 
-В OpenGL используется правосторонняя система координат, в которых пользователь может задавать вершины примитивов, из которых состоят трехмерные объекты. Правосторонней система координат называется потому, что ее можно образовать при помощи большого, указательного и среднего пальцев правой руки, задающих направления координатных осей X, Y и Z соответственно.
+Фиксированный конвейер OpenGL позволяет использовать определённую математическую модель симуляции освещения &mdash; [модель Фонга](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D1%82%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_%D0%BF%D0%BE_%D0%A4%D0%BE%D0%BD%D0%B3%D1%83), а также определённую модель интерполяции освещения по всему полигону &mdash; модель Гуро (хотя для интерполяции тоже есть своя модель Фонга). Существуют другие модели освещения и интерполяции, но в рамках фиксированного конвейера реализовать их не получится.
 
-![иллюстрация](figures/right_handed.png)
+Одно из центральных звеньев модели освещения Фонга &mdash; это закон расчёта рассеянного освещения (*англ.* diffuse), также известный как закон Ламберта:
 
-Система координат задаётся точкой отсчёта и координатными осями, которые, в свою очередь, задают направления и длины трёх единичных векторов (1, 0, 0), (0, 1, 0) и (0, 0, 1). Как точка отсчёта, так и координатные оси могут меняться при переходе из одной системы координат в другую.
+![Иллюстрация](figures/lambert_law.png)
 
-Например, представьте себе систему координат комнаты, где в качестве центра взята точка в геометрическом центре пола, а ось z указывает вверх, и расстояния измеряются в метрах. Тогда точки головы человека в комнате всегда будут иметь координату z, большую нуля, обычно в диапазоне `(1.6; 1.8)`. Если же перейти в другую систему отсчёта, где центром служит точка в геометрическом центре потолка, то голова человека в комнате будет иметь отрицательную координату z.
+Закон Ламберта проявляет себя в простом наблюдении: чем меньше угол падения солнечных лучей, тем меньше освещена поверхность. Ночью угол падения отрицательный, т.е. путь солнечных лучей перекрывает поверхность где-то на другой стороне Земли. В результате рассеянный (диффузный) свет отсутствует вовсе.
 
-В любой трёхмерной сцене есть система координат, которую можно считать **мировой** системой коодинат. Это очень удобно: любая точка или вектор в мировой системе координат представляется однозначно. Благодаря этому, если у нас есть несколько **локальных** систем координат (например: комната, салон автомобиля, камера), и мы знаем способ преобразования из любой системы в мировые координаты, то мы можем спокойно перейти, например, от системы координат комнаты к системе координат камеры.
+## Компоненты освещения в модели Фонга
 
-О локальных системах координат можно сказать следующее:
+Расчёт рассеянного освещения по закону Ламберта даёт неприятный эффект: обратная по отношению к источнику света сторона объекта не освещена. В реальном мире рассеяный свет отражается от стен комнаты и освещает даже те поверхности, на которые не попадают прямые лучи от источника света. В фиксированном конвейере OpenGL этот эффект грубо эмулируется путём умножения "фонового" цвета материала на "фоновую" интенсивность источника света. Этот компонент цвета освещённой поверхности обозначается константой `GL_AMBIENT`.
 
-- для перехода к мировой системе координат всегда есть афинное преобразование, состоящее из некоторого числа перемещений, вращений и масштабирований
-- если точка отсчёта в разных координатах разная, это можно представить перемещением (*англ.* translate)
-- если координатные оси направлены в другие стороны, это можно представить вращением (*англ.* rotate)
-- если единицы измерения разные, например, метры в одной системе и километры в другой, это можно представить масштабированием (*англ.* scale)
+Рассеяное освещение, рассчитаное по закону Ламберта, обозначается константой `GL_DIFFUSE`.
 
-Самый удивительный факт: любое элементарное трёхмерное преобразование, а также их комбинацию можно представить в виде матрицы 4x4! Чтобы понять, как это происходит, разберёмся с однородным представлением точек и векторов.
+Также модель Фонга вносит третью компоненту &mdash; световые блики, которые проявляются, когда угол падения лучей на тело практически равен углу отражения луча, попадающего в камеру. Эта компонента освещения обозначается константой `GL_SPECULAR`:
 
-## Единый тип данных для точек и векторов
+![Иллюстрация](figures/phong_specular.png)
 
-Давайте представим, что нам поставили задачу: создать единый тип данных, способный хранить как трёхмерную точку, так и трёхмерный вектор. Этот тип данных должен поддерживать операции вращения, перемещения и масштабирования, причём по-разному для векторов и точек: например, перемещение вектора никак не меняет его, а перемещение точки изменяет эту точку.
+Вот так выглядят три компонента и результат их сложения:
+![Иллюстрация](figures/phong_components.png)
 
-Если использовать процедурную парадигму программирования, получится нечто такое:
+RGBA-цвета всех трёх компонент попросту складываются покомпонетно, и полученные в результате Red, Green, Blue компоненты обрезаются в границах `[0, 1]`. В результате очень ярко освещённый белым источником светло-жёлтый объект может стать просто белым &mdash; цвет `{5.3, 3.2, 1.1, 1}` будет обрезан до белого цвета `{1, 1, 1, 1}`.
 
-```cpp
-struct SPointOrVector
-{
-    float x = 0;
-    float y = 0;
-    float z = 0;
-    bool isVector = false;
-};
+Между прочим, в OpenGL есть ещё одна компонента освещения: GL_EMISSION. Она задаёт собственную светимость материала, не зависящую от освещения, и позволяет грубо симулировать светящиеся объекты. Компонента крайне редко используется, и мы не станем её рассматривать.
 
-void RotateZ(const SPointOrVector &x, float angle);
-void Translate(const SPointOrVector &x, float x, float y, float z);
-void Scale(const SPointOrVector &x, float scale);
-```
+## 8 источников света
 
-Объектно-ориентированный подход предлагает такой вариант:
+Фиксированный конвейер OpenGL позволяет симулировать не более 8 источников света, поскольку каждый активный источник даёт одинаковый и вполне заметный прирост трудозатрат на растеризацию трёхмерной сцены. Источники света обозначаются константами от `GL_LIGHT0` до `GL_LIGHT7`. В некоторых реализациях OpenGL доступны дополнительные источники с индексами от `GL_LIGHT8`, но написанный с их использованием код не будет работать на большинстве видеокарт.
+
+Включить систему освещения или активировать отдельный источник можно функцией-командой `glEnable`.
 
 ```cpp
-class IPrimitive3D
-{
-public:
-    void RotateZ(float angle);
-    void Translate(float x, float y, float z);
-    void Scale(float scale);
-};
-
-class CVector3D : IPrimitive3D
-{
-    // реализация операций для вектора
-};
-
-class CPoint3D : IPrimitive3D
-{
-    // реализация операций для точки
-};
+glEnable(GL_LIGHTING);
+glEnable(GL_LIGHT0);
+glEnable(GL_LIGHT1);
+// рисование сцены
+glDisable(GL_LIGHTING);
+// рисование элементов сцены, не требующих освещения
 ```
 
-Оба подхода одинаково плохи: во-первых, мы в любом случае дублируем код. Во-вторых, на видеокартах с современной архитектурой любое ветвление или условное выполнение оборачивается огромным падением производительности, и желательно его избегать; в данных двух реализациях мы не сможем избежать ветвлений при выполнении трансформаций точек и векторов прямо на видеокарте.
+Параметры источника света в OpenGL задаются при помощи семейства функций [glLight](https://www.opengl.org/sdk/docs/man2/xhtml/glLight.xml). К параметрам источника света относятся интенсивности диффузной, зеркальной и фоновой составляющих цвета, положение источника света (или направление на него), степень зеркального отражения для модели фонга. Для конических источников света можно задать величину угла разброса света. Кроме того, можно задать коэффициенты ослабления интенсивности света в зависимости от расстояния.
 
-Проблема решается с помощью математического приёма &mdash; однородного представления точек и векторов.
+## Разрабатываем класс "Направленный источник света"
 
-## Однородное представление точек и векторов.
+В OpenGL можно симулировать три разных типа источников света:
 
-Давайте будем считать, что трёхмерная точка `(x, y, z)` хранится как четырёхкомпонентный вектор `(x, y, z, 1)`. А вектор хранится как `(x, y, z, 0)`. Всего лишь одно флаговое значение в конце позволяет избежать любых ветвлений в алгоритмах трансформации векторов и точек. Это происходит благодаря свойствам алгебры матриц.
+- бесконечно удалённый направленный (такой, как Солнце или Луна)
+- точечный источник на фиксированной позиции (такой, как светлячок)
+- прожекторный источник (*англ. spotlight), то есть точечный источник с ограничением распространения света некоторым конусом
 
-Как известно, можно умножить матрицу на матрицу при условии, что ширина одной матрицы равна высоте другой (иначе операция просто недопустима). Для получения элемента с позицией i,j в новой матрице достаточно взять i-ю строку левой матрицы и j-й столбец правой матрицы. Вот пример:
-
-```
-| 1 0 0 |   | x 1 |   | 1*x+0*y+0*z 1*1+1*0+0*0 |
-| 1 1 1 | * | y 1 | = | 1*x+1*y+1*z 1*1+1*1+1*0 |
-| 2 1 1 |   | z 0 |   | 2*x+1*y+1*z 2*1+1*1+1*0 |
-```
-
-Как ни странно, умножение 4-х компонентного вектора на матрицу 4x4 тоже возможно! Для этого достаточно считать 4-х компонентный вектор матрицей 4x1. После умножения получится новый 4-х компонентный вектор.
-
-Ещё более удивительно, что любую комбинацию трёхмерных перемещений, поворотов, вращений (и не только их!) можно представить как всего лишь одну матрицу 4x4, называемую матрицей трёхмерной трансформации. При этом умножение матрицы на трёхмерную точки или вектор, записанный в однородном представлении, даёт новую точку или вектор именно так, как этого требуют правила преобразования точек и векторов. Никаких ветвлений, и никакой магии!
-
-## Класс CAnimatedCube
-
-Давайте запомним несколько простых правил. Некоторые из них даже будут доказаны чуть ниже.
-
-- умножение матрицы преобразования на вектор или точку в однородном представлении даёт преобразованный вектор или точку
-- можно легко составить базовую матрицу, представляющих одно элементарное афинное преобразование
-- умножение матрицы A на матрицу B даёт новую матрицу, которая описывает новую трансформацию, созданную путём применения трансформации B, а затем A (именно в таком порядке)
-- умножение матриц не коммутативно: вы не можете заменить `A*B` на `B*A`
-- инвертирование матрицы (например, с помощью детерминанта матрицы) даёт матрицу обратной трансформации, которая вернёт точку или вектор в исходное состояние &mdash; в идеальном мире. В дискретном мире компьютеров обратное преобразование может быть чуть-чуть неточным из-за особенностей представления типов float и double.
-
-Для демонстрации этих правил расширим класс CIdentityCube из предыдущего урока. Новый класс будет называться CAnimatedCube, и он будет демонстрировать работу трёх базовых афинных трансформаций. Смена и продвижение анимации будет выполняться в методе Update, вызываемом периодически снаружи.
-
-```cpp
-class CAnimatedCube : public CIdentityCube
-{
-public:
-    void Update(float deltaTime);
-    void Draw()const;
-
-private:
-    enum Animation
-    {
-        Rotating,
-        Pulse,
-        Bounce,
-    };
-
-    glm::mat4 GetAnimationTransform()const;
-
-    static const float ANIMATION_STEP_SECONDS;
-    Animation m_animation = Rotating;
-    float m_animationPhase = 0;
-};
-```
-
-С учётом перечисленных выше правил, мы можем написать метод Draw для анимированного куба. При этом вместо glLoadMatixf следует применить glMultMatrixf, чтобы вместо замены уже существующей трансформации всего лишь модифицировать её. Если мы заменим матрицу GL_MODELVIEW, камера будет работать некорректно.
-
-```cpp
-void CAnimatedCube::Draw() const
-{
-    // метод GetAnimationTransform вычисляет матрицу трансформации.
-    const glm::mat4 matrix = GetAnimationTransform();
-    glPushMatrix();
-    glMultMatrixf(glm::value_ptr(matrix));
-    CIdentityCube::Draw();
-    glPopMatrix();
-}
-```
-
-Функции для работы с афинными трансформациями (и не только!) можно найти в GML:
-
-```cpp
-#include <glm/gtc/matrix_transform.hpp>
-
-// Документация по функциям для модификации матриц:
-// http://glm.g-truc.net/0.9.2/api/a00245.html
-```
-
-## Единичная матрица
-
-Единичная матрица (матрица идентичности, *англ.* identity matrix) задает преобразование, при котором точки и векторы остаются без изменений, отображаясь сами в себя. Посмотрите сами на перемножение этой матрицы и точки/вектора:
-
-```
-    точка (x, y, z)
-| 1 0 0 0 |   | x |   | x |
-| 0 1 0 0 |   | y |   | y |
-| 0 0 1 0 | * | z | = | z |
-| 0 0 0 1 |   | 1 |   | 1 |
-    вектор (x, y, z)
-| 1 0 0 0 |   | x |   | x |
-| 0 1 0 0 |   | y |   | y |
-| 0 0 1 0 | * | z | = | z |
-| 0 0 0 1 |   | 0 |   | 0 |
-```
-
-Если мы не хотим возвращать из метода GetAnimationTransform() какую-либо преобразующую трансформацию, мы можем просто вернуть единичную матрицу. Именно такую матрицу создаёт конструктор по умолчанию класса glm::mat4. Теперь мы можем заложить каркас метода GetAnimationTransform:
-
-```cppч
-glm::mat4 CAnimatedCube::GetAnimationTransform() const
-{
-    switch (m_animation)
-    {
-    case Rotating:
-        return GetRotateZTransfrom(m_animationPhase);
-    case Pulse:
-        return GetScalingPulseTransform(m_animationPhase);
-    case Bounce:
-        return GetBounceTransform(m_animationPhase);
-    }
-    // Недостижимый код - вернём единичную матрицу.
-    return glm::mat4();
-}
-```
-
-## Матрица перемещения
-
-Матрица перемещения воздействует на точку, но вектор сохраняет неизменным. Действует она так:
-
-```
-    точка (x, y, z)
-| 1 0 0 dx |   | x |   | x + dx |
-| 0 1 0 dy |   | y |   | y + dy |
-| 0 0 1 dz | * | z | = | z + dz |
-| 0 0 0 1  |   | 1 |   | 1      |
-
-    вектор (x, y, z)
-| 1 0 0 dx |   | x |   | x |
-| 0 1 0 dy |   | y |   | y |
-| 0 0 1 dz | * | z | = | z |
-| 0 0 0 1  |   | 0 |   | 0 |
-```
-
-В GLM есть функция [glm::translate](http://glm.g-truc.net/0.9.2/api/a00245.html#ga4683c446c8432476750ade56f2537397), умножающая переданную матрицу на матрицу перемещения. Чтобы анимировать куб, будем вычислять смещение по оси Ox в каждый момент времени. После этого получение матрицы перемещения будет очень простым:
-
-```cpp
-return glm::translate(glm::mat4(), {offset, 0.f, 0.f});
-```
-
-Для гладкого движения куба будем использовать прямолинейное равномерно ускоренное движение, аналогичное обычному прыжку или движению мача, брошенного вверх. Вот его иллюстрация в неинерциальной и инерциальной системах отсчёта:
-
-![Иллюстрация](figures/LinearToParabolicMoving.png)
-
-В процессе анимации от 0% до 100% куб должен один или несколько раз прыгнуть в сторону и затем вернуться обратно. Для этого воспользуемся делением с остатком, а также формулой расчёта расстояния на основе начальной скорости и противоположно направленного ускорения. Можно написать так:
-
-```cpp
-/// @param phase - Фаза анимации на отрезке [0..1]
-glm::mat4 GetBounceTransform(float phase)
-{
-    // начальная скорость и число отскоков - произвольные константы.
-    const int bounceCount = 4;
-    const float startSpeed = 15.f;
-    // "время" пробегает bounceCount раз по отрезку [0...1/bounceCount].
-    const float time = fmodf(phase, 1.f / float(bounceCount));
-    // ускорение подбирается так, чтобы на 0.25с скорость стала
-    // противоположна начальной.
-    const float acceleration = - (startSpeed * 2.f * float(bounceCount));
-    // расстояние - результат интегрирования функции скорости:
-    //  speed = startSpeed + acceleration * time;
-    float offset = time * (startSpeed + 0.5f * acceleration * time);
-
-    // для отскоков с нечётным номером меняем знак.
-    const int bounceNo = int(phase * bounceCount);
-    if (bounceNo % 2)
-    {
-        offset = -offset;
-    }
-
-    return glm::translate(glm::mat4(), {offset, 0.f, 0.f});
-}
-```
-
-## Матрица масштабирования
-
-Матрица масштабирования воздействует как на точку, так и на вектор, изменяя соответственно удалённость точки от начала координат и длину вектора. Действует так:
-
-```
-    точка (x, y, z)
-| sx 0  0  0 |   | x |   | sx*x |
-| 0  sy 0  0 |   | y |   | sy*y |
-| 0  0  sz 0 | * | z | = | sz*z |
-| 0  0  0  1 |   | 1 |   | 1    |
-
-    вектор (x, y, z)
-| sx 0  0  0 |   | x |   | sx*x |
-| 0  sy 0  0 |   | y |   | sy*y |
-| 0  0  sz 0 | * | z | = | sz*z |
-| 0  0  0  1 |   | 0 |   | 0    |
-```
-
-В GLM есть функция [glm::scale](http://glm.g-truc.net/0.9.2/api/a00245.html#ga6da77ee2c33d0d33de557a37ff35b197), умножающая переданную матрицу на матрицу масштабирования, имеющую потенциально разные коэффициенты масштабирования для трёх разных компонентов вектора.
-
-Давайте используем эту функцию, чтобы реализовать пульсирование куба &mdash; сжатие от нормальных размеров к нулевым и обратно:
-
-```cpp
-/// @param phase - Фаза анимации на отрезке [0..1]
-glm::mat4 GetScalingPulseTransform(float phase)
-{
-    // число пульсаций размера - произвольная константа.
-    const int pulseCount = 4;
-    float scale = fabsf(cosf(float(pulseCount * M_PI) * phase));
-
-    return glm::scale(glm::mat4(), {scale, scale, scale});
-}
-```
-
-
-## Матрица поворота
-
-Матрица поворота воздействует и на точку, и на вектор, при этом удалённость точки от начала координат и длина вектора не меняются. Перечислим три матрицы поворота на угол "a" вокруг трёх осей системы координат (посмотреть, что получается при перемножении, вы можете самостоятельно):
-
-```
- поворот вокруг Ox
-| 1 0      0       0 |
-| 0 cos(a) -sin(a) 0 |
-| 0 sin(a) cos(a)  0 |
-| 0 0      0       1 |
-
- поворот вокруг Oy
-| cos(a)  0 sin(a) 0 |
-| 0       1 0      0 |
-| -sin(a) 0 cos(a) 0 |
-| 0       0 0      1 |
-
- поворот вокруг Oz
-| cos(a) -sin(a) 0 0 |
-| sin(a) cos(a)  0 0 |
-| 0      0       1 0 |
-| 0      0       0 1 |
-```
-
-В GLM есть функция [glm::rotate](http://glm.g-truc.net/0.9.2/api/a00245.html#ga48168ff70412019857ceb28b3b2b1f5e), умножающая переданную матрицу на матрицу поворота вокруг переданного произвольного вектора оси на переданный угол. Как уже было сказано ранее, следует настроить GLM так, чтобы углы выдавались в радианах &mdash; иначе вы будете получать предупреждения об использовании устаревшего API. Проверьте, что в `stdafx.h` перед включением GLM объявлен макрос GLM_FORCE_RADIANS:
-
-```cpp
-#define GLM_FORCE_RADIANS
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-```
-
-Матрицы поворота сложнее масштабирования или перемещения, но применить их для анимации проще: нужно всего лишь задать скорость поворота такой, чтобы за время анимации куб повернулся целое число раз:
-
-```cpp
-/// @param phase - Фаза анимации на отрезке [0..1]
-glm::mat4 GetRotateZTransfrom(float phase)
-{
-    // угол вращения вокруг оси Z лежит в отрезке [0...2*pi].
-    const float angle = float(2 * M_PI) * phase;
-
-    return glm::rotate(glm::mat4(), angle, {0, 0, 1});
-}
-```
-
-Вот так это будет выглядеть к концу урока:
-
-![Иллюстрация](figures/lesson_8_rotation.png)
-
-## Как создать камеру
-
-В OpenGL в режиме версии 1.x есть две трансформирующих вершины матрицы: GL_MODELVIEW и GL_PROJECTION. Матрица GL_MODELVIEW объединяет к себе как переход от локальной системы координат к мировой (Model), так и переход от мировых координат к системе коодинат камеры (View). Класс `CCamera` будет возвращать только одну компоненту GL_MODELVIEW: матрицу вида, созданную функцией [glm::lookAt](http://glm.g-truc.net/0.9.2/api/a00245.html#ga2d6b6c381f047ea4d9ca4145fed9edd5).
-
-Правила движения камеры будут следующими:
-
-- камера всегда смотрит на точку (0, 0, 0), вращается вокруг неё, приближается к ней или отдаляется
-- для вращения камеры служат клавиши "Влево" и "Вправо" либо "A" и "D" на клавиатуре
-- для приближения и отдаления служат клавиши "Вперёд" и "Назад" либо "W" и "S" на клавиатуре
-- камера не может приближаться ближе чем на `1.5f` и не может отдаляться дальше чем на `30.f`
-- камера не должна двигаться рывками, и даже при неравных интервалах перерисовки кадра движение должно оставаться плавным, т.е. зависет от `deltaTime` между кадрами
-
-С учётом сказанного, спроектируем следующий интерфейс класса:
+Поэтому для начала введём интерфейс ILightSource и абстрактный класс CAbstractLightSource:
 
 ```cpp
 #pragma once
 
 #include <glm/fwd.hpp>
-#include <SDL2/SDL_events.h>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <boost/noncopyable.hpp>
 #include <set>
 
-class CCamera : private boost::noncopyable
+class ILightSource
 {
 public:
-    explicit CCamera(float rotationRadians, float distance);
+    virtual ~ILightSource() = default;
+    virtual void Setup()const = 0;
 
-    void Update(float deltaSec);
-    bool OnKeyDown(const SDL_KeyboardEvent &event);
-    bool OnKeyUp(const SDL_KeyboardEvent &event);
+    virtual glm::vec4 GetAmbient() const = 0;
+    virtual glm::vec4 GetDiffuse() const = 0;
+    virtual glm::vec4 GetSpecular() const = 0;
+    virtual void SetAmbient(const glm::vec4 &color) = 0;
+    virtual void SetDiffuse(const glm::vec4 &color) = 0;
+    virtual void SetSpecular(const glm::vec4 &color) = 0;
+};
 
-    glm::mat4 GetViewTransform() const;
+class CAbstractLightSource
+        : public ILightSource
+        , private boost::noncopyable
+{
+public:
+    /// @param index - один из GL_LIGHT*
+    CAbstractLightSource(unsigned index);
+    ~CAbstractLightSource();
+
+    glm::vec4 GetAmbient() const final;
+    glm::vec4 GetDiffuse() const final;
+    glm::vec4 GetSpecular() const final;
+    void SetAmbient(const glm::vec4 &color) final;
+    void SetDiffuse(const glm::vec4 &color) final;
+    void SetSpecular(const glm::vec4 &color) final;
+
+protected:
+    void SetupImpl()const;
+    unsigned GetIndex()const;
 
 private:
-    float m_rotationRadians = 0;
-    float m_distance = 1;
-    std::set<unsigned> m_keysPressed;
+    glm::vec4 m_ambient;
+    glm::vec4 m_diffuse;
+    glm::vec4 m_specular;
+    unsigned m_index;
 };
 ```
 
-Методы Update, OnKeyDown, OnKeyUp должны вызываться извне &mdash; например, из класса окна. При этом методы обработки событий возвращают true, если событие было обработано, чтобы класс окна мог не рассылать это событие далее другим объектам.
-
-Внутри класс хранит угол поворота камеры, отдаление от центра мира и подмножество клавиш, которые сейчас нажаты. Хранение подмножества нажатых клавиш позволяет легко устранить ряд непростых случаев:
-
-- пользователь нажал "Влево", затем "Вправо", потом отпустил "Влево"; после этого камера должна вращаться вправо
-- пользователь нажал "Влево" и "Вперёд"; после этого камера должна вращаться влево и при этом приближаться
-- пользователь нажал "Вперёд" и "Назад"; при этом камера может не двигаться или двигаться в одном приоритетном направлении &mdash; оба варианта хороши
-
-Чтобы отслеживать нажатие только нужных клавиш, создадим функцию-предикат ShouldTrackKeyPressed:
+Релизация getter/setter методов тривиальна и не заслуживает отдельного рассмотрения. Зато мы рассмотрим определение метода SetupImpl:
 
 ```cpp
-bool ShouldTrackKeyPressed(const SDL_Keysym &key)
+void CAbstractLightSource::SetupImpl() const
 {
-    switch (key.sym)
-    {
-    case SDLK_LEFT:
-    case SDLK_RIGHT:
-    case SDLK_UP:
-    case SDLK_DOWN:
-    case SDLK_w:
-    case SDLK_a:
-    case SDLK_s:
-    case SDLK_d:
-        return true;
-    }
-    return false;
+    // Включаем источник света с заданным индексом.
+    // Источник действует только когда включен режим GL_LIGHTING!
+    glEnable(GLenum(m_index));
+    glLightfv(m_index, GL_AMBIENT, glm::value_ptr(m_ambient));
+    glLightfv(m_index, GL_DIFFUSE, glm::value_ptr(m_diffuse));
+    glLightfv(m_index, GL_SPECULAR, glm::value_ptr(m_specular));
 }
 ```
 
-Также подключим заголовок с функциями вращения вектора, введём вспомогательные константы и функции, позволяющие получить скорость поворота и скорость приближения (возможно, нулевые или отрицательные) на основе информации о нажатых клавишах:
+Для установки параметров источника света используется семейство функций [glLight](https://www.opengl.org/sdk/docs/man2/xhtml/glLight.xml), выбранная функция `glLightfv`, как понятно из суффикса `fv` (float variadic), принимает начало массива float неопределённой длины. Длину массива видеодрайвер выбирает в зависимости от параметра источника света, указанного во втором параметре функции.
+
+Как направленный источник света, так и точечный имеют единый параметр &mdash; четырёхкомпонентный вектор GL_POSITION. Здесь опять используется трюк с однородным представлением координат: точка {x, y, z, 1} делает источник света точечным, а вектор {x, y, z, 0} &mdash; направленным. Заложим эту разницу в исходном коде:
 
 ```cpp
-#include <glm/gtx/rotate_vector.hpp>
-
-namespace
+class CDirectedLightSource : public CAbstractLightSource
 {
-const float ROTATION_SPEED_RADIANS = 1.f;
-const float LINEAR_MOVE_SPEED = 5.f;
-const float MIN_DISTANCE = 1.5f;
-const float MAX_DISTANCE = 30.f;
+public:
+    /// @param index - один из GL_LIGHT*
+    CDirectedLightSource(unsigned index);
 
-float GetRotationSpeedRadians(std::set<unsigned> & keysPressed)
-{
-    if (keysPressed.count(SDLK_RIGHT) || keysPressed.count(SDLK_d))
-    {
-        return ROTATION_SPEED_RADIANS;
-    }
-    if (keysPressed.count(SDLK_LEFT) || keysPressed.count(SDLK_a))
-    {
-        return -ROTATION_SPEED_RADIANS;
-    }
-    return 0;
-}
+    glm::vec3 GetDirection() const;
+    void SetDirection(const glm::vec3 &value);
 
-float GetLinearMoveSpeed(std::set<unsigned> & keysPressed)
-{
-    if (keysPressed.count(SDLK_UP) || keysPressed.count(SDLK_w))
-    {
-        return -LINEAR_MOVE_SPEED;
-    }
-    if (keysPressed.count(SDLK_DOWN) || keysPressed.count(SDLK_s))
-    {
-        return +LINEAR_MOVE_SPEED;
-    }
-    return 0;
-}
-} // anonymous namespace
-```
+    void Setup() const override;
 
-После этого с небольшим применением линейной алгебры мы можем реализовать методы класса CCamera:
+private:
+    glm::vec4 m_direction;
+};
 
-```cpp
-CCamera::CCamera(float rotationRadians, float distance)
-    : m_rotationRadians(rotationRadians)
-    , m_distance(distance)
+// устанавливаем w-компоненту вектора в 0
+CDirectedLightSource::CDirectedLightSource(unsigned index)
+    : CAbstractLightSource(index)
+    , m_direction(0, 0, 0, 0)
 {
 }
 
-void CCamera::Update(float deltaSec)
+glm::vec3 CDirectedLightSource::GetDirection() const
 {
-    m_rotationRadians += deltaSec * GetRotationSpeedRadians(m_keysPressed);
-    m_distance += deltaSec * GetLinearMoveSpeed(m_keysPressed);
-    m_distance = glm::clamp(m_distance, MIN_DISTANCE, MAX_DISTANCE);
+    return {m_direction.x, m_direction.y, m_direction.z};
 }
 
-bool CCamera::OnKeyDown(const SDL_KeyboardEvent &event)
+// не меняем w-компоненту вектора (по-прежнему 0)
+void CDirectedLightSource::SetDirection(const glm::vec3 &value)
 {
-    if (ShouldTrackKeyPressed(event.keysym))
-    {
-        m_keysPressed.insert(unsigned(event.keysym.sym));
-        return true;
-    }
-    return false;
+    m_direction.x = value.x;
+    m_direction.y = value.y;
+    m_direction.z = value.z;
 }
 
-bool CCamera::OnKeyUp(const SDL_KeyboardEvent &event)
+void CDirectedLightSource::Setup() const
 {
-    if (ShouldTrackKeyPressed(event.keysym))
-    {
-        m_keysPressed.erase(unsigned(event.keysym.sym));
-        return true;
-    }
-    return false;
-}
-
-glm::mat4 CCamera::GetViewTransform() const
-{
-    glm::vec3 direction = {-1.f, 0.f, 0.5f};
-    // Нормализуем вектор (приводим к единичной длине),
-    // затем поворачиваем вокруг оси Z.
-    // см. http://glm.g-truc.net/0.9.3/api/a00199.html
-    direction = glm::rotateZ(glm::normalize(direction), m_rotationRadians);
-
-    const glm::vec3 eye = direction * m_distance;
-    const glm::vec3 center = {0, 0, 0};
-    const glm::vec3 up = {0, 0, 1};
-
-    // Матрица моделирования-вида вычисляется функцией glm::lookAt.
-    // Она даёт матрицу, действующую так, как будто камера смотрит
-    // с позиции eye на точку center, а направление "вверх" камеры равно up.
-    return glm::lookAt(eye, center, up);
+    SetupImpl();
+    // Если GL_POSITION установить как (x, y, z, 0), т.е. как вектор
+    // в однородных координатах, источник света будет направленным.
+    glLightfv(GetIndex(), GL_POSITION, glm::value_ptr(m_direction));
 }
 ```
 
-## Изменения в CWindow
+## Разрабатываем класс "Точечный источник света"
 
-Теперь класс CWindow должен хранить три объекта:
+Класс CPositionLightSource реализует интерфейс источника света, но, в свою очередь, может послужить базовым классом для прожекторного источника, который можно назвать, например, CSpotlightSource.
 
 ```cpp
-CAnimatedCube m_dynamicCube;
-CIdentityCube m_staticCube;
-CCamera m_camera;
+class CPositionLightSource : public CAbstractLightSource
+{
+public:
+    /// @param index - один из GL_LIGHT*
+    CPositionLightSource(unsigned index);
+
+    glm::vec3 GetPosition() const;
+    void SetPosition(const glm::vec3 &value);
+
+    void Setup() const override;
+
+private:
+    glm::vec4 m_position;
+};
+
+CPositionLightSource::CPositionLightSource(unsigned index)
+    : CAbstractLightSource(index)
+    , m_position(0, 0, 0, 1)
+{
+}
+
+glm::vec3 CPositionLightSource::GetPosition() const
+{
+    return { m_position.x, m_position.y, m_position.z };
+}
+
+void CPositionLightSource::SetPosition(const glm::vec3 &value)
+{
+    m_position.x = value.x;
+    m_position.y = value.y;
+    m_position.z = value.z;
+}
+
+void CPositionLightSource::Setup() const
+{
+    SetupImpl();
+    // Если GL_POSITION установить как (x, y, z, 1), т.е. как точку
+    // в однородных координатах, источник света будет точечным.
+    glLightfv(GetIndex(), GL_POSITION, glm::value_ptr(m_position));
+}
 ```
 
-Конструктор CCamera требует два аргумента, их можно задать следующим образом:
+В примере к этой статье нет класса CSpotlightSource. Вы можете реализовать его самостоятельно путём наследования CPositionLightSource и расширения его установкой и применением параметров GL_SPOT_DIRECTION, GL_SPOT_EXPONENT, GL_SPOT_CUTOFF. Больше информации можно найти [в статье на glprogramming.com](http://www.glprogramming.com/red/chapter05.html) в разделе "Spotlights".
+
+## Добавляем источник света к окну
+
+Добавим новое поле `m_sunlight` класса `CWindow`:
+
+```cpp
+class CWindow : public CAbstractInputControlWindow
+{
+public:
+    // ...публичная секция класса
+
+private:
+    CDirectedLightSource m_sunlight;
+    // ...остальные поля
+};
+```
+
+Теперь можно настроить источник в конструкторе, и вывести его в OnDrawWindow. Заметим, что мы не будем устанавливать источнику света компоненту GL_SPECULAR, потому что она по своей природе предназначена для создания светового блика, но в фиксированном конвеере OpenGL для освещения используется интерполяция Гуро, из-за которой вся грань куба будет иметь одинаковый световой блик и окажется окрашенной в один цвет. Так будет выглядеть реализация конструктора и OnDrawWindow:
+
+```cpp
+const glm::vec4 WHITE_LIGHT = {1, 1, 1, 1};
+const glm::vec3 SUNLIGHT_DIRECTION = {-1.f, 0.2f, 0.7f};
 
 CWindow::CWindow()
     : m_camera(CAMERA_INITIAL_ROTATION, CAMERA_INITIAL_DISTANCE)
+    , m_sunlight(GL_LIGHT0)
 {
-    SetBackgroundColor(QUIET_GREEN);
+    SetBackgroundColor(BLACK);
+
+    m_sunlight.SetDirection(SUNLIGHT_DIRECTION);
+    m_sunlight.SetDiffuse(WHITE_LIGHT);
+    m_sunlight.SetAmbient(0.1f * WHITE_LIGHT);
+    // Из-за интерполяции освещения по Гуро
+    // смысл Specular компоненты для куба теряется.
+    // m_sunlight.SetSpecular(WHITE_LIGHT);
 }
 
-В методе OnUpdateWindow мы должны вызывать метод Update у всех трёх объектов системы:
-
-```cpp
-void CWindow::OnUpdateWindow(float deltaSeconds)
-{
-    m_camera.Update(deltaSeconds);
-    m_dynamicCube.Update(deltaSeconds);
-    m_staticCube.Update(deltaSeconds);
-}
-```
-
-В методе Draw немного схитрим: применим вызов glTranslate (вместо нормальной работы с функциями GLM), чтобы развести два куба в стороны:
-
-```cpp
 void CWindow::OnDrawWindow(const glm::ivec2 &size)
 {
     SetupView(size);
+    m_sunlight.Setup();
 
-    // Смещаем анимированный единичный куб в другую сторону
-    glPushMatrix();
-    glTranslatef(0, -1.5f, 0);
-    m_dynamicCube.Draw();
-    glPopMatrix();
-
-    // Смещаем статический единичный куб в другую сторону
-    glPushMatrix();
-    glTranslatef(0, 1.5f, 0);
-    m_staticCube.Draw();
-    glPopMatrix();
+    // ...рисуем кубики
 }
 ```
 
-Метод SetupView станет проще, потому что мы можем не вычислять матрицу GL_MODELVIEW, а получить её начальное (для кадра) значение у камеры.
+## Цветовые компоненты материала.
+
+Для задания цветовых компонент материала в OpenGL существует семейство функция [glMaterial*](https://www.opengl.org/sdk/docs/man2/xhtml/glMaterial.xml). В случае, если вы используете такой метод задания материала, вы должны задать его вне блока glBegin/glEnd, и материал будет действовать на группы выводимых примитивов, пока его не изменят.
+
+Но в OpenGL есть и другой способ задания материала, потенциально более гибкий и производительный: определение цвета материала по цветам вершин (не стоит забывать, что цвет вершины интерполируется по всей примитивной грани). Для включения режима "цвет как материал" следует включить флаг состояния драйвера `GL_COLOR_MATERIAL` и с помощью функции `glColorMaterial` выбрать, как отображать цвет фрагмента грани на компоненты цвета материала этого фрагмента. Это можно сделать в методе SetupOpenGLState:
 
 ```cpp
-void CWindow::SetupView(const glm::ivec2 &size)
+void SetupOpenGLState()
 {
-    glViewport(0, 0, size.x, size.y);
+    // включаем механизмы трёхмерного мира.
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
 
-    // Матрица вида возвращается камерой и составляет
-    // начальное значение матрицы GL_MODELVIEW.
-    glLoadMatrixf(glm::value_ptr(m_camera.GetViewTransform()));
+    // включаем систему освещения
+    glEnable(GL_LIGHTING);
 
-    // Матрица перспективного преобразования вычисляется функцией
-    // glm::perspective, принимающей угол обзора, соотношение ширины
-    // и высоты окна, расстояния до ближней и дальней плоскостей отсечения.
-    const float fieldOfView = glm::radians(70.f);
-    const float aspect = float(size.x) / float(size.y);
-    const float zNear = 0.01f;
-    const float zFar = 100.f;
-    const glm::mat4 proj = glm::perspective(fieldOfView, aspect, zNear, zFar);
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(glm::value_ptr(proj));
-    glMatrixMode(GL_MODELVIEW);
+    // включаем применение цветов вершин как цвета материала.
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 }
 ```
 
-Наконец, следует перегрузить методы OnKeyDown/OnKeyUp класса CAbstractInputControlWindow в классе CWindow:
+## Нормали к поверхности
+
+Для корректного расчёта освещения фиксированному конвейеру нужны дополнительные сведения о поверхности &mdash; перпендикуляры к точкам поверхности единичной длины. Такие перпендикуляры называются *нормалями*, а процесс деления вектора на собственную длину ради получения вектора единичной длины называется *нормализацией*. Процесс нормализации выполняет, например, функция `glm::normalize` библиотеки GLM, принимающая единственным параметром нормализуемый вектор.
+
+- нормали используются для расчёта рассеяной компоненты света GL_DIFFUSE по закону Ламберта: зная вектор нормали и вектор направления света, несложно вычислить угол падения лучей на поверхность
+- нормали также используются для расчёта бликовой компоненты света GL_SPECULAR по модели Фонга: угол падения и угол отражения света вычисляются с помощью нормали к поверхности
+
+Нормаль &mdash; это атрибут вершины, добавляемой в графический примитив, такой как GL_TRIANGLE, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN. Для её установки в Immediate Mode служит семейство функций [glNormal3*](https://www.opengl.org/sdk/docs/man2/xhtml/glNormal.xml).
+
+Согласно одной из аксиом геометрии, три точки однозначно задают плоскость, и одновременно задают треугольник, лежащий на этой плоскости. Нормали к плоскости всегда имеют одно направление, то есть для всех трёх вершин треугольника следовало бы задать одну и ту же нормаль:
+
+![Иллюстрация](figures/triangle_normals.png)
+
+Однако, в OpenGL это правило можно нарушать: программист может задавать разные нормали разным вершинам треугольника, что приведёт к разным цветам на вершинах и интерполяци цвета по всей грани. Это позволяет, например, создать эффект "гладкости" тела, скрыв от наблюдателя тот факт, что тело собрано из треугольников. В данном случае нам не нужен эффект гладкой поверхности, поэтому нормаль к вершине мы будем вычислять с помощью нормализации [векторного произведения](https://ru.wikipedia.org/wiki/%D0%92%D0%B5%D0%BA%D1%82%D0%BE%D1%80%D0%BD%D0%BE%D0%B5_%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5) двух сторон треугольника.
+
+![Иллюстрация](figures/crossprod.png)
+
+Псевдокод вычисления нормали:
+
 ```cpp
-void CWindow::OnKeyDown(const SDL_KeyboardEvent &event)
+const Vertex &v1 = CUBE_VERTICIES[vertexIndex1];
+const Vertex &v2 = CUBE_VERTICIES[vertexIndex2];
+const Vertex &v3 = CUBE_VERTICIES[vertexIndex3];
+glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
+```
+
+## Изменяем класс CIdentityCube
+
+Мы добавим в класс определение и установку нормалей к граням с помощью векторного произведения. Мы также добавим возможность выборочно устанавливать цвета отдельных граней куба. Для выбора грани при установке цвета мы применим перечислимые типы (enum). Об особенностях и применении enum [есть отдельная статья](../ppo/mastering-enums.md). Интерфейс для установки цвета будет выглядеть следующим образом:
+
+```cpp
+enum class CubeFace
 {
-    m_camera.OnKeyDown(event);
+    Front = 0,
+    Back,
+    Top,
+    Bottom,
+    Left,
+    Right,
+
+    NumFaces
+};
+
+class CIdentityCube
+{
+public:
+    CIdentityCube();
+    void Update(float deltaTime);
+    void Draw()const;
+
+    void SetFaceColor(CubeFace face, const glm::vec3 &color);
+
+private:
+    static const size_t COLORS_COUNT = static_cast<size_t>(CubeFace::NumFaces);
+    glm::vec3 m_colors[COLORS_COUNT];
+};
+```
+
+Также нам нужно изменить описание граней куба, добавив новую структуру STriangleFace:
+
+```cpp
+struct STriangleFace
+{
+    uint16_t vertexIndex1;
+    uint16_t vertexIndex2;
+    uint16_t vertexIndex3;
+    uint16_t colorIndex;
+};
+
+// Привыкаем использовать 16-битный unsigned short,
+// чтобы экономить память на фигурах с тысячами вершин.
+const STriangleFace CUBE_FACES[] = {
+    {0, 1, 2, static_cast<uint16_t>(CubeFace::Back)},
+    {0, 2, 3, static_cast<uint16_t>(CubeFace::Back)},
+    {2, 1, 5, static_cast<uint16_t>(CubeFace::Right)},
+    {2, 5, 6, static_cast<uint16_t>(CubeFace::Right)},
+    {3, 2, 6, static_cast<uint16_t>(CubeFace::Bottom)},
+    {3, 6, 7, static_cast<uint16_t>(CubeFace::Bottom)},
+    {0, 3, 7, static_cast<uint16_t>(CubeFace::Left)},
+    {0, 7, 4, static_cast<uint16_t>(CubeFace::Left)},
+    {1, 0, 4, static_cast<uint16_t>(CubeFace::Top)},
+    {1, 4, 5, static_cast<uint16_t>(CubeFace::Top)},
+    {6, 5, 4, static_cast<uint16_t>(CubeFace::Front)},
+    {6, 4, 7, static_cast<uint16_t>(CubeFace::Front)},
+};
+```
+
+Мы изменим конструктор CIdentityCube, чтобы задать белый цвет цветом граней по умолчанию:
+
+```cpp
+CIdentityCube::CIdentityCube()
+{
+    // Используем белый цвет по умолчанию.
+    for (glm::vec3 &color : m_colors)
+    {
+        color.x = 1;
+        color.y = 1;
+        color.z = 1;
+    }
 }
 
-void CWindow::OnKeyUp(const SDL_KeyboardEvent &event)
+void CIdentityCube::SetFaceColor(CubeFace face, const glm::vec3 &color)
 {
-    m_camera.OnKeyUp(event);
+    const size_t index = static_cast<size_t>(face);
+    assert(index < COLORS_COUNT);
+    m_colors[index] = color;
 }
 ```
 
-## Конец!
+И теперь можно реализовать метод Draw, не забыв о необходимости выбора цвета и нормали к грани куба:
 
-Теперь вы можете взять [полный пример (github.com)](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_08) или посмотреть, каким будет результат запуска:
+```cpp
+void CIdentityCube::Draw() const
+{
+    // менее оптимальный способ рисования: прямая отправка данных
+    // могла бы работать быстрее, чем множество вызовов glColor/glVertex.
+    glBegin(GL_TRIANGLES);
+
+    for (const STriangleFace &face : CUBE_FACES)
+    {
+        const Vertex &v1 = CUBE_VERTICIES[face.vertexIndex1];
+        const Vertex &v2 = CUBE_VERTICIES[face.vertexIndex2];
+        const Vertex &v3 = CUBE_VERTICIES[face.vertexIndex3];
+        glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
+
+        glColor3fv(glm::value_ptr(m_colors[face.colorIndex]));
+        glNormal3fv(glm::value_ptr(normal));
+        glVertex3fv(glm::value_ptr(v1));
+        glVertex3fv(glm::value_ptr(v2));
+        glVertex3fv(glm::value_ptr(v3));
+    }
+    glEnd();
+}
+```
+
+## Результат
+
+Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_08). А вот так выглядит окно после запуска:
 
 ![Иллюстрация](figures/lesson_8_preview.png)
+
+Если же что-то не работает, используйте следующий чеклист:
+
+- включено ли освещение командой `glEnable(GL_LIGHTING)`?
+- включён ли i-й источник света командой `glEnable(GL_LIGHTi)`?
+- установлены ли параметры источника света?
+- установлен ли цвет материала с помощью [glMaterial](https://www.opengl.org/sdk/docs/man2/xhtml/glMaterial.xml) или [glColorMaterial](https://www.opengl.org/sdk/docs/man2/xhtml/glColorMaterial.xml)?
+- правильно ли выбраны нормали граней объектов?
+- установлена ли матрица GL_MODELVIEW камеры прежде, чем установлен источник света?
