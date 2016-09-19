@@ -28,6 +28,10 @@ permalink: /sfml/
 - [Призраки](/packman/5.html)
 - [Печенье](/packman/6.html)
 
+При желании можно собрать и сами примеры к статьям:
+
+- [Сборка примеров из репозитория](/packman/building_examples.html)
+
 ## Частые ошибки
 
 - [Проектирование собственных структур на C++](/sfml/structs-design.html)
