@@ -578,8 +578,124 @@ void CWindow::OnKeyUp(const SDL_KeyboardEvent &event)
 }
 ```
 
+После этого этапа получаем следующий результат:
+
+![Скриншот](figures/lesson_11_preview_sphere.png)
+
+### Разработка куба для SkyBox
+
+При выводе куба следует аккуратно накладывать текстуры, чтобы каждый из шести участков попал на свою грань куба, и чтобы ни одна текстура на грани не оказалась повёрнутой. В противном случае швы текстур между гранями не будут сочетаться, как на примере ниже:
+
+![Иллюстрация](figures/lesson_11_texture_seams.png)
+
+Визуализируем наложение текстуры, сформированной в виде развёртки куба, на куб:
+
+![Иллюстрация](figures/skybox_mapping.png)
+
+### Рисование SkyBox
+
+Реализация класса CSkyBox будет выглядеть следующим образом:
+
+```cpp
+#include "stdafx.h"
+#include "Skybox.h"
+#include <stdint.h>
+
+namespace
+{
+const char TEXTURE_ATLAS[] = "res/galaxy/galaxy.plist";
+const std::pair<CubeFace, const char *> FRAME_MAPPING[] = {
+    { CubeFace::Front, "galaxy_front.png" },
+    { CubeFace::Back, "galaxy_back.png" },
+    { CubeFace::Top, "galaxy_top.png" },
+    { CubeFace::Bottom, "galaxy_bottom.png" },
+    { CubeFace::Left, "galaxy_left.png" },
+    { CubeFace::Right, "galaxy_right.png" },
+};
+
+// Устанавливает трансформацию так, чтобы рисование происходило
+// в локальных координатах камеры, с сохранением вращения и
+// масштабирования системы координат камеры.
+template<class T>
+void DoAtCameraPosition(T && callback)
+{
+    glm::mat4 modelView;
+    glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(modelView));
+    modelView[3][0] = 0.f;
+    modelView[3][1] = 0.f;
+    modelView[3][2] = 0.f;
+
+    glPushMatrix();
+    glLoadMatrixf(glm::value_ptr(modelView));
+    callback();
+    glPopMatrix();
+}
+
+CTexture2DLoader MakeTextureLoader()
+{
+    CTexture2DLoader loader;
+    loader.SetWrapMode(TextureWrapMode::CLAMP_TO_EDGE);
+    return loader;
+}
+}
+
+CSkybox::CSkybox()
+    : m_atlas(CFilesystemUtils::GetResourceAbspath(TEXTURE_ATLAS),
+              MakeTextureLoader())
+{
+    for (const auto &pair : FRAME_MAPPING)
+    {
+        CFloatRect texRect = m_atlas.GetFrameRect(pair.second);
+        m_cube.SetFaceTextureRect(pair.first, texRect);
+    }
+}
+
+void CSkybox::Update(float dt)
+{
+    m_cube.Update(dt);
+}
+
+void CSkybox::Draw() const
+{
+    m_atlas.GetTexture().DoWhileBinded([this] {
+        // Инвертируем передние и задние грани, потому что
+        // на поверхность SkyBox мы всегда смотрим изнутри.
+        glDisable(GL_LIGHTING);
+        glDepthMask(GL_FALSE);
+        glFrontFace(GL_CW);
+        DoAtCameraPosition([this] {
+            m_cube.Draw();
+        });
+        glFrontFace(GL_CCW);
+        glDepthMask(GL_TRUE);
+        glEnable(GL_LIGHTING);
+    });
+}
+
+```
+
+Код метода CSkyBox::Draw требует пояснений.
+
+Во-первых, рисование куба мы будем выполнять, предварительно отключив модификацию буфера глубины при помощи функции glDepthMask(GL_FALSE) при отключенном тесте глубины. Благодаря этому содержимое буфера глубины после рисования sky box останется неизменным, при этом все фрагменты куба пройдут тест глубины. По этой же причине sky box должен быть нарисован первым, чтобы не стереть нарисованные до него объекты.
+
+Во-вторых, центр куба привязан к точке наблюдателя. Это значит, что какой бы мы размер стороны куба ни выбрали, картинка не будет зависеть от длины стороны куба. Для того, чтобы привязать точку наблюдения к точке наблюдателя, необходимо заполнить нулями первые три элемента в четвертом столбце матрицы моделирования-вида.
+
+В-третьих, здесь мы используем режим оборачивания текстурных координат GL_CLAMP_TO_EDGE. Его эффект проиллюстрирован ниже:
+
+![Иллюстрация](figures/c3_clamping.png)
+
+<!--
+TODO:
+- CFilesystemUtils
+- SDL_image
+- описать разницу между RGBA и RGB, преобразование форматов
+- описать переворачивание изображения
+- показать разбор XML через TinyXML, с активной отправкой событий в Listener и с пассивной моделью событий
+-->
+
 ## Результат
 
 Вы можете взять [полный пример к статье на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_11). А вот так выглядит окно после запуска:
 
 ![Скриншот](figures/lesson_11_preview.png)
+
