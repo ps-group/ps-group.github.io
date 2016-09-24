@@ -18,18 +18,19 @@ title: 'Дополнительные материалы'
 - [Предметный указатель для OpenGL 2.1 (opengl.org)](https://www.opengl.org/sdk/docs/man2/)
 - [Предметный указатель для OpenGL 4.x (opengl.org)](https://www.opengl.org/sdk/docs/man4/)
 
-## Статьи об SDL2, OpenGL, OpenAL
+## Вывод текста в OpenGL
 
-#### Технические основы
+В рамках OpenGL 1.x текст чаще всего выводят как текстуру, либо цельной строкой, либо глифами (glyph - это форма отдельной буквы). Также в Windows есть API, позволяющий сформировать Display List с глифами букв.
 
-- [именование функций и синонимы примитивных типов в OpenGL (en.wikibooks.org)](https://en.wikibooks.org/wiki/OpenGL_Programming/Basics/NamingConventions)
+- [растеризация текста с помощью TrueType-шрифта средствами библиотеки SDL_ttf v2 (willusher.io)](http://www.willusher.io/sdl2%20tutorials/2013/12/18/lesson-6-true-type-fonts-with-sdl_ttf)
+- [растеризация текста с помощью TrueType-шрифта средствами библиотеки FreeType (nehe.gamedev.net)](http://nehe.gamedev.net/tutorial/freetype_fonts_in_opengl/24001/)
+- [растеризация текста на Windows с помощью wglUseFontOutlines (nehe.gamedev.net)](http://nehe.gamedev.net/tutorial/outline_fonts/15004/)
 
-#### Изображения и текстурирование
+## Камера и трансформации
 
-- [растеризация текста в текстуру с помощью TrueType шрифта и SDL_ttf 2 (willusher.io)](http://www.willusher.io/sdl2%20tutorials/2013/12/18/lesson-6-true-type-fonts-with-sdl_ttf)
-- [текстурирование сферы с применением GLSL (en.wikibooks.org)](https://en.wikibooks.org/wiki/GLSL_Programming/GLUT/Textured_Spheres)
+- [подробная статья с реализациями разных типов камеры на C++ и glm (learnopengl.com)](http://learnopengl.com/#!Getting-started/Camera)
 
-#### Эффекты с GLSL
+## Спецэффекты на шейдерах
 
 - [эффект глубины резкости, Depth of Field (en.wikibooks.org)](https://en.wikibooks.org/wiki/OpenGL_Programming/Depth_of_Field)
 - [размытие при движении, Motion Blur (en.wikibooks.org)](https://en.wikibooks.org/wiki/OpenGL_Programming/Motion_Blur)
