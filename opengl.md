@@ -29,12 +29,11 @@ permalink: /opengl/
 
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_2](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_2)
 
- 1. [Рисуем кубики](/opengl/lesson_7.html)
- 2. [Практикуемся с матрицами](/opengl/lesson_8.html)
- 3. [Да будет свет!](/opengl/lesson_9.html)
- 4. [Смешение цветов](/opengl/lesson_10.html)
- 5. [Гладкие объёмные тела](/opengl/lesson_11.html)
- 6. [Сфера с натянутой текстурой](/opengl/lesson_12.html)
+ 1. [Рисуем куб](/opengl/lesson_7.html)
+ 2. [Включаем свет и туман](/opengl/lesson_8.html)
+ 3. [Смешиваем цвета](/opengl/lesson_9.html)
+ 4. [График двумерной функции](/opengl/lesson_10.html)
+ 5. [UV-параметризация сферы](/opengl/lesson_11.html)
 
 ## Часть III: программируемый конвейер
 

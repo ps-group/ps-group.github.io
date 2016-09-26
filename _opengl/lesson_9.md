@@ -1,421 +1,264 @@
 ---
-title: 'Да будет свет!'
+title: 'Смешиваем цвета'
 ---
 
-В этом уроке мы впервые применим на сцене механизм освещения. Пока что мы будем использовать фиксированный конвейер OpenGL, тем самым лишая себя целого ряда эффектов, доступных в любой современной 3D игре.
+В этом уроке мы впервые применим механизм смешивания цветов, чтобы сделать грани куба полупрозрачными. Также мы научимся строить новый многогранник &mdash; тетраэдр.
 
-## Модель освещения в фиксированном конвейере OpenGL
+## Физика полупрозрачности
 
-Фиксированный конвейер OpenGL позволяет использовать определённую математическую модель симуляции освещения &mdash; [модель Фонга](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D1%82%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_%D0%BF%D0%BE_%D0%A4%D0%BE%D0%BD%D0%B3%D1%83), а также определённую модель интерполяции освещения по всему полигону &mdash; модель Гуро (хотя для интерполяции тоже есть своя модель Фонга). Существуют другие модели освещения и интерполяции, но в рамках фиксированного конвейера реализовать их не получится.
+Полупрозрачные тела частично пропускают свет насквозь. Остальная доля света поглощается, рассеивается или отражается (в зависимости от свойств материала и спектра падающего излучения). Свет, проходящий скозь тело, дважды преломляется, и степень преломления может быть разной для волн различной длины.
 
-Одно из центральных звеньев модели освещения Фонга &mdash; это закон расчёта рассеянного освещения (*англ.* diffuse), также известный как закон Ламберта:
+Полная эмуляция полупрозрачности на компьютере выполнима (например, путём трассировки лучей). Однако, такие задачи не принято выполнять в реальном времени. Вместо физически реалистичной эмуляции OpenGL предлагает модель смешивания цветов, позволяющую эмулировать полупрозрачную поверхность путём смешения цвета фона, лежащего за поверхностью, с цветом самой поверхности. Смешение можно выполнять с весовыми коэффициентами, которые зависят от alpha-компоненты RGBA-цветов материала и фона, а также от выбранной формулы смешивания (выбор формул смешивания достаточно большой, но ограниченный).
 
-![Иллюстрация](figures/lambert_law.png)
+## Режим смешивания
 
-Закон Ламберта проявляет себя в простом наблюдении: чем меньше угол падения солнечных лучей, тем меньше освещена поверхность. Ночью угол падения отрицательный, т.е. путь солнечных лучей перекрывает поверхность где-то на другой стороне Земли. В результате рассеянный (диффузный) свет отсутствует вовсе.
+Для включения режима смешивания, позволяющего вывести полупрозрачные тела, следует вызвать `glEnable(GL_BLEND)`. При этом вывод непрозрачных тел лучше всего выполнить заранее, до вывода первой полупрозрачной грани со смешиванием цветов. В противном случае, полупрозрачная грань заполнит буфер глубины и тем самым "закроет" фрагменты расположенных сзади "фоновых" граней, сделав их невидимыми. После чего конвейер OpenGL отбросит фоновые фрагменты граней, и вы получите отсутствие фона позади полупрозрачного объекта.
 
-## Компоненты освещения в модели Фонга
+Результат этой ошибки можно увидеть на скриншоте &mdash; грани тетраэдра выброшены полупрозрачным кубом в ходе теста глубины:
 
-Расчёт рассеянного освещения по закону Ламберта даёт неприятный эффект: обратная по отношению к источнику света сторона объекта не освещена. В реальном мире рассеяный свет отражается от стен комнаты и освещает даже те поверхности, на которые не попадают прямые лучи от источника света. В фиксированном конвейере OpenGL этот эффект грубо эмулируется путём умножения "фонового" цвета материала на "фоновую" интенсивность источника света. Этот компонент цвета освещённой поверхности обозначается константой `GL_AMBIENT`.
+![Скриншот](figures/blending_incorrect_order.png)
 
-Рассеяное освещение, рассчитаное по закону Ламберта, обозначается константой `GL_DIFFUSE`.
+## Формулы смешивания
 
-Также модель Фонга вносит третью компоненту &mdash; световые блики, которые проявляются, когда угол падения лучей на тело практически равен углу отражения луча, попадающего в камеру. Эта компонента освещения обозначается константой `GL_SPECULAR`:
+OpenGL позволяет задавать способ смешения с помощью установки весовых коэффициентов функции смешивания. Для изменения функции смешивания служит функция-команда [glBlendFunc](https://www.opengl.org/sdk/docs/man2/xhtml/glBlendFunc.xml), которая принимает константы перечислимого типа, задающие способ выбора коэффициентов смешивания. Первый параметр задаёт способ выбора весового коэффициента для фонового фрагмента, второй &mdash; для фрагмента полупрозрачной поверхности, рисуемой поверх фона со смешиванием. Несколько примеров:
 
-![Иллюстрация](figures/phong_specular.png)
-
-Вот так выглядят три компонента и результат их сложения:
-![Иллюстрация](figures/phong_components.png)
-
-RGBA-цвета всех трёх компонент попросту складываются покомпонетно, и полученные в результате Red, Green, Blue компоненты обрезаются в границах `[0, 1]`. В результате очень ярко освещённый белым источником светло-жёлтый объект может стать просто белым &mdash; цвет `{5.3, 3.2, 1.1, 1}` будет обрезан до белого цвета `{1, 1, 1, 1}`.
-
-Между прочим, в OpenGL есть ещё одна компонента освещения: GL_EMISSION. Она задаёт собственную светимость материала, не зависящую от освещения, и позволяет грубо симулировать светящиеся объекты. Компонента крайне редко используется, и мы не станем её рассматривать.
-
-## 8 источников света
-
-Фиксированный конвейер OpenGL позволяет симулировать не более 8 источников света, поскольку каждый активный источник даёт одинаковый и вполне заметный прирост трудозатрат на растеризацию трёхмерной сцены. Источники света обозначаются константами от `GL_LIGHT0` до `GL_LIGHT7`. В некоторых реализациях OpenGL доступны дополнительные источники с индексами от `GL_LIGHT8`, но написанный с их использованием код не будет работать на большинстве видеокарт.
-
-Включить систему освещения или активировать отдельный источник можно функцией-командой `glEnable`.
+- `glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)` задаёт формулу "непрозрачность * цвет_поверхности + (1 - непрозрачность) * цвет_фона", где под "непрозрачностью" подразумевается alpha-канал рисуемой поверхности. В результате цвет полупрозрачной поверхности накладывается на фон привычным для человека образом.
+- `glBlendFunc(GL_ONE, GL_ZERO)` задаёт формулу, эквивалентную отсутствию смешивания: цвет фрагментов новой поверхности замещает собой цвет фоновых фрагментов.
+- `glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA)` применяет уже показанную ранее формулу "непрозрачность * цвет_поверхности + (1 - непрозрачность) * цвет_фона", но в качестве "непрозрачности" берёт константу, установленную вызовом [glBlendColor](https://www.opengl.org/sdk/docs/man/html/glBlendColor.xhtml).
+- `glBlendFunc(GL_SRC_ALPHA, GL_ONE)` устанавливает аддитивную формулу "непрозрачность_поверхности * цвет_поверхности + цвет фона", которая при большом числе смешиваний или высокой непрозрачности поверхности может дать очень яркий, возможно, даже белый цвет. Такой метод может пригодиться при рисовании некоторых систем частиц &mdash; например, языков пламени.
 
 ```cpp
-glEnable(GL_LIGHTING);
-glEnable(GL_LIGHT0);
-glEnable(GL_LIGHT1);
-// рисование сцены
-glDisable(GL_LIGHTING);
-// рисование элементов сцены, не требующих освещения
+// включает смешивание цветов
+// перед выводом полупрозрачных тел
+void enableBlending()
+{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+// отключает смешивание цветов
+// перед выводом непрозрачных тел
+void disableBlending()
+{
+    glDisable(GL_BLEND);
+}
 ```
 
-Параметры источника света в OpenGL задаются при помощи семейства функций [glLight](https://www.opengl.org/sdk/docs/man2/xhtml/glLight.xml). К параметрам источника света относятся интенсивности диффузной, зеркальной и фоновой составляющих цвета, положение источника света (или направление на него), степень зеркального отражения для модели фонга. Для конических источников света можно задать величину угла разброса света. Кроме того, можно задать коэффициенты ослабления интенсивности света в зависимости от расстояния.
+## Алгоритм вывода полупрозрачных тел
 
-## Разрабатываем класс "Направленный источник света"
+Кроме включения смешивания и выбора функции смешивания, перед выводом полупрозрачных тел рекомендуется ещё и отключить запись в буфер глубины. Тем самым мы гарантируем, что вывод полупрозрачной грани не приведёт к изменению граничной глубины, при которой фрагмент, попадающий в пиксель экрана, будет выброшен.
 
-В OpenGL можно симулировать три разных типа источников света:
+Изменим вспомогательные функции:
 
-- бесконечно удалённый направленный (такой, как Солнце или Луна)
-- точечный источник на фиксированной позиции (такой, как светлячок)
-- прожекторный источник (*англ. spotlight), то есть точечный источник с ограничением распространения света некоторым конусом
+```cpp
+// включает смешивание цветов
+// перед выводом полупрозрачных тел
+void enableBlending()
+{
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
 
-Поэтому для начала введём интерфейс ILightSource и абстрактный класс CAbstractLightSource:
+// отключает смешивание цветов
+// перед выводом непрозрачных тел
+void disableBlending()
+{
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+}
+```
+
+В ситуациях, когда полупрозрачные тела или их отдельные грани накладываются друг на друга, следует отсортировать тела либо отдельные грани по глубине (удалённости от камеры) и выводить так, чтобы для каждой пары из двух визуально пересекающихся тел (граней) первым рисовалось более далёкое от камеры тело (грань), а затем &mdash; более близкое. Только тогда смешивание будет работать правильно.
+
+Общий алгоритм действий:
+
+- включить возможность записи в буфер глубины вызовом `glDepthMask(GL_TRUE)` (или `disableBlending()`)
+- нарисовать все непрозрачные объекты сцены
+- выключить возможность записи в буфер глубины, включить смешивание
+- отсортировать все полупрозрачные объекты (или непосредственно грани) в порядке от дальних к ближним (по отношению к камере)
+- нарисовать все полупрозрачные объекты (грани)
+
+Неверная сортировка полупрозрачных граней может привести к подобному результату (верхняя грань куба слева задана жёлтым цветом, но теперь она едва заметна):
+
+![Иллюстрация](figures/blending_incorrect_order_2.png)
+
+## Выделение интерфейса IBody
+
+Чтобы упростить дальнейшее расширение кода, введём интерфейс IBody в файле "IBody.h":
 
 ```cpp
 #pragma once
+#include <memory>
 
-#include <glm/fwd.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <boost/noncopyable.hpp>
-#include <set>
-
-class ILightSource
+class IBody
 {
 public:
-    virtual ~ILightSource() = default;
-    virtual void Setup()const = 0;
-
-    virtual glm::vec4 GetAmbient() const = 0;
-    virtual glm::vec4 GetDiffuse() const = 0;
-    virtual glm::vec4 GetSpecular() const = 0;
-    virtual void SetAmbient(const glm::vec4 &color) = 0;
-    virtual void SetDiffuse(const glm::vec4 &color) = 0;
-    virtual void SetSpecular(const glm::vec4 &color) = 0;
+    virtual ~IBody() = default;
+    virtual void Update(float deltaTime) = 0;
+    virtual void Draw()const = 0;
 };
 
-class CAbstractLightSource
-        : public ILightSource
-        , private boost::noncopyable
-{
-public:
-    /// @param index - один из GL_LIGHT*
-    CAbstractLightSource(unsigned index);
-    ~CAbstractLightSource();
+using IBodyUniquePtr = std::unique_ptr<IBody>;
+```
 
-    glm::vec4 GetAmbient() const final;
-    glm::vec4 GetDiffuse() const final;
-    glm::vec4 GetSpecular() const final;
-    void SetAmbient(const glm::vec4 &color) final;
-    void SetDiffuse(const glm::vec4 &color) final;
-    void SetSpecular(const glm::vec4 &color) final;
+Теперь в приватных данных класса CWindow можно хранить всего лишь два массива &mdash; один для непрозрачных тел, другой для полупрозрачных:
 
-protected:
-    void SetupImpl()const;
-    unsigned GetIndex()const;
-
+```cpp
+// фрагмент объявления CWindow
 private:
-    glm::vec4 m_ambient;
-    glm::vec4 m_diffuse;
-    glm::vec4 m_specular;
-    unsigned m_index;
-};
-```
+    std::vector<IBodyUniquePtr> m_opaqueBodies;
+    std::vector<IBodyUniquePtr> m_transparentBodies;
 
-Релизация getter/setter методов тривиальна и не заслуживает отдельного рассмотрения. Зато мы рассмотрим определение метода SetupImpl:
-
-```cpp
-void CAbstractLightSource::SetupImpl() const
+// изменения в обновлении состояния сцены
+void CWindow::OnUpdateWindow(float deltaSeconds)
 {
-    // Включаем источник света с заданным индексом.
-    // Источник действует только когда включен режим GL_LIGHTING!
-    glEnable(GLenum(m_index));
-    glLightfv(m_index, GL_AMBIENT, glm::value_ptr(m_ambient));
-    glLightfv(m_index, GL_DIFFUSE, glm::value_ptr(m_diffuse));
-    glLightfv(m_index, GL_SPECULAR, glm::value_ptr(m_specular));
-}
-```
-
-Для установки параметров источника света используется семейство функций [glLight](https://www.opengl.org/sdk/docs/man2/xhtml/glLight.xml), выбранная функция `glLightfv`, как понятно из суффикса `fv` (float variadic), принимает начало массива float неопределённой длины. Длину массива видеодрайвер выбирает в зависимости от параметра источника света, указанного во втором параметре функции.
-
-Как направленный источник света, так и точечный имеют единый параметр &mdash; четырёхкомпонентный вектор GL_POSITION. Здесь опять используется трюк с однородным представлением координат: точка {x, y, z, 1} делает источник света точечным, а вектор {x, y, z, 0} &mdash; направленным. Заложим эту разницу в исходном коде:
-
-```cpp
-class CDirectedLightSource : public CAbstractLightSource
-{
-public:
-    /// @param index - один из GL_LIGHT*
-    CDirectedLightSource(unsigned index);
-
-    glm::vec3 GetDirection() const;
-    void SetDirection(const glm::vec3 &value);
-
-    void Setup() const override;
-
-private:
-    glm::vec4 m_direction;
-};
-
-// устанавливаем w-компоненту вектора в 0
-CDirectedLightSource::CDirectedLightSource(unsigned index)
-    : CAbstractLightSource(index)
-    , m_direction(0, 0, 0, 0)
-{
+    m_camera.Update(deltaSeconds);
+    for (const IBodyUniquePtr &pBody : m_opaqueBodies)
+    {
+        pBody->Update(deltaSeconds);
+    }
+    for (const IBodyUniquePtr &pBody : m_transparentBodies)
+    {
+        pBody->Update(deltaSeconds);
+    }
 }
 
-glm::vec3 CDirectedLightSource::GetDirection() const
-{
-    return {m_direction.x, m_direction.y, m_direction.z};
-}
-
-// не меняем w-компоненту вектора (по-прежнему 0)
-void CDirectedLightSource::SetDirection(const glm::vec3 &value)
-{
-    m_direction.x = value.x;
-    m_direction.y = value.y;
-    m_direction.z = value.z;
-}
-
-void CDirectedLightSource::Setup() const
-{
-    SetupImpl();
-    // Если GL_POSITION установить как (x, y, z, 0), т.е. как вектор
-    // в однородных координатах, источник света будет направленным.
-    glLightfv(GetIndex(), GL_POSITION, glm::value_ptr(m_direction));
-}
-```
-
-## Разрабатываем класс "Точечный источник света"
-
-Класс CPositionLightSource реализует интерфейс источника света, но, в свою очередь, может послужить базовым классом для прожекторного источника, который можно назвать, например, CSpotlightSource.
-
-```cpp
-class CPositionLightSource : public CAbstractLightSource
-{
-public:
-    /// @param index - один из GL_LIGHT*
-    CPositionLightSource(unsigned index);
-
-    glm::vec3 GetPosition() const;
-    void SetPosition(const glm::vec3 &value);
-
-    void Setup() const override;
-
-private:
-    glm::vec4 m_position;
-};
-
-CPositionLightSource::CPositionLightSource(unsigned index)
-    : CAbstractLightSource(index)
-    , m_position(0, 0, 0, 1)
-{
-}
-
-glm::vec3 CPositionLightSource::GetPosition() const
-{
-    return { m_position.x, m_position.y, m_position.z };
-}
-
-void CPositionLightSource::SetPosition(const glm::vec3 &value)
-{
-    m_position.x = value.x;
-    m_position.y = value.y;
-    m_position.z = value.z;
-}
-
-void CPositionLightSource::Setup() const
-{
-    SetupImpl();
-    // Если GL_POSITION установить как (x, y, z, 1), т.е. как точку
-    // в однородных координатах, источник света будет точечным.
-    glLightfv(GetIndex(), GL_POSITION, glm::value_ptr(m_position));
-}
-```
-
-В примере к этой статье нет класса CSpotlightSource. Вы можете реализовать его самостоятельно путём наследования CPositionLightSource и расширения его установкой и применением параметров GL_SPOT_DIRECTION, GL_SPOT_EXPONENT, GL_SPOT_CUTOFF. Больше информации можно найти [в статье на glprogramming.com](http://www.glprogramming.com/red/chapter05.html) в разделе "Spotlights".
-
-## Добавляем источник света к окну
-
-Добавим новое поле `m_sunlight` класса `CWindow`:
-
-```cpp
-class CWindow : public CAbstractInputControlWindow
-{
-public:
-    // ...публичная секция класса
-
-private:
-    CDirectedLightSource m_sunlight;
-    // ...остальные поля
-};
-```
-
-Теперь можно настроить источник в конструкторе, и вывести его в OnDrawWindow. Заметим, что мы не будем устанавливать источнику света компоненту GL_SPECULAR, потому что она по своей природе предназначена для создания светового блика, но в фиксированном конвеере OpenGL для освещения используется интерполяция Гуро, из-за которой вся грань куба будет иметь одинаковый световой блик и окажется окрашенной в один цвет. Так будет выглядеть реализация конструктора и OnDrawWindow:
-
-```cpp
-const glm::vec4 WHITE_LIGHT = {1, 1, 1, 1};
-const glm::vec3 SUNLIGHT_DIRECTION = {-1.f, 0.2f, 0.7f};
-
-CWindow::CWindow()
-    : m_camera(CAMERA_INITIAL_ROTATION, CAMERA_INITIAL_DISTANCE)
-    , m_sunlight(GL_LIGHT0)
-{
-    SetBackgroundColor(BLACK);
-
-    m_sunlight.SetDirection(SUNLIGHT_DIRECTION);
-    m_sunlight.SetDiffuse(WHITE_LIGHT);
-    m_sunlight.SetAmbient(0.1f * WHITE_LIGHT);
-    // Из-за интерполяции освещения по Гуро
-    // смысл Specular компоненты для куба теряется.
-    // m_sunlight.SetSpecular(WHITE_LIGHT);
-}
-
+// изменения в рисовании кадра сцены
 void CWindow::OnDrawWindow(const glm::ivec2 &size)
 {
     SetupView(size);
     m_sunlight.Setup();
-
-    // ...рисуем кубики
-}
-```
-
-## Цветовые компоненты материала.
-
-Для задания цветовых компонент материала в OpenGL существует семейство функция [glMaterial*](https://www.opengl.org/sdk/docs/man2/xhtml/glMaterial.xml). В случае, если вы используете такой метод задания материала, вы должны задать его вне блока glBegin/glEnd, и материал будет действовать на группы выводимых примитивов, пока его не изменят.
-
-Но в OpenGL есть и другой способ задания материала, потенциально более гибкий и производительный: определение цвета материала по цветам вершин (не стоит забывать, что цвет вершины интерполируется по всей примитивной грани). Для включения режима "цвет как материал" следует включить флаг состояния драйвера `GL_COLOR_MATERIAL` и с помощью функции `glColorMaterial` выбрать, как отображать цвет фрагмента грани на компоненты цвета материала этого фрагмента. Это можно сделать в методе SetupOpenGLState:
-
-```cpp
-void SetupOpenGLState()
-{
-    // включаем механизмы трёхмерного мира.
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
-
-    // включаем систему освещения
-    glEnable(GL_LIGHTING);
-
-    // включаем применение цветов вершин как цвета материала.
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-}
-```
-
-## Нормали к поверхности
-
-Для корректного расчёта освещения фиксированному конвейеру нужны дополнительные сведения о поверхности &mdash; перпендикуляры к точкам поверхности единичной длины. Такие перпендикуляры называются *нормалями*, а процесс деления вектора на собственную длину ради получения вектора единичной длины называется *нормализацией*. Процесс нормализации выполняет, например, функция `glm::normalize` библиотеки GLM, принимающая единственным параметром нормализуемый вектор.
-
-- нормали используются для расчёта рассеяной компоненты света GL_DIFFUSE по закону Ламберта: зная вектор нормали и вектор направления света, несложно вычислить угол падения лучей на поверхность
-- нормали также используются для расчёта бликовой компоненты света GL_SPECULAR по модели Фонга: угол падения и угол отражения света вычисляются с помощью нормали к поверхности
-
-Нормаль &mdash; это атрибут вершины, добавляемой в графический примитив, такой как GL_TRIANGLE, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN. Для её установки в Immediate Mode служит семейство функций [glNormal3*](https://www.opengl.org/sdk/docs/man2/xhtml/glNormal.xml).
-
-Согласно одной из аксиом геометрии, три точки однозначно задают плоскость, и одновременно задают треугольник, лежащий на этой плоскости. Нормали к плоскости всегда имеют одно направление, то есть для всех трёх вершин треугольника следовало бы задать одну и ту же нормаль:
-
-![Иллюстрация](figures/triangle_normals.png)
-
-Однако, в OpenGL это правило можно нарушать: программист может задавать разные нормали разным вершинам треугольника, что приведёт к разным цветам на вершинах и интерполяци цвета по всей грани. Это позволяет, например, создать эффект "гладкости" тела, скрыв от наблюдателя тот факт, что тело собрано из треугольников. В данном случае нам не нужен эффект гладкой поверхности, поэтому нормаль к вершине мы будем вычислять с помощью нормализации [векторного произведения](https://ru.wikipedia.org/wiki/%D0%92%D0%B5%D0%BA%D1%82%D0%BE%D1%80%D0%BD%D0%BE%D0%B5_%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5) двух сторон треугольника.
-
-![Иллюстрация](figures/crossprod.png)
-
-Псевдокод вычисления нормали:
-
-```cpp
-const Vertex &v1 = CUBE_VERTICIES[vertexIndex1];
-const Vertex &v2 = CUBE_VERTICIES[vertexIndex2];
-const Vertex &v3 = CUBE_VERTICIES[vertexIndex3];
-glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
-```
-
-## Изменяем класс CIdentityCube
-
-Мы добавим в класс определение и установку нормалей к граням с помощью векторного произведения. Мы также добавим возможность выборочно устанавливать цвета отдельных граней куба. Для выбора грани при установке цвета мы применим перечислимые типы (enum). Об особенностях и применении enum [есть отдельная статья](../ppo/mastering-enums.md). Интерфейс для установки цвета будет выглядеть следующим образом:
-
-```cpp
-enum class CubeFace
-{
-    Front = 0,
-    Back,
-    Top,
-    Bottom,
-    Left,
-    Right,
-
-    NumFaces
-};
-
-class CIdentityCube
-{
-public:
-    CIdentityCube();
-    void Update(float deltaTime);
-    void Draw()const;
-
-    void SetFaceColor(CubeFace face, const glm::vec3 &color);
-
-private:
-    static const size_t COLORS_COUNT = static_cast<size_t>(CubeFace::NumFaces);
-    glm::vec3 m_colors[COLORS_COUNT];
-};
-```
-
-Также нам нужно изменить описание граней куба, добавив новую структуру STriangleFace:
-
-```cpp
-struct STriangleFace
-{
-    uint16_t vertexIndex1;
-    uint16_t vertexIndex2;
-    uint16_t vertexIndex3;
-    uint16_t colorIndex;
-};
-
-// Привыкаем использовать 16-битный unsigned short,
-// чтобы экономить память на фигурах с тысячами вершин.
-const STriangleFace CUBE_FACES[] = {
-    {0, 1, 2, static_cast<uint16_t>(CubeFace::Back)},
-    {0, 2, 3, static_cast<uint16_t>(CubeFace::Back)},
-    {2, 1, 5, static_cast<uint16_t>(CubeFace::Right)},
-    {2, 5, 6, static_cast<uint16_t>(CubeFace::Right)},
-    {3, 2, 6, static_cast<uint16_t>(CubeFace::Bottom)},
-    {3, 6, 7, static_cast<uint16_t>(CubeFace::Bottom)},
-    {0, 3, 7, static_cast<uint16_t>(CubeFace::Left)},
-    {0, 7, 4, static_cast<uint16_t>(CubeFace::Left)},
-    {1, 0, 4, static_cast<uint16_t>(CubeFace::Top)},
-    {1, 4, 5, static_cast<uint16_t>(CubeFace::Top)},
-    {6, 5, 4, static_cast<uint16_t>(CubeFace::Front)},
-    {6, 4, 7, static_cast<uint16_t>(CubeFace::Front)},
-};
-```
-
-Мы изменим конструктор CIdentityCube, чтобы задать белый цвет цветом граней по умолчанию:
-
-```cpp
-CIdentityCube::CIdentityCube()
-{
-    // Используем белый цвет по умолчанию.
-    for (glm::vec3 &color : m_colors)
+    for (const IBodyUniquePtr &pBody : m_opaqueBodies)
     {
-        color.x = 1;
-        color.y = 1;
-        color.z = 1;
+        pBody->Draw();
     }
-}
-
-void CIdentityCube::SetFaceColor(CubeFace face, const glm::vec3 &color)
-{
-    const size_t index = static_cast<size_t>(face);
-    assert(index < COLORS_COUNT);
-    m_colors[index] = color;
+    enableBlending();
+    for (const IBodyUniquePtr &pBody : m_transparentBodies)
+    {
+        pBody->Draw();
+    }
+    disableBlending();
 }
 ```
 
-И теперь можно реализовать метод Draw, не забыв о необходимости выбора цвета и нормали к грани куба:
+## Вывод задних граней
+
+В полупрозрачном теле видны не только задние, но и передние грани. Чтобы их нарисовать, можно воспользоваться трюком: нарисовать трёхмерное тело дважды, изменив способ определения передних граней при первом рисовании. Для изменения способа определения передних граней достаточно вызвать функцию `glFrontFace(GL_CW)`, т.к. по умолчанию OpenGL считает передними гранями только грани, вершины которых перечислены против часовой стрелки (режим `GL_CCW`). Всё это приводит нас к простой модификации метода `CIdentityCube::Draw`:
 
 ```cpp
 void CIdentityCube::Draw() const
+{
+    if (m_alpha < 0.99f)
+    {
+        glFrontFace(GL_CW);
+        OutputFaces();
+        glFrontFace(GL_CCW);
+    }
+    OutputFaces();
+}
+
+void CIdentityCube::OutputFaces() const
+{
+    // выводит треугольники, составляющие грани куба,
+    // вместе с цветами и нормалями вершин.
+}
+```
+
+## Платоновы тела
+
+Существует ровно пять [платоновых тел](https://ru.wikipedia.org/wiki/%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%D0%B3%D1%80%D0%B0%D0%BD%D0%BD%D0%B8%D0%BA) тетраэдр, октаэдр, икосаэдр, куб, додекаэдр.
+
+![Иллюстрация](figures/Platonic_solids.jpg)
+
+Каждый из этих пяти многогранников является выпуклым, каждая грань является правильной двумерной фигурой, и к каждой вершине сходится одинаковое число рёбер. Такие тела обладают высокой степенью симметрии, а способы расчёта координат их вершин широко известны.
+
+Более подробно о триангуляции платоновых тел рассказывается в книге Френсиса Хилла, "OpenGL. Программирование компьютерной графики." (ISBN 5-318-00219-6), раздел 6.3 "Многогранники". Схожая информация есть и в других источниках в литературе и в сети Интернет.
+
+Правильный тетраэдр &mdash; это правильный многогранник, состоящий из четырёх граней, каждая из которых является правильным треугольником (с равными сторонами и равными углами по 60°). Как и другие платоновы тела, тетраэдр является выпуклым и обладает высокой степенью симметрии. Сделав простое построение, можно аналитически расчитать соотношения между его сторонами и особыми внутренними линиями, такими, ка высота тетраэдра (перпендикуляр из вершины к противоположной грани). Вычислим эти отношения:
+
+![Иллюстрация](figures/tetrahedron.png)
+
+## Вершины и грани тетраэдра
+
+После построения несложно составить массив вершин и массив индексов граней: достаточно смотреть на построение и записывать. Если для удобства взять за длину стороны базового тетраэдра число √3, получатся такие массивы:
+
+```cpp
+// Сторона тетраэдра равна √3,
+// расстояние от центра грани до вершины равно 1.
+const Vertex TETRAHEDRON_VERTICES[] = {
+    {0.f, 0.f, -1.0f},
+    {sqrtf(1.5f), 0.f, 0.5f},
+    {-sqrtf(1.5f), 0.f, 0.5f},
+    {0.f, sqrtf(2.f), 0.f},
+};
+
+const STriangleFace TETRAHEDRON_FACES[] = {
+    {0, 1, 2, 0},
+    {0, 3, 1, 0},
+    {2, 1, 3, 0},
+    {0, 2, 3, 0},
+};
+```
+
+## Класс CIdentityTetrahedron
+
+Теперь объявим класс базового тетраэдра, у которого будет только одно свойство &mdash; единый цвет поверхности.
+
+```cpp
+class CIdentityTetrahedron final : public IBody
+{
+public:
+    void Update(float deltaTime) final;
+    void Draw()const final;
+
+    void SetColor(const glm::vec4 &color);
+
+private:
+    void OutputFaces()const;
+
+    glm::vec4 m_color;
+};
+```
+
+Для реализации рисования воспользуемся ранее увиденным трюком с вызовом glFrontFace:
+
+```cpp
+void CIdentityTetrahedron::Update(float deltaTime)
+{
+    (void)deltaTime;
+}
+
+void CIdentityTetrahedron::Draw() const
+{
+    if (m_color.a < 0.99f)
+    {
+        glFrontFace(GL_CW);
+        OutputFaces();
+        glFrontFace(GL_CCW);
+    }
+    OutputFaces();
+}
+
+void CIdentityTetrahedron::SetColor(const glm::vec4 &color)
+{
+    m_color = color;
+}
+
+void CIdentityTetrahedron::OutputFaces() const
 {
     // менее оптимальный способ рисования: прямая отправка данных
     // могла бы работать быстрее, чем множество вызовов glColor/glVertex.
     glBegin(GL_TRIANGLES);
 
-    for (const STriangleFace &face : CUBE_FACES)
+    for (const STriangleFace &face : TETRAHEDRON_FACES)
     {
-        const Vertex &v1 = CUBE_VERTICIES[face.vertexIndex1];
-        const Vertex &v2 = CUBE_VERTICIES[face.vertexIndex2];
-        const Vertex &v3 = CUBE_VERTICIES[face.vertexIndex3];
+        const Vertex &v1 = TETRAHEDRON_VERTICES[face.vertexIndex1];
+        const Vertex &v2 = TETRAHEDRON_VERTICES[face.vertexIndex2];
+        const Vertex &v3 = TETRAHEDRON_VERTICES[face.vertexIndex3];
         glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
 
-        glColor3fv(glm::value_ptr(m_colors[face.colorIndex]));
+        glColor4fv(glm::value_ptr(m_color));
         glNormal3fv(glm::value_ptr(normal));
         glVertex3fv(glm::value_ptr(v1));
         glVertex3fv(glm::value_ptr(v2));
@@ -425,17 +268,293 @@ void CIdentityCube::Draw() const
 }
 ```
 
+## Введение объектов-декораторов
+
+В связи с добавлением тетраэдра перемещение и анимирование куба было переделано с применением шаблона проектирования "Декоратор". Декоратор &mdash; класс, который оборачивает реальное трёхмерное тело и изменяет способ его рисования. Для удобства выделен класс абстрактного декоратора, который реализует интерфейс IBody и имеет методы для установки и получения единственного дочернего IBody:
+
+```cpp
+class CAbstractDecorator : public IBody
+{
+public:
+    void SetChild(IBodyUniquePtr && pChild);
+
+protected:
+    void UpdateChild(float deltaTime);
+    void DrawChild()const;
+
+private:
+    IBodyUniquePtr m_pChild;
+};
+
+void CAbstractDecorator::SetChild(IBodyUniquePtr &&pChild)
+{
+    m_pChild = std::move(pChild);
+}
+
+void CAbstractDecorator::UpdateChild(float deltaTime)
+{
+    assert(m_pChild.get());
+    m_pChild->Update(deltaTime);
+}
+
+void CAbstractDecorator::DrawChild() const
+{
+    assert(m_pChild.get());
+    m_pChild->Draw();
+}
+```
+
+Перемещение двух кубов в разные позиции теперь реализуется с помощью CTransformDecorator:
+
+```cpp
+class CTransformDecorator : public CAbstractDecorator
+{
+public:
+    void Update(float deltaTime);
+    void Draw()const;
+
+    void SetTransform(const glm::mat4 &transform);
+
+private:
+    glm::mat4 m_transform;
+};
+
+void CTransformDecorator::Draw() const
+{
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(m_transform));
+    DrawChild();
+    glPopMatrix();
+}
+```
+
+Анимирование куба реализуется в классе CAnimatedDecorator:
+
+```cpp
+class CAnimatedDecorator : public CAbstractDecorator
+{
+public:
+    void Update(float deltaTime);
+    void Draw()const;
+
+private:
+    enum Animation
+    {
+        Rotating,
+        Pulse,
+        Bounce,
+    };
+
+    glm::mat4 GetAnimationTransform()const;
+
+    Animation m_animation = Rotating;
+    float m_animationPhase = 0;
+};
+
+void CAnimatedDecorator::Draw() const
+{
+    const glm::mat4 matrix = GetAnimationTransform();
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(matrix));
+    DrawChild();
+    glPopMatrix();
+}
+```
+
+После изменения способа анимирования и перемещения куба в класс CWindow добавлен метод InitBodies, который инициализирует линейные массивы непрозрачных и полупрозрачных тел.
+
+## Нормали гладких поверхностей
+
+OpenGL не способен напрямую рисовать криволинейные поверхности. Тем не менее, можно аппроксимировать поверхность с помощью треугольников. Тогда возникает другая проблема &mdash; как избежать появления слишком большого числа треугольников?
+
+Например, если мы разбиваем сферу на 1000 делений по широте и 1000 делений по долготе, а каждый полученный сектор представляем двумя треугольниками, получается 2 миллиона треугольников &mdash; слишком много для такого простого тела, как сфера.
+
+![Иллюстрация](figures/flat_sphere.jpg)
+
+Можно достигнуть эффекта гладкости иным способом: воспользоваться интерполяцией освещения. На изображении выше сфера слева и сфера справа представлены одинаковым числом треугольников (это можно заметить, глядя на угловатые края правой сферы). Однако, для сферы справа освещение расчитывается в каждом фрагменте треугольника (с использованием программируемого конвейера и GLSL). Поэтому зритель не замечает угловатость сферы &mdash; мозг в процессе восстановления трёхмерной картинки из двухмерного кадра на сетчатке глаза будет считать сферу гладкой, потому что она *выглядит* гладкой.
+
+В фиксированном конвейере OpenGL не получится достичь максимальной гладкости: расчёт цвета с учётом освещения всё равно происходит лишь для вершин треугольника, и полученный цвет лишь интерполируется по фрагментам. В таком режиме нельзя создать изображение с правильными бликами, аналогичное сфере справа &mdash; но можно приблизиться к нему.
+
+За установку модели закрашивания грани отвечает функция [glShadeModel](https://www.opengl.org/sdk/docs/man2/xhtml/glShadeModel.xml):
+
+- режим `glShadeModel(GL_SMOOTH)` выставлен по-умолчанию: в таком режиме каждая вершина треугольника имеет свою нормаль и свой результат расчёта освещения, но фрагменты треугольника получают усреднённое значение цвета (с соответствующими весовыми коэффициентами).
+- режим `glShadeModel(GL_FLAT)` приведёт к тому, что для треугольника будет выбрана лишь одна нормаль одной вершины, остальные будут отброшены. В итоге весь треугольник при расчёте освещения будет окрашен в единый цвет.
+
+## Библиотека GLU
+
+Библиотека GLU (OpenGL Utilities) развивалась параллельно с первыми версиями OpenGL. Она поставляется производителям видеодрайверов как часть OpenGL, и содержит
+
+- функции для некоторых операций над матрицами (однако, функции для матриц в GLM удобнее и мощнее, чем в GLU)
+- функции для некоторых операций над текстурами (генерация уменьшенных копий текстуры)
+- функции для операций над многоугольниками на плоскости (разделение на треугольники и логические операции над областями многоугольников)
+- функции для рисования сферы, цилиндра и кругового диска
+
+Последнее обновление спецификации GLU произошло в 1998-м году, и на данный момент библиотека считается устаревшей. Кроме того, GLU отсутствует в мобильном OpenGL ES и в WebGL, оставаясь работоспособной только в составе видеодрайверов для настольных компьютеров. Не стоит привыкать к использованию GLU &mdash; однако, мы применим GLU в рамках статьи для рисования сферы и цилиндра. Мы воспользуемся типом `GLUquadric` и связанными с ним функциями.
+
+## Класс CSphereQuadric
+
+Класс реализует интерфейс IBody, используя спецификатор `final`. Единственное поле класса хранит указатель на структуру `GLUquadric`, реализация которой скрыта внутри GLU.
+
+```cpp
+// новые заголовки
+#include <GL/glu.h>
+#include <boost/noncopyable.hpp>
+
+class CSphereQuadric final
+        : public IBody
+        , private boost::noncopyable
+{
+public:
+    CSphereQuadric();
+    ~CSphereQuadric();
+
+    void Update(float) final {}
+    void Draw()const final;
+
+    void SetColor(const glm::vec3 &color);
+
+private:
+    GLUquadric *m_quadric = nullptr;
+    glm::vec3 m_color;
+};
+```
+
+Конструктор и деструктор написаны согласно [идиоме RAII](https://ru.wikipedia.org/wiki/%D0%9F%D0%BE%D0%BB%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D0%B5_%D1%80%D0%B5%D1%81%D1%83%D1%80%D1%81%D0%B0_%D0%B5%D1%81%D1%82%D1%8C_%D0%B8%D0%BD%D0%B8%D1%86%D0%B8%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F). Копирование класса CSphereQuadric запрещено путём приватного наследования от `boost::noncopyable`, чтобы обеспечить уникальное владение ресурсом.
+
+```cpp
+CSphereQuadric::CSphereQuadric()
+    : m_quadric(gluNewQuadric())
+    , m_color({1, 1, 1})
+{
+}
+
+CSphereQuadric::~CSphereQuadric()
+{
+    gluDeleteQuadric(m_quadric);
+}
+```
+
+Для рисования вызывается фунция [gluSphere](https://www.opengl.org/sdk/docs/man2/xhtml/gluSphere.xml), в параметрах которой передаётся радиус сферы и число делений по широте/долготе, от которого прямо зависит число созданных для приближения сферы треугольников.
+
+```cpp
+void CSphereQuadric::Draw() const
+{
+    const double radius = 1;
+    const int slices = 20;
+    const int stacks = 20;
+    glColor3fv(glm::value_ptr(m_color));
+    gluSphere(m_quadric, radius, slices, stacks);
+}
+
+void CSphereQuadric::SetColor(const glm::vec3 &color)
+{
+    m_color = color;
+}
+```
+
+Результат добавления сферы на сцену:
+
+![Скриншот](figures/glu_sphere.png)
+
+Ради эксперимента включим для сферы упомянутый ранее режим "плоского" расчёта освещения, в котором одна грань может иметь только одну нормаль:
+
+```cpp
+void CSphereQuadric::Draw() const
+{
+    glShadeModel(GL_FLAT);
+    const double radius = 1;
+    const int slices = 20;
+    const int stacks = 20;
+    glColor3fv(glm::value_ptr(m_color));
+    gluSphere(m_quadric, radius, slices, stacks);
+    glShadeModel(GL_SMOOTH);
+}
+```
+
+![Скриншот](figures/glu_sphere_flat.png)
+
+## Класс CConoidQuadric
+
+Класс усечённого конуса CConoidQuadric также реализует интерфейс IBody, используя спецификатор `final`, и хранит внутри указатель на объект типа `GLUquadric`. С помощью CConoidQuadric можно нарисовать не только усечённый конус, но и обычный конус либо цилиндр &mdash; результат рисования зависит от значения свойства TopRadius. По умолчанию `TopRadius = 1.`, рисуется цилиндр:
+
+```cpp
+// определение класса
+class CConoidQuadric final
+        : public IBody
+        , private boost::noncopyable
+{
+public:
+    CConoidQuadric();
+    ~CConoidQuadric();
+
+    void Update(float) final {}
+    void Draw()const final;
+
+    /// @param value - in range [0..1]
+    void SetTopRadius(double value);
+    void SetColor(const glm::vec3 &color);
+
+private:
+    GLUquadric *m_quadric = nullptr;
+    double m_topRadius = 1.;
+    glm::vec3 m_color;
+};
+
+// конструктор и деструктор
+
+CConoidQuadric::CConoidQuadric()
+    : m_quadric(gluNewQuadric())
+    , m_color({1, 1, 1})
+{
+}
+
+CConoidQuadric::~CConoidQuadric()
+{
+    gluDeleteQuadric(m_quadric);
+}
+```
+
+Для рисования используется три функции-команды GLU: [gluCylinder](https://www.opengl.org/sdk/docs/man2/xhtml/gluCylinder.xml) рисует только боковую поверхность усечённого конуса, а две "крышки" (верхняя и нижняя) рисуются двумя дисками с помощью [gluDisk](https://www.opengl.org/sdk/docs/man2/xhtml/gluDisk.xml). Здесь также использованы устаревшие низкоуровневые средства для работы с матрицами &mdash; это оправдано, потому что библиотека GLU устарела одновременно с OpenGL 1.x, и весь код рисования усечённого конуса одинаково устарел для OpenGL 2.x и выше. Реализация рисования:
+
+```cpp
+// Рисует усечённый конус высотой 2,
+// с радиусом основания 1 и радиусом верхнего торца m_topRadius.
+void CConoidQuadric::Draw() const
+{
+    const double baseRadius = 1;
+    const double height = 2;
+    const int slices = 20;
+    const int stacks = 1;
+    glColor3fv(glm::value_ptr(m_color));
+    glTranslatef(0, 0, 1);
+    gluCylinder(m_quadric, baseRadius, m_topRadius, height, slices, stacks);
+    glFrontFace(GL_CW);
+    gluDisk(m_quadric, 0, baseRadiuss, slices, stacks);
+    glFrontFace(GL_CCW);
+    glTranslatef(0, 0, 2);
+    gluDisk(m_quadric, 0, baseRadius, slices, stacks);
+    glTranslatef(0, 0, -1);
+}
+
+void CConoidQuadric::SetTopRadius(double value)
+{
+    m_topRadius = glm::clamp(value, 0.0, 1.0);
+}
+
+void CConoidQuadric::SetColor(const glm::vec3 &color)
+{
+    m_color = color;
+}
+```
+
+После добавления цилиндра на сцену мы получим интересное явление, которое называется [Z-Fighting](https://en.wikipedia.org/wiki/Z-fighting): грань куба и диск цилиндра накладываются друг на друга, и фрагменты граней имеют одинаковую глубину. Спецификация OpenGL оставляет поведение в таких ситуациях неопределённым: на разных кадрах разные фрагменты грани куба и диска цилиндра будут "выигрывать" конфликт глубины и попадать на экран.
+
+![Скриншот](figures/glu_conoid.png)
+
+Универсального решения для Z-Fighting не существует. Но для большинства приложений Z-Fighting не является проблемой &mdash; например, в трёхмерных играх поверхности не могут накладываться друг на друга из-за работы физического движка, который не позволяет объектам совмещаться друг с другом.
+
 ## Результат
 
-Вы можете взять [полный пример к уроку на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_09). А вот так выглядит окно после запуска:
+Вы можете взять [полный пример к статье на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_09). В этом примере на сцене находятся два куба, тетраэдр, сфера и цилиндр, к некоторым из них прикреплены объекты-декораторы:
 
-![Иллюстрация](figures/lesson_9_preview.png)
-
-Если же что-то не работает, используйте следующий чеклист:
-
-- включено ли освещение командой `glEnable(GL_LIGHTING)`?
-- включён ли i-й источник света командой `glEnable(GL_LIGHTi)`?
-- установлены ли параметры источника света?
-- установлен ли цвет материала с помощью [glMaterial](https://www.opengl.org/sdk/docs/man2/xhtml/glMaterial.xml) или [glColorMaterial](https://www.opengl.org/sdk/docs/man2/xhtml/glColorMaterial.xml)?
-- правильно ли выбраны нормали граней объектов?
-- установлена ли матрица GL_MODELVIEW камеры прежде, чем установлен источник света?
+![Иллюстрация](figures/lesson_09_preview.png)
