@@ -604,3 +604,8 @@ void CWindow::OnKeyDown(const SDL_KeyboardEvent &event)
 [Полный пример к статье доступен на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_06). Вот так выглядит окно после запуска:
 
 ![Иллюстрация](figures/lesson_6_preview.png)
+
+## Далее
+
+- [Статья о роли трёх ключевых трансформаций: Model, View и Projection (opengl-tutorial.org)](http://www.opengl-tutorial.org/ru/beginners-tutorials/tutorial-3-matrices/)
+- [Следующий пример](/opengl/lesson_7.html)
