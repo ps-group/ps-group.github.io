@@ -604,8 +604,3 @@ void CWindow::OnKeyDown(const SDL_KeyboardEvent &event)
 [Полный пример к статье доступен на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_06). Вот так выглядит окно после запуска:
 
 ![Иллюстрация](figures/lesson_6_preview.png)
-
-## Ссылки
-
-- [Статья о параметрах наложения текстур (opengl-tutorial.org)](http://www.opengl-tutorial.org/ru/beginners-tutorials/tutorial-5-a-textured-cube/)
-- [Следующий пример](/opengl/lesson_9.html)
