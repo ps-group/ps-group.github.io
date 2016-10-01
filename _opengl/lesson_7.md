@@ -834,3 +834,7 @@ void CWindow::OnKeyUp(const SDL_KeyboardEvent &event)
 
 ![Скриншот](figures/lesson_7_preview.gif)
 
+## Ссылки
+
+- [Статья о роли трёх ключевых трансформаций: Model, View и Projection (opengl-tutorial.org)](http://www.opengl-tutorial.org/ru/beginners-tutorials/tutorial-3-matrices/)
+- [Следующий пример](/opengl/lesson_8.html)
