@@ -319,7 +319,7 @@ std::string ConvertPathToUtf8(const boost::filesystem::path &path)
 
 SDLSurfacePtr CFilesystemUtils::LoadImage(const boost::filesystem::path &path)
 {
-    const std::string pathUtf8 = ConvertPathToUtf8(path);
+    const std::string pathUtf8 = ConvertPathToUtf8(GetResourceAbspath(path));
     SDLSurfacePtr pSurface(IMG_Load(pathUtf8.c_str()));
     if (!pSurface)
     {
@@ -756,8 +756,8 @@ void CalculateTriangleStripIndicies(std::vector<uint32_t> &indicies,
 glm::vec3 GetPositionOnSphere(float u, float v)
 {
     const float radius = 1.f;
-    const float latitude = float(M_PI) * (1.f - v); // 𝝅∙(𝟎.𝟓-𝒗)
-    const float longitude = float(2.0 * M_PI) * u; // 𝟐𝝅∙𝒖
+    const float latitude = float(M_PI) * (1.f - v); // 흅∙(ퟎ.ퟓ-풗)
+    const float longitude = float(2.0 * M_PI) * u; // ퟐ흅∙풖
     const float latitudeRadius = radius * sinf(latitude);
 
     return { cosf(longitude) * latitudeRadius,
@@ -1162,3 +1162,4 @@ void CSkybox::Draw() const
 ## Ссылки
 
 - [Статья о параметрах наложения текстур (opengl-tutorial.org)](http://www.opengl-tutorial.org/ru/beginners-tutorials/tutorial-5-a-textured-cube/)
+ ］껩］鯗Ｈ鯗

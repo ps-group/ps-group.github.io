@@ -36,6 +36,7 @@ permalink: /opengl/
  3. [Смешиваем цвета](/opengl/lesson_9.html)
  4. [График двумерной функции](/opengl/lesson_10.html)
  5. [UV-параметризация сферы](/opengl/lesson_11.html)
+ 6. [Игра "Memory Trainer 3D" (статья не завершена)](/opengl/lesson_12.html)
 
 ## Часть III: программируемый конвейер
 
