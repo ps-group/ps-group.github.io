@@ -21,6 +21,8 @@ permalink: /opengl/
  5. [Взрыв на цветочной фабрике](/opengl/lesson_5.html)
  6. [Законы Кеплера](/opengl/lesson_6.html)
 
+Также доступен [F.A.Q по 1-й главе примеров](/opengl/chapter_1_faq.htmlы)
+
 ## Часть II: рисуем тела
 
 Дополнительная статья:

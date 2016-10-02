@@ -8,6 +8,16 @@ title: 'Игра Memory Trainer 3D'
 
 ![Скриншот](figures/lesson_11_preview.png)
 
+## Модель и представление плиток
+
+## Пересечение луча и плоскости
+
+## Активация и вращение плиток
+
+## Генератор изображений плиток
+
+## Вывод текста
+
 ## Ссылки
 
 - [Статья о параметрах наложения текстур (opengl-tutorial.org)](http://www.opengl-tutorial.org/ru/beginners-tutorials/tutorial-5-a-textured-cube/)
