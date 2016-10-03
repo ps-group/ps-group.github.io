@@ -19,7 +19,125 @@ title: 'Игра Memory Trainer 3D'
 
 Цель игры – убрать все плитки с игрового поля.
 
-## Модель и представление плиток
+## Класс CTwoSideQuad
+
+Чтобы нарисовать плитку, имеющую разные изображения с двух сторон, вы создадим класс CTwoSideQuad, позволяющий задать разные текстурные координаты для передней и задней стороны. Также плитка будет иметь трёхмерные координаты и нормаль, при этом нормали передней и задней сторон отличаются.
+
+```cpp
+// Вершина с трёхмерной позицией, нормалью и 2D координатами текстуры.
+struct SVertexP3NT2
+{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoord;
+};
+
+// Прямоугольный двусторонний спрайт, лежащий в плоскости Oxz.
+// Передняя сторона имеет нормаль (0, +1, 0),
+// Задняя сторона имеет нормаль (0, -1, 0).
+class CTwoSideQuad : public ISceneObject
+{
+public:
+    CTwoSideQuad(const glm::vec2 &leftTop, const glm::vec2 &size);
+
+    void Update(float) override {}
+    void Draw()const override;
+
+    void SetFrontTextureRect(const CFloatRect &rect);
+    void SetBackTextureRect(const CFloatRect &rect);
+
+private:
+    std::vector<SVertexP3NT2> m_vertices;
+    std::vector<uint8_t> m_indicies;
+};
+```
+
+В реализации класса мы применим явное задание вершин и индексов, поскольку их количество невелико:
+
+```cpp
+namespace
+{
+/// Привязывает вершины к состоянию OpenGL,
+/// затем вызывает 'callback'.
+template <class T>
+void DoWithBindedArrays(const std::vector<SVertexP3NT2> &vertices, T && callback)
+{
+    // Включаем режимы привязки нужных данных.
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    // Выполняем привязку vertex array, normal array, texture array.
+    const size_t stride = sizeof(SVertexP3NT2);
+    glVertexPointer(3, GL_FLOAT, stride, glm::value_ptr(vertices[0].position));
+    glNormalPointer(GL_FLOAT, stride, glm::value_ptr(vertices[0].normal));
+    glTexCoordPointer(2, GL_FLOAT, stride, glm::value_ptr(vertices[0].texCoord));
+
+    // Выполняем внешнюю функцию.
+    callback();
+
+    // Выключаем режимы привязки данных.
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+}
+
+// Тайлы лежат в плоскости Oxz, нормаль сонаправлена с осью Oy.
+SVertexP3NT2 MakeVertex(const glm::vec2 &xz, float normalY)
+{
+    SVertexP3NT2 vertex;
+    vertex.position = { xz.x, 0.f, xz.y };
+    vertex.normal = { 0.f, normalY, 0.f };
+    return vertex;
+}
+}
+
+CTwoSideQuad::CTwoSideQuad(const glm::vec2 &leftTop, const glm::vec2 &size)
+{
+    SVertexP3NT2 vLeftTopFront = MakeVertex(leftTop, 1.f);
+    SVertexP3NT2 vRightTopFront = MakeVertex(leftTop + glm::vec2{ size.x, 0.f }, 1.f);
+    SVertexP3NT2 vLeftBottomFront = MakeVertex(leftTop + glm::vec2{ 0.f, size.y }, 1.f);
+    SVertexP3NT2 vRightBottomFront = MakeVertex(leftTop + glm::vec2{ size.x, size.y }, 1.f);
+
+    SVertexP3NT2 vLeftTopBack = MakeVertex(leftTop, -1.f);
+    SVertexP3NT2 vRightTopBack = MakeVertex(leftTop + glm::vec2{ size.x, 0.f }, -1.f);
+    SVertexP3NT2 vLeftBottomBack = MakeVertex(leftTop + glm::vec2{ 0.f, size.y }, -1.f);
+    SVertexP3NT2 vRightBottomBack = MakeVertex(leftTop + glm::vec2{ size.x, size.y }, -1.f);
+
+    m_vertices = { vLeftTopFront, vRightTopFront, vLeftBottomFront, vRightBottomFront,
+                   vLeftTopBack, vRightTopBack, vLeftBottomBack, vRightBottomBack };
+    m_indicies = { 0, 1, 2, 1, 3, 2,
+                   6, 5, 4, 6, 7, 5 };
+}
+
+void CTwoSideQuad::Draw() const
+{
+    DoWithBindedArrays(m_vertices, [this] {
+        glDrawElements(GL_TRIANGLES, GLsizei(m_indicies.size()),
+                       GL_UNSIGNED_BYTE, m_indicies.data());
+    });
+}
+
+void CTwoSideQuad::SetFrontTextureRect(const CFloatRect &rect)
+{
+    m_vertices[0].texCoord = rect.GetTopLeft();
+    m_vertices[1].texCoord = rect.GetTopRight();
+    m_vertices[2].texCoord = rect.GetBottomLeft();
+    m_vertices[3].texCoord = rect.GetBottomRight();
+}
+
+void CTwoSideQuad::SetBackTextureRect(const CFloatRect &rect)
+{
+    m_vertices[4].texCoord = rect.GetTopLeft();
+    m_vertices[5].texCoord = rect.GetTopRight();
+    m_vertices[6].texCoord = rect.GetBottomLeft();
+    m_vertices[7].texCoord = rect.GetBottomRight();
+}
+```
+
+## Представление плиток
+
+
 
 ## Пересечение луча и плоскости
 
