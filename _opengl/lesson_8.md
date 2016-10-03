@@ -521,7 +521,7 @@ void CWindow::OnKeyDown(const SDL_KeyboardEvent &event)
 
 Результат:
 
-![Скриншот](figures/lesson_8_fog)
+![Скриншот](figures/lesson_8_fog.png)
 
 ## Боремся с алиасингом
 

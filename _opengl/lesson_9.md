@@ -557,4 +557,4 @@ void CConoidQuadric::SetColor(const glm::vec3 &color)
 
 Вы можете взять [полный пример к статье на github](https://github.com/PS-Group/cg_course_examples/tree/master/chapter_2/lesson_09). В этом примере на сцене находятся два куба, тетраэдр, сфера и цилиндр, к некоторым из них прикреплены объекты-декораторы:
 
-![Иллюстрация](figures/lesson_09_preview.png)
+![Иллюстрация](figures/lesson_9_preview.png)
