@@ -135,15 +135,764 @@ void CTwoSideQuad::SetBackTextureRect(const CFloatRect &rect)
 }
 ```
 
-## Представление плиток
+## Плавная анимация плиток
+
+Согласно требованиям, анимация плитки должна быть плавной. Для создания плавной анимации мы создадим класс CAnimationCounter, который будет следить за фазой анимации (будем считать, что фаза изменяется от 0 до 1). Процесс изменения фазы будет выглядеть следующим образом:
+
+![Иллюстрация](figures/animation_interpolation.png)
+
+Ниже приведено определение класса:
+
+```cpp
+class CAnimationCounter
+{
+public:
+    CAnimationCounter(float changeSpeed);
+
+    float GetPhase()const;
+    bool IsActive()const;
+
+    // Перезапускает изменение фазы анимации.
+    void Restart();
+
+    // Продолжает прирост фазы либо делает анимацию
+    //  неактивной, если фаза достигла 1.
+    void Update(float deltaSeconds);
+
+private:
+    bool m_isActive = false;
+    float m_phase = 1.f;
+    float m_changeSpeed = 0;
+};
+```
+
+Начальная фаза анимации равна 1, как если бы она остановилась и ещё не была перезапущена.
+
+В реализации основную сложность представляет метод Update, который должен передвинуть фазу ровно до конечного значения, если он достижимо за deltaSeconds или за меньшее время:
+
+```cpp
+CAnimationCounter::CAnimationCounter(float changeSpeed)
+    : m_changeSpeed(changeSpeed)
+{
+}
+
+float CAnimationCounter::GetPhase() const
+{
+    return m_phase;
+}
+
+bool CAnimationCounter::IsActive() const
+{
+    return m_isActive;
+}
+
+void CAnimationCounter::Restart()
+{
+    m_phase = 0;
+    m_isActive = true;
+}
+
+void CAnimationCounter::Update(float deltaSeconds)
+{
+    if (!m_isActive)
+    {
+        return;
+    }
+    const float maxPhase = 1.f;
+    const float delta = m_changeSpeed * deltaSeconds;
+    if ((maxPhase - m_phase) < delta)
+    {
+        m_phase = maxPhase;
+        m_isActive = false;
+    }
+    else
+    {
+        m_phase += delta;
+    }
+}
+```
+
+## Состояния плитки
+
+Мы запрограммируем плитку таким образом, чтобы у неё было 4 дискретных состояния:
+
+```cpp
+enum class State
+{
+    FacedFront,
+    Teasing,
+    FacedBack,
+    Dead,
+};
+```
+
+Правила переключения состояний будут следующими:
+
+- изначальное состояние будет равным FacedBack, но при этом в начале игры все плитки плавно перевернутся вокруг оси Oz вниз лицевой гранью, вместо того чтобы быть повёрнутыми изначально
+- при нажатии на плитку, повёрнутую лицевой гранью вниз, она переключается в состояние FacedFront и плавно переворачивается вокруг оси Oz
+- если две ранее перевёрнутые плитки имеют разные изображения, они переключаются в состояние Teasing и "дразнят" игрока, прежде чем перевернуться, путём поворота вокруг оси Oy
+- если две ранее перевёрнутые плитки имеют одинаковые изображения, они исчезают, при этом проигрывается анимация уменьшения масштаба плитки от 1 до 0, и всё это время плитка повёрнута лицевой гранью вверх
+
+Для реализации логики анимации в методе Draw формируется и применяется текущая анимация плитки. В методе Update происходит только обновление фазы анимации и переключение с состояния Teasing на состояние FacedBack после завершения шага анимации:
+
+```cpp
+void CMemoryTile::Update(float dt)
+{
+    m_animationCounter.Update(dt);
+
+    // После завершения анимации переключаем состояние Teasing
+    //  на FacedBack, перезапуская анимацию переворота.
+    if (m_state == State::Teasing && !m_animationCounter.IsActive())
+    {
+        m_state = State::FacedBack;
+        m_animationCounter.Restart();
+    }
+}
+
+void CMemoryTile::Draw() const
+{
+    const glm::vec2 offset = m_bounds.GetTopLeft() + 0.5f * m_bounds.GetSize();
+    const glm::vec3 zAxis = {0, 0, 1};
+    const glm::vec3 yAxis = {0, 1, 0};
+    glm::mat4 transform;
+    transform = glm::translate(transform, {offset.x, 0.f, offset.y});
+
+    const float phase = m_animationCounter.GetPhase();
+
+    switch (m_state)
+    {
+    case State::FacedBack:
+        transform = glm::rotate(transform, (phase + 1.f) * float(M_PI), zAxis);
+        break;
+    case State::FacedFront:
+        transform = glm::rotate(transform, phase * float(M_PI), zAxis);
+        break;
+    case State::Teasing:
+    {
+        const float deviation = 0.1f - 0.2f * fabsf(0.5f - phase);
+        transform = glm::rotate(transform, float(M_PI), zAxis);
+        transform = glm::rotate(transform, deviation * float(M_PI), yAxis);
+        break;
+    }
+    case State::Dead:
+        transform = glm::scale(transform, glm::vec3(1.f - phase));
+        break;
+    }
+
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(transform));
+    CTwoSideQuad::Draw();
+    glPopMatrix();
+}
+```
+
+Ниже приведены конструктор и методы для доступа к свойствам, а методы Kill, Activate и Deactivate рассмотрим далее отдельно.
+
+```cpp
+CMemoryTile::CMemoryTile(TileImage tileImage,
+                         const glm::vec2 &leftTop, const glm::vec2 &size)
+    : CTwoSideQuad(-0.5f * size, size)
+    , m_tileImage(tileImage)
+    , m_bounds(leftTop, leftTop + size)
+    , m_animationCounter(ANIMATION_SPEED)
+{
+    m_animationCounter.Restart();
+}
+
+TileImage CMemoryTile::GetTileImage() const
+{
+    return m_tileImage;
+}
+
+void CMemoryTile::SetTileImage(TileImage tileImage)
+{
+    m_tileImage = tileImage;
+}
+
+bool CMemoryTile::IsFrontFaced() const
+{
+    return (m_state == State::FacedFront) && !m_animationCounter.IsActive();
+}
+
+bool CMemoryTile::IsAlive() const
+{
+    return (m_state != State::Dead) || m_animationCounter.IsActive();
+}
+```
+
+## Формируем луч для трассировки по сцене
+
+Непосредственно отслеживать щелчок мыши мы будем с помощью перегрузки метода `IInputEventAcceptor::OnDragEnd`, который передаёт двумерные координаты курсора мыши в системе координат клиентской области окна. Однако, эти коодинаты надо применить для активации плитки, при этом попадание должно измеряться с точностью до пикселя. Добиться подобного эффекта можно с помощью обратной трассировки луча, исходящего из точки в координатах viewport, сквозь сцен. Общий принцип трассировки луча проиллюстрирован ниже:
+
+![Иллюстрация](figures/scene_ray_tracing.png)
+
+Нас интересует именно луч, а не прямая либо отрезок, потому что у луча есть начало и нет конца, что удовлетворяет нашим потребностям. Программировать класс луча, трассируемого сквозь сцену, мы будем с помощью параметрического уравнения луча:
+
+![Иллюстрация](figures/ray_equation.png)
+
+Определение класса CRay показано ниже:
+
+```cpp
+// ---- Файл Ray.h ----
+
+#pragma once
+
+#include <glm/fwd.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+
+/*
+Класс "Луч", характеризующийся точкой испускания и направлением.
+  В момент времени t=0 луч находится в точке start.
+  За промежуток времени t=1 луч проходит расстояние direction.
+*/
+class CRay
+{
+public:
+    CRay() = default;
+    explicit CRay(const glm::vec3 &start, const glm::vec3 &direction);
+
+    glm::vec3 GetPointAtTime(float time)const;
+
+    const glm::vec3 &GetStart()const;
+    const glm::vec3 &GetDirection()const;
+
+    CRay GetTransformedCopy(const glm::mat4 &transform)const;
+
+private:
+    glm::vec3 m_start;
+    glm::vec3 m_direction;
+};
+
+// ---- Файл Ray.cpp ----
+
+using namespace glm;
+
+CRay::CRay(const vec3 &start, const vec3 &direction)
+    : m_start(start)
+    , m_direction(direction)
+{
+}
+
+vec3 CRay::GetPointAtTime(float time) const
+{
+    return m_start + m_direction * time;
+}
+
+const vec3 &CRay::GetStart() const
+{
+    return m_start;
+}
+
+const vec3 &CRay::GetDirection() const
+{
+    return m_direction;
+}
+```
+
+Отдельно рассмотрим метод GetTransformedCopy, который должен перевести начало луча и его направление в однородное представление векторов и точек, затем умножить матрицу 4x4, описывающую трансформацию, на полученный 4-х компонентный вектор, и в конце поделить все компоненты полученного вектора на его флаг "w", чтобы скомпенсировать эффект неафинных преобразований:
+
+```cpp
+CRay CRay::GetTransformedCopy(const mat4 &transform) const
+{
+    const vec4 start = transform * vec4(m_start, 1.f);
+    const vec4 direction = transform * vec4(m_direction, 0.f);
+
+    // Проверяем, что флаг "w" у точки всегда остался равным 1.
+    //  При умножении на матрицу перспективного преобразования
+    //  флаг может измениться.
+    assert(fabsf(start.w - 1.0f) <= std::numeric_limits<float>::epsilon());
+
+    return CRay(vec3(start),
+                vec3(direction));
+}
+```
+
+Теперь мы можем реализовать метод OnDragEnd, в котором луч формируется, преобразуется с помощью матриц ModelView и Projection, а затем посылается игровому полю:
+
+```cpp
+void CWindow::OnDragEnd(const glm::vec2 &pos)
+{
+    // Вычисляем позицию точки в нормализованных координатах окна,
+    //  то есть на диапазоне [-1; 1].
+    // Также переворачиваем координату "y",
+    //  т.к. OpenGL считает нулевым нижний левый угол окна,
+    //  а все оконные системы - верхний левый угол.
+    const glm::ivec2 winSize = GetWindowSize();
+    const glm::vec2 halfWinSize = 0.5f * glm::vec2(winSize);
+    const glm::vec2 invertedPos(pos.x, winSize.y - pos.y);
+    const glm::vec2 normalizedPos = (invertedPos - halfWinSize) / halfWinSize;
+
+    // Вычисляем матрицу обратного преобразования
+    //  поскольку поле игры не имеет своей трансформации,
+    //  мы берём матрицу камеры в качестве ModelView-матрицы
+    const glm::mat4 mvMat = m_camera.GetViewTransform();
+    const glm::mat4 projMat = GetProjectionMatrix(winSize);
+    const glm::mat4 inverse = glm::inverse(projMat * mvMat);
+
+    // В нормализованном пространстве глубина изменяется от -1 до +1.
+    // Вычисляем начало и конец отрезка, проходящего через
+    //  нормализованное пространство насквозь.
+    const glm::vec3 start = TransformPoint(glm::vec3(normalizedPos, -1.f), inverse);
+    const glm::vec3 end =   TransformPoint(glm::vec3(normalizedPos, +1.f), inverse);
+
+    m_pField->Activate(CRay(start, end - start));
+}
+```
+
+## Пересечение луча с плитками
+
+Результат пересечения будет храниться в структуре SRayIntersection:
+
+```cpp
+struct SRayIntersection
+{
+    // Время пересечения с лучём (по временной шкале луча).
+    float m_time;
+    // Точка пересечения
+    glm::vec3 m_point;
+};
+```
+
+Чтобы определять пересечение с игровым полем, представляющим из себя плоскость, мы воспользуемся уравнением плоскости:
+
+![Иллюстрация](figures/plane_equation.png)
+
+На основе данного уравнения напишем класс CPlane, формирующий плоскость:
+
+```cpp
+/*
+Геометрический объект "бесконечная плоскость",
+  который задаётся уравнением плоскости из 4-х коэффициентов.
+*/
+class CPlane
+{
+public:
+    // Три точки определяют плоскость, из них могут быть восстановлены
+    //  коэффициенты уравнения плоскости.
+    explicit CPlane(const glm::vec3 &point0,
+                    const glm::vec3 &point1,
+                    const glm::vec3 &point2);
+
+    explicit CPlane(const glm::vec4 &planeEquation);
+
+    bool Hit(CRay const& ray, SRayIntersection &intersection)const;
+
+private:
+    // Четырехмерный вектор, хранящий коэффициенты уравнения плоскости
+    glm::vec4 m_planeEquation;
+};
+
+// ---- реализация класса ----
+
+CPlane::CPlane(const vec3 &point0, const vec3 &point1, const vec3 &point2)
+{
+    // Вычисляем два ребра треугольника
+    const vec3 edge01 = point1 - point0;
+    const vec3 edge20 = point0 - point2;
+
+    // Нормаль к плоскости треугольника и уравнение его плоскости
+    const vec3 normal = cross(edge20, edge01);
+    m_planeEquation = vec4(normal, -dot(normal, point0));
+}
+
+CPlane::CPlane(const vec4 &planeEquation)
+    : m_planeEquation(planeEquation)
+{
+}
+```
+
+Для определения пересечения луча и плоскости воспользуемся построением, приведённым на иллюстрации:
+
+![Иллюстрация](figures/ray_and_plane_intersection.png)
+
+На основе данного построения реализуем метод Hit:
+
+```cpp
+bool CPlane::Hit(const CRay &ray, SRayIntersection &intersection) const
+{
+    // Величина, меньше которой модуль скалярного произведения вектора направления луча и
+    // нормали плоскости означает параллельность луча и плоскости
+    const float EPSILON = std::numeric_limits<float>::epsilon();
+
+    // Нормаль к плоскости в системе координат объекта
+    const glm::vec3 normalInObjectSpace(m_planeEquation);
+
+    // Скалярное произведение направления луча и нормали к плоскости
+    const float normalDotDirection = glm::dot(ray.GetDirection(), normalInObjectSpace);
+
+    // Если скалярное произведение близко к нулю, луч параллелен плоскости
+    if (fabs(normalDotDirection) < EPSILON)
+    {
+        return false;
+    }
+
+    /*
+    Находим время пересечения луча с плоскостью, подставляя в уравнение плоскости точку испускания луча
+    и деление результата на ранее вычисленное сканярное произведение направления луча и нормали к плоскости
+    */
+    const float hitTime = -glm::dot(glm::vec4(ray.GetStart(), 1), m_planeEquation) / normalDotDirection;
+
+    // Нас интересует только пересечение луча с плоскостью в положительный момент времени,
+    // поэтому находящуюся "позади" точки испускания луча точку пересечения мы за точку пересечения не считаем
+    // Сравнение с величиной EPSILON, а не с 0 нужно для того, чтобы позволить
+    // лучам, испущенным с плоскости, оторваться от нее.
+    // Это необходимо при обработке вторичных лучей для построения теней и отражений и преломлений
+    if (hitTime <= EPSILON)
+    {
+        return false;
+    }
+
+    // Вычисляем точку столкновения с лучом в системе координат сцены в момент столкновения
+    const glm::vec3 hitPoint = ray.GetPointAtTime(hitTime);
+    intersection.m_time = hitTime;
+    intersection.m_point = hitPoint;
+
+    return true;
+}
+```
+
+## Класс CMemoryField
+
+Класс занимается хранением всех плиток и контролем их жизненного цикла, обновлением состояния игры, определением попадания луча в плитку. Определение показано ниже:
+
+```cpp
+#pragma once
+
+#include "MemoryTile.h"
+#include "Lights.h"
+
+#define ENABLE_DEBUG_MEMORY_FIELD_HITS 0
+
+class CMemoryField : public ISceneObject
+{
+public:
+    CMemoryField();
+
+    // ISceneObject interface
+    void Update(float dt) final;
+    void Draw() const final;
+
+    void Activate(const CRay &ray);
+    unsigned GetTileCount()const;
+    unsigned GetTotalScore()const;
+
+private:
+    void GenerateTiles();
+    void CheckTilesPair(std::pair<size_t, size_t> indicies);
+    CFloatRect GetImageFrameRect(TileImage image)const;
+
+    CPhongModelMaterial m_material;
+    CTexture2DAtlas m_atlas;
+    std::vector<CMemoryTile> m_tiles;
+    unsigned m_totalScore = 0;
+
+#if ENABLE_DEBUG_MEMORY_FIELD_HITS
+    std::vector<glm::vec3> m_hits;
+#endif
+};
+```
+
+Для генерации случайного изображения с учётом правила, по которому изображения должны быть парными, разработан вспомогательный класс CRandomTileImageGenerator:
+
+```cpp
+
+// Класс генерирует изображения для плиток
+//  на основе линейного распределения вероятностей.
+class CRandomTileImageGenerator
+{
+    using linear_random_int = std::uniform_int_distribution<int>;
+
+public:
+    CRandomTileImageGenerator()
+    {
+        std::random_device rd;
+        m_random.seed(rd());
+
+        const int max = static_cast<int>(TileImage::NUM_TILE_IMAGES) - 1;
+        m_tileImageRange.param(linear_random_int::param_type(0, max));
+    }
 
 
+    // Генерирует массив изображений для плиток,
+    //  при этом количество плиток разных типов всегда чётное.
+    void GenerateRandomImagesRange(std::vector<TileImage> &range, size_t count)
+    {
+        // Проверяем, что число плиток чётное.
+        assert(count % 2 == 0);
+        range.resize(count);
 
-## Пересечение луча и плоскости
+        // Генерируем типы изображений, при этом обеспечиваем
+        //  чётное количество изображений каждого типа
+        //  за счёт зеркалирования значений
+        for (size_t i = 0; i < count / 2; ++i)
+        {
+            TileImage image = GenerateTileImage();
+            range.at(i) = image;
+            range.at(count - i - 1) = image;
+        }
 
-## Активация и вращение плиток
+        // Перемешиваем случайным образом, чтобы устранить
+        //  последствия зеркалирования изображений.
+        const int SHUFFLE_TIMES = 3;
+        for (int i = 0; i < SHUFFLE_TIMES; ++i)
+            std::shuffle(range.begin(), range.end(), m_random);
+    }
 
-## Генератор изображений плиток
+private:
+    TileImage GenerateTileImage()
+    {
+        return static_cast<TileImage>(m_tileImageRange(m_random));
+    }
+
+    linear_random_int m_tileImageRange;
+    std::mt19937 m_random;
+};
+```
+
+Генератор применяется следующим образом:
+
+```cpp
+CMemoryField::CMemoryField()
+    : m_atlas(TILE_MAP_ATLAS)
+{
+    GenerateTiles();
+
+    // Setup material.
+    const float MATERIAL_SHININESS = 30.f;
+    const glm::vec4 GRAY_RGBA = {0.3f, 0.3f, 0.3f, 1.f};
+    const glm::vec4 WHITE_RGBA = {1, 1, 1, 1};
+    m_material.SetAmbient(WHITE_RGBA);
+    m_material.SetDiffuse(WHITE_RGBA);
+    m_material.SetSpecular(GRAY_RGBA);
+    m_material.SetShininess(MATERIAL_SHININESS);
+}
+```
+
+```
+void CMemoryField::GenerateTiles()
+{
+    std::vector<TileImage> images;
+    CRandomTileImageGenerator generator;
+    generator.GenerateRandomImagesRange(images, FIELD_WIDTH * FIELD_HEIGHT);
+
+    const CFloatRect backTexRect = m_atlas.GetFrameRect("tile-back.png");
+
+    const float step = TILE_SIZE + TILE_MARGIN;
+    const float leftmostX = float(-0.5f * step * FIELD_WIDTH);
+    const float topmostY = float(-0.5f * step * FIELD_HEIGHT);
+
+    for (unsigned row = 0; row < FIELD_HEIGHT; ++row)
+    {        const float top = float(topmostY + row * step);
+        for (unsigned column = 0; column < FIELD_WIDTH; ++column)
+        {
+            size_t index = row * FIELD_WIDTH + column;
+            const float left = float(leftmostX + column * step);
+            m_tiles.emplace_back(images.at(index),
+                                 glm::vec2{left, top},
+                                 glm::vec2{TILE_SIZE, TILE_SIZE});
+
+            CMemoryTile &tile = m_tiles.back();
+            const CFloatRect frontTexRect = GetImageFrameRect(tile.GetTileImage());
+            tile.SetFrontTextureRect(frontTexRect);
+            tile.SetBackTextureRect(backTexRect);
+        }
+    }
+}
+
+CFloatRect CMemoryField::GetImageFrameRect(TileImage image) const
+{
+    switch (image)
+    {
+    case TileImage::EXIT_SIGN:
+        return m_atlas.GetFrameRect("signExit.png");
+    case TileImage::FISH:
+        return m_atlas.GetFrameRect("fishSwim2.png");
+    case TileImage::FLY:
+        return m_atlas.GetFrameRect("flyFly2.png");
+    case TileImage::HEART:
+        return m_atlas.GetFrameRect("hud_heartFull.png");
+    case TileImage::KEY:
+        return m_atlas.GetFrameRect("hud_keyYellow.png");
+    case TileImage::MUSHROOM:
+        return m_atlas.GetFrameRect("mushroomRed.png");
+    case TileImage::SNAIL:
+        return m_atlas.GetFrameRect("snailWalk1.png");
+    case TileImage::SPRINGBOARD:
+        return m_atlas.GetFrameRect("springboardUp.png");
+    default:
+        throw std::runtime_error("Unexpected tile image");
+    }
+}
+```
+
+Метод Update обновляет анимацию плиток, затем проверяет перевёрнутые плитки на совпадение изображений, и в конце уничтожает отмершие плитки:
+
+```cpp
+void CMemoryField::Update(float dt)
+{
+    for (auto &tile : m_tiles)
+    {
+        tile.Update(dt);
+    }
+
+    // Ищем индексы плиток, повёрнутых лицевой частью.
+    std::vector<size_t> indicies;
+    indicies.reserve(2);
+    for (size_t i = 0; i < m_tiles.size(); ++i)
+    {
+        if (m_tiles[i].IsFrontFaced())
+        {
+            indicies.push_back(i);
+        }
+    }
+
+    // Если повернуты ровно две плитки,
+    //  проверяем их по правилам игры.
+    if (indicies.size() == 2)
+    {
+        CheckTilesPair({ indicies.front(), indicies.back() });
+    }
+
+    // Применяем идиому "remove-erase", чтобы удалить отмершие плитки.
+    auto newEnd = std::remove_if(m_tiles.begin(), m_tiles.end(), [](const auto &tile) {
+        return !tile.IsAlive();
+    });
+    m_tiles.erase(newEnd, m_tiles.end());
+}
+```
+
+Метод Draw обладает возможностью отладочного рисования точек пересечения луча и плоскости. Эта возможность закрыта проверкой на макрос ENABLE_DEBUG_MEMORY_FIELD_HITS:
+
+```cpp
+void CMemoryField::Draw() const
+{
+    m_material.Setup();
+    m_atlas.GetTexture().DoWhileBinded([&] {
+        for (const auto &tile : m_tiles)
+        {
+            tile.Draw();
+        }
+    });
+
+    // В целях отладки можно рисовать все точки, в которых было
+    //  пересечение
+#if ENABLE_DEBUG_MEMORY_FIELD_HITS
+    glPointSize(10.f);
+    glBegin(GL_POINTS);
+    for (const glm::vec3 &point : m_hits)
+    {
+        glVertex3fv(glm::value_ptr(point));
+    }
+    glEnd();
+#endif
+}
+```
+
+Внешний вид окна в режиме отладки пересечений луча и плоскости показан на скриншоте:
+
+![Скриншот](figures/memory_trainer_hit_points_debug.png)
+
+Метод CheckTilesPair реализует логику проверки совпадения изображений на плитках:
+
+```cpp
+unsigned CMemoryField::GetTileCount() const
+{
+    return unsigned(m_tiles.size());
+}
+
+unsigned CMemoryField::GetTotalScore() const
+{
+    return m_totalScore;
+}
+
+void CMemoryField::CheckTilesPair(std::pair<size_t, size_t> indicies)
+{
+    const int KILL_SCORE_BONUS = 50;
+    const int DEACTIVATE_SCORE_FANE = 10;
+    CMemoryTile &first = m_tiles[indicies.first];
+    CMemoryTile &second = m_tiles[indicies.second];
+
+    if (first.GetTileImage() == second.GetTileImage())
+    {
+        first.Kill();
+        second.Kill();
+        m_totalScore += KILL_SCORE_BONUS;
+    }
+    else
+    {
+        first.Deactivate();
+        second.Deactivate();
+        if (m_totalScore <= DEACTIVATE_SCORE_FANE)
+        {
+            m_totalScore = 0;
+        }
+        else
+        {
+            m_totalScore -= DEACTIVATE_SCORE_FANE;
+        }
+    }
+}
+```
+
+Наконец, метод Activate находит пересечение луча и плоскости, затем использует две координаты точки пересечения для поиска плитки, внутрь которой попадает точка пересечения. Эта плитка получает вызов метода MaybeActivate:
+
+```cpp
+void CMemoryField::Activate(const CRay &ray)
+{
+    // Опираемся на соглашение, по которому
+    //  все спрайты лежат в плоскости Oxz.
+    CPlane plane({1, 0, 1}, {1, 0, 0}, {0, 0, 1});
+    SRayIntersection intersection;
+    if (!plane.Hit(ray, intersection))
+    {
+        return;
+    }
+
+    const glm::vec3 hitPoint3D = intersection.m_point;
+    const glm::vec2 hitPoint(hitPoint3D.x, hitPoint3D.z);
+
+#if ENABLE_DEBUG_MEMORY_FIELD_HITS
+    std::cerr << "Hit at point"
+              << " (" << hitPoint3D.x
+              << ", " << hitPoint3D.y
+              << ", " << hitPoint3D.z
+              << ")" << std::endl;
+    m_hits.push_back(hitPoint3D);
+#endif
+
+    for (CMemoryTile &tile : m_tiles)
+    {
+        if (tile.MaybeActivate(hitPoint))
+        {
+#if ENABLE_DEBUG_MEMORY_FIELD_HITS
+            std::cerr << "Tile activated!" << std::endl;
+#endif
+            break;
+        }
+    }
+}
+```
+
+Метод MaybeActivate у плитки проверяет не только пересечение, но и состояние плитки в данный момент времени:
+
+```cpp
+bool CMemoryTile::MaybeActivate(const glm::vec2 &point)
+{
+    if (m_animationCounter.IsActive() || !m_bounds.Contains(point))
+    {
+        return false;
+    }
+
+    if (m_state == State::FacedBack)
+    {
+        m_state = State::FacedFront;
+        m_animationCounter.Restart();
+        return true;
+    }
+    return false;
+}
+```
 
 ## HUD-интерфейс в классе CHeadUpDisplay
 
