@@ -86,7 +86,7 @@ void CWhitneyUmbrella::Tesselate(unsigned slices, unsigned stacks)
 }
 ```
 
-## Листинг twist.vert
+## Шейдер twist.vert
 
 Представленный шейдер будет использовать uniform-переменную TWIST, которая определяет коэффициент закручивания. Если TWIST равно 0, закручивание не происходит.
 
@@ -198,6 +198,32 @@ CProgramUniform CShaderProgram::FindUniform(const char *name) const
     {
         throw std::invalid_argument("Wrong shader variable name: " + std::string(name));
     }
+    return CProgramUniform(location);
+}
+```
+
+Для уменьшения количества вызовов к API OpenGL можно создать кеш расположений uniform-переменных, связанный с одной шейдерной программой. Для этого добавим поле `mutable std::map<std::string, int> m_uniformLocationCache` к классу CShaderProgram, и модифицируем метод FindUniform:
+
+```cpp
+CProgramUniform CShaderProgram::FindUniform(const std::string &name) const
+{
+    auto cacheIt = m_uniformLocationCache.find(name);
+    int location = 0;
+
+    if (cacheIt != m_uniformLocationCache.end())
+    {
+        location = cacheIt->second;
+    }
+    else
+    {
+        location = glGetUniformLocation(m_programId, name.c_str());
+        if (location == -1)
+        {
+            throw std::invalid_argument("Wrong shader variable name: " + std::string(name));
+        }
+        m_uniformLocationCache[name] = location;
+    }
+
     return CProgramUniform(location);
 }
 ```
