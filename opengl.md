@@ -50,6 +50,7 @@ permalink: /opengl/
  2. [Шахматный окрас](/opengl/lesson_14.html)
  3. [Скручивание](/opengl/lesson_15.html)
  4. [Текстуры в шейдерах](/opengl/lesson_16.html)
+ 5. [Переход на Core Profile](/opengl/lesson_17.html)
 
 Часть III будет готова к октябрю.
 
