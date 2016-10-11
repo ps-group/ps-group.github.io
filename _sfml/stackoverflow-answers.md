@@ -9,3 +9,4 @@ title: "Коллекция избранных ответов со stackoverflow"
 ## Упрощение кода
 
 - [Easiest way to convert int to string in C++](http://stackoverflow.com/questions/5590381/)
+- [Using erase-remove_if idiom](http://stackoverflow.com/questions/39019806/)
