@@ -15,7 +15,8 @@ permalink: /sfml/
 
  1. [Рефакторинг C++ кода](/sfml/1.1-refactor.html)
  2. [Аналоговые часы на SFML](/sfml/1.2-clocks.html)
- 3. [Мини-игра на SFML](/sfml/1.4-minigames.html)
+ 3. [Анимация на SFML](/sfml/1.3-animation.html)
+ 4. [Мини-игра на SFML](/sfml/1.4-minigames.html)
 
 ## Пример реализации клона Packman
 
