@@ -35,6 +35,7 @@ permalink: /sfml/
 
 ## Частые ошибки
 
+- [Коллекция избранных ответов на stackoverflow](/sfml/stackoverflow-answers.md)
 - [Проектирование собственных структур на C++](/sfml/structs-design.html)
 - [Что такое программирование по контракту](/sfml/design-by-contract.html)
 - [Грамотное применение enum](/sfml/mastering-enums.html)
