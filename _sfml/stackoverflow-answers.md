@@ -10,6 +10,10 @@ title: "Коллекция избранных ответов со stackoverflow"
 
 - [“static const” vs “#define” vs “enum”](http://stackoverflow.com/questions/1674032)
 
+## Стилевые ошибки
+
+- [Why is including “using namespace” into a header file a bad idea in C++?](http://stackoverflow.com/questions/4872373/why-is-including-using-namespace-into-a-header-file-a-bad-idea-in-c)
+
 ## Упрощение кода
 
 - [Easiest way to convert int to string in C++](http://stackoverflow.com/questions/5590381/)
