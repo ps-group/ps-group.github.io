@@ -38,6 +38,8 @@ permalink: /opengl/
  5. [UV-параметризация сферы](/opengl/lesson_11.html)
  6. [Игра "Memory Trainer 3D"](/opengl/lesson_12.html)
 
+Также доступен [F.A.Q по 2-й главе примеров](/opengl/chapter_2_faq.html)
+
 ## Часть III: программируемый конвейер
 
 Дополнительная статья:
