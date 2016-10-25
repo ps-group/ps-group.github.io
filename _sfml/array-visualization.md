@@ -98,7 +98,7 @@ void MyArray_Pop(MyArray & array)
 }
 ```
 
-## Визуализация операций над
+## Визуализация операций над массивом
 
 - управление приложением построено на [игровом паттерне Game Loop](http://gameprogrammingpatterns.com/game-loop.html)
 - для измерения промежутков времени используется [класс sf::Clock](http://www.sfml-dev.org/documentation/2.0/classsf_1_1Clock.php) (есть также [подробная статья](http://progressor-blog.ru/sfml/obrabotka-vremeni/) о его применении)
