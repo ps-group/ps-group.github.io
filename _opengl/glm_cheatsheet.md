@@ -114,4 +114,22 @@ const float roll = ...;
 const quat orientation = glm::quat_cast(glm::yawPitchRoll(yaw, pitch, roll));
 ```
 
-## Окно на полный экран
+## Пересечение луча и объектов
+
+В библиотеке GLM есть заголовок `<glm/gtx/intersect.hpp>`, который [предоставляет средства](http://glm.g-truc.net/0.9.8/api/a00200.html) для поиска пересечения между лучом и геометрическими телами:
+
+- функция intersectRayPlane определяет пересечение луча и плоскости
+- функция intersectRaySphere определяет пересечение луча и сферы
+- функция intersectRayTriangle определяет пересечение луча и треугольника
+- все функции имеют входные параметры, используемые для расчёта, и выходные параметры, такие как дистанция пересечения (от начала луча)
+- параметр rayDirection должен быть нормализованным вектором
+
+```cpp
+bool glm::intersectRayPlane(vec3 const& rayOrigin, vec3 const& rayDirection, vec3 const& planeOrigin, vec3 const& planeNormal, float &intersectionDistance);
+
+bool glm::intersectRaySphere(vec3 const& rayOrigin, vec3 const& rayDirection, vec3 const& sphereCenter, float sphereRadiusSquare, float &intersectionDistance);
+
+bool glm::intersectRaySphere(vec3 const& rayOrigin, vec3 const& rayDirection, vec3 const& sphereCenter, float sphereRadiusSquare, vec3 &intersectionPosition, vec3 &intersectionNormal);
+
+bool glm::intersectRayTriangle(vec3 const& rayOrigin, vec3 const& rayDirection, vec3 const& vert0, vec3 const& vert1, vec3 const& vert2, float &baryPosition);
+```
