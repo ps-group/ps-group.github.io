@@ -33,6 +33,10 @@ permalink: /sfml/
 
 - [Сборка примеров из репозитория](/packman/building_examples.html)
 
+## Отдельные примеры
+
+- [Визуализация операций над структурой данных](/sfml/array-visualization.html)
+
 ## Частые ошибки
 
 - [Коллекция избранных ответов на stackoverflow](/sfml/stackoverflow-answers.html)
