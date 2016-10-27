@@ -133,3 +133,64 @@ bool glm::intersectRaySphere(vec3 const& rayOrigin, vec3 const& rayDirection, ve
 
 bool glm::intersectRayTriangle(vec3 const& rayOrigin, vec3 const& rayDirection, vec3 const& vert0, vec3 const& vert1, vec3 const& vert2, float &baryPosition);
 ```
+
+## Класс CTransform3D
+
+Для удобства разделения трансформации на части было бы удобно представлять трансформацию трёхмерного объекта не в виде матрицы, а в виде структуры из нескольких составляющих, позволяющих получить матрицу:
+
+```cpp
+#pragma once
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/matrix.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+// Преобразует координаты из локальных в мировые в следующем порядке:
+//  - сначала вершины масштабируются
+//    например, единичный цилиндр превращается в диск или в трубку
+//  - затем поворачиваются
+//    т.е. тела ориентируются в пространстве
+//  - затем переносятся
+//    т.е. задаётся положение тела
+// изменив порядок, мы изменили бы значение трансформаций.
+class CTransform3D
+{
+public:
+    // Конструирует трансформацию с
+    //  - единичным масштабированием;
+    //  - нулевым вращением вокруг оси Oy;
+    //  - нулевой позицией.
+    CTransform3D();
+
+    // Преобразует исходную трансформацию в матрицу 4x4.
+    glm::mat4 ToMat4()const;
+
+    glm::vec3 m_sizeScale;
+    glm::quat m_orientation;
+    glm::vec3 m_position;
+};
+```
+
+Реализация методов данного класса относительно проста. Однако, следует учесть, что компоненты трансформации применяются в строго определённом порядке, при изменении которого компоненты потеряют свой текущий смысл и обретут какой-либо иной &mdash например, компонент поворота, применённый после компонента перемещения, перестанет быть ориентацией тела и станет поворотом вокруг центра.
+
+```cpp
+#include "libchapter4_private.h"
+#include "Transform.h"
+
+using namespace glm;
+
+CTransform3D::CTransform3D()
+    : m_sizeScale(glm::vec3(1))
+    , m_orientation(glm::angleAxis(0.f, glm::vec3(0, 1, 0)))
+{
+}
+
+mat4 CTransform3D::ToMat4() const
+{
+    const mat4 scaleMatrix = scale(mat4(), m_sizeScale);
+    const mat4 rotationMatrix = mat4_cast(m_orientation);
+    const mat4 translateMatrix = translate(mat4(), m_position);
+
+    return translateMatrix * rotationMatrix * scaleMatrix;
+}
+```
