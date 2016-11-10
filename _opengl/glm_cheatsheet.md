@@ -2,7 +2,96 @@
 title: "Шпаргалка по 3D трансформациям средствами GLM"
 ---
 
-## Повороты (без квантерионов)
+## Класс CTransform3D
+
+Для удобства разделения трансформации на части было бы удобно представлять трансформацию трёхмерного объекта не в виде матрицы, а в виде структуры из нескольких составляющих, позволяющих получить матрицу. Такое представление позволяет легко модифицировать отдельные компоненты преобразования, не задевая остальные компоненты.
+
+```cpp
+#pragma once
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/matrix.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+// Преобразует координаты из локальных в мировые в следующем порядке:
+//  - сначала вершины масштабируются
+//    например, единичный цилиндр превращается в диск или в трубку
+//  - затем поворачиваются
+//    т.е. тела ориентируются в пространстве
+//  - затем переносятся
+//    т.е. задаётся положение тела
+// изменив порядок, мы изменили бы значение трансформаций.
+class CTransform3D
+{
+public:
+    // Конструирует трансформацию с
+    //  - единичным масштабированием;
+    //  - нулевым вращением вокруг оси Oy;
+    //  - нулевой позицией.
+    CTransform3D();
+
+    // Преобразует исходную трансформацию в матрицу 4x4.
+    glm::mat4 ToMat4()const;
+
+    glm::vec3 m_sizeScale;
+    glm::quat m_orientation;
+    glm::vec3 m_position;
+};
+```
+
+Реализация методов данного класса относительно проста. Однако, следует учесть, что компоненты трансформации применяются в строго определённом порядке, при изменении которого компоненты потеряют свой текущий смысл и обретут какой-либо иной &mdash; например, компонент поворота, применённый после компонента перемещения, перестанет быть ориентацией тела и станет поворотом вокруг центра.
+
+```cpp
+#include "libchapter4_private.h"
+#include "Transform.h"
+
+using namespace glm;
+
+CTransform3D::CTransform3D()
+    : m_sizeScale(glm::vec3(1))
+    , m_orientation(glm::angleAxis(0.f, glm::vec3(0, 1, 0)))
+{
+}
+
+mat4 CTransform3D::ToMat4() const
+{
+    const mat4 scaleMatrix = scale(mat4(), m_sizeScale);
+    const mat4 rotationMatrix = mat4_cast(m_orientation);
+    const mat4 translateMatrix = translate(mat4(), m_position);
+
+    return translateMatrix * rotationMatrix * scaleMatrix;
+}
+```
+
+## Понимание матрицы поворотов
+
+Формулы вычисления произвольной матрицы поворота из угла достаточно сложны. Гораздо проще понимать матрицу поворота как объединение трёх векторов направлений: up (вверх), right (вправо) и forward (вперёд):
+
+```cpp
+[ right.x   up.x   -forward.x   0 ]
+[ right.y   up.y   -forward.y   0 ]
+[ right.z   up.z   -forward.z   0 ]
+[       0      0            0   1 ]
+```
+
+Вектора up, right, forward должны быть взаимно перпендикулярны. Если исходные вектора не перпендикулярны, это можно исправить путём повторного вычисления с помощью нормализованых векторных произведений:
+
+```cpp
+// исходные вектора up и forward, потенциально не перпендикулярные друг другу
+//  правильным считается вектор forward, и up не совпадает с forward
+vec4 up = ...;
+vec4 forward = ...;
+
+// вычисляем right как перпендикуляр к плоскости, заданной up и forward
+vec4 right = glm::normalize(glm::cross(up, forward));
+
+// вычисляем повторно вектор up как перпендикуляр к плоскости, заданной forward и right
+up = glm::normalize(glm::cross(forward, right));
+```
+
+Подобное преобразование производит [glm::lookAt](http://stackoverflow.com/questions/21830340/understanding-glmlookat), однако, lookAt для установки преобразования в систему координат камеры устанавливает не только вращение, но и перенос.
+
+## Повороты (без кватернионов)
 
 Заголовок `<glm/gtx/rotate_vector.hpp>` [предоставляет следующее API](http://glm.g-truc.net/0.9.8/api/a00224.html):
 
@@ -26,7 +115,7 @@ vec3 glm::rotateY(vec3 const &v, float angle);
 vec3 glm::rotateZ(vec3 const &v, float angle);
 ```
 
-## Переход к квантерионам и обратно
+## Переход к кватернионам и обратно
 
 Заголовок <glm/gtc/quaternion.hpp> [предоставляет следующее API](http://glm.g-truc.net/0.9.8/api/a00172.html):
 
@@ -36,7 +125,7 @@ vec3 glm::rotateZ(vec3 const &v, float angle);
 quat glm::angleAxis(float angle, vec3 const& axis);
 ```
 
-- с помощью оператора умножения можно применить к вектору вращение, хранимое в квантерионе:
+- с помощью оператора умножения можно применить к вектору вращение, хранимое в кватернионе:
 
 ```cpp
 vec3 unrotated = ...;
@@ -134,63 +223,32 @@ bool glm::intersectRaySphere(vec3 const& rayOrigin, vec3 const& rayDirection, ve
 bool glm::intersectRayTriangle(vec3 const& rayOrigin, vec3 const& rayDirection, vec3 const& vert0, vec3 const& vert1, vec3 const& vert2, float &baryPosition);
 ```
 
-## Класс CTransform3D
+## Декомпозиция матрицы 4x4 на составляющие
 
-Для удобства разделения трансформации на части было бы удобно представлять трансформацию трёхмерного объекта не в виде матрицы, а в виде структуры из нескольких составляющих, позволяющих получить матрицу:
+В GLM есть расширение, позволяющее провести разделение матрицы на базовые афинные и неафинные преобразования. Подробнее об этом рассказано:
+
+- [в вопросе "glm - Decompose mat4 into translation and rotation?" на stackoverflow](http://stackoverflow.com/questions/17918033/)
+- [в документации GLM (glm.g-truc.net)](https://glm.g-truc.net/0.9.6/api/a00204.html)
+
+Расширение подключается заголовком `#include <glm/gtx/matrix_decompose.hpp>`. Использовать его можно следующим образом:
 
 ```cpp
-#pragma once
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/matrix.hpp>
-#include <glm/gtc/quaternion.hpp>
+// входная матрица преобразования
+glm::mat4 transformation;
 
-// Преобразует координаты из локальных в мировые в следующем порядке:
-//  - сначала вершины масштабируются
-//    например, единичный цилиндр превращается в диск или в трубку
-//  - затем поворачиваются
-//    т.е. тела ориентируются в пространстве
-//  - затем переносятся
-//    т.е. задаётся положение тела
-// изменив порядок, мы изменили бы значение трансформаций.
-class CTransform3D
-{
-public:
-    // Конструирует трансформацию с
-    //  - единичным масштабированием;
-    //  - нулевым вращением вокруг оси Oy;
-    //  - нулевой позицией.
-    CTransform3D();
+// выходные значения
+glm::vec3 sizeScale; // масштабирование, задающее размер
+glm::quat orientation; // ориентация тела
+glm::vec3 position; // перемещение тела
+glm::vec3 skew; // афинная трансформация сдвига
+glm::vec4 perspective; // неафинное перспективное искажение
 
-    // Преобразует исходную трансформацию в матрицу 4x4.
-    glm::mat4 ToMat4()const;
-
-    glm::vec3 m_sizeScale;
-    glm::quat m_orientation;
-    glm::vec3 m_position;
-};
+// вызов функции декомпозиции
+glm::decompose(transformation, sizeScale, orientation, position, skew, perspective);
 ```
 
-Реализация методов данного класса относительно проста. Однако, следует учесть, что компоненты трансформации применяются в строго определённом порядке, при изменении которого компоненты потеряют свой текущий смысл и обретут какой-либо иной &mdash; например, компонент поворота, применённый после компонента перемещения, перестанет быть ориентацией тела и станет поворотом вокруг центра.
+В некоторых версиях GLM в выходной параметр rotation записывается сопряжённый кватернион ориентации тела вместо ожидаемого значения. Исправить эту проблему можно получением кватерниона, сопряжённого сопряжённому, что даст нам исходный кватернион.
 
 ```cpp
-#include "libchapter4_private.h"
-#include "Transform.h"
-
-using namespace glm;
-
-CTransform3D::CTransform3D()
-    : m_sizeScale(glm::vec3(1))
-    , m_orientation(glm::angleAxis(0.f, glm::vec3(0, 1, 0)))
-{
-}
-
-mat4 CTransform3D::ToMat4() const
-{
-    const mat4 scaleMatrix = scale(mat4(), m_sizeScale);
-    const mat4 rotationMatrix = mat4_cast(m_orientation);
-    const mat4 translateMatrix = translate(mat4(), m_position);
-
-    return translateMatrix * rotationMatrix * scaleMatrix;
-}
+rotation = glm::conjugate(rotation);
 ```
