@@ -36,6 +36,7 @@ permalink: /sfml/
 ## Отдельные примеры
 
 - [Визуализация операций над структурой данных](/sfml/array-visualization.html)
+- [Явное ожидание завершения кадра](/sfml/chronometer.html)
 
 ## Частые ошибки
 

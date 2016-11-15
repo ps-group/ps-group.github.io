@@ -12,6 +12,10 @@ permalink: /opengl/
 
 ## Часть I: старый добрый OpenGL 1.x
 
+Дополнительные статьи:
+
+- [F.A.Q по 1-й главе примеров](/opengl/chapter_1_faq.html)
+
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_1](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_1)
 
  1. [OpenGL и SDL2](/opengl/lesson_1.html)
@@ -21,13 +25,12 @@ permalink: /opengl/
  5. [Взрыв на цветочной фабрике](/opengl/lesson_5.html)
  6. [Законы Кеплера](/opengl/lesson_6.html)
 
-Также доступен [F.A.Q по 1-й главе примеров](/opengl/chapter_1_faq.html)
-
 ## Часть II: рисуем тела
 
-Дополнительная статья:
+Дополнительные статьи:
 
 - [Используем Apitrace для отладки OpenGL](/opengl/apitrace.html)
+- [F.A.Q по 2-й главе примеров](/opengl/chapter_2_faq.html)
 
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_2](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_2)
 
@@ -38,13 +41,12 @@ permalink: /opengl/
  5. [UV-параметризация сферы](/opengl/lesson_11.html)
  6. [Игра "Memory Trainer 3D"](/opengl/lesson_12.html)
 
-Также доступен [F.A.Q по 2-й главе примеров](/opengl/chapter_2_faq.html)
-
 ## Часть III: программируемый конвейер
 
-Дополнительная статья:
+Дополнительные статьи:
 
 - [Как получить OpenGL 3.2](/opengl/opengl_3_2.html)
+- [F.A.Q. по 3-й главе](/opengl/chapter_3_faq.html)
 
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_3](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_3)
 
@@ -62,4 +64,6 @@ permalink: /opengl/
 
 - [Шпаргалка по GLM](/opengl/glm_cheatsheet.html)
 
-Часть IV будет готова к ноябрю.
+Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_4](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_4)
+
+ 1. [Системы частиц и Component-Entity-System](/opengl/lesson_19.html)

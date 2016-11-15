@@ -251,8 +251,7 @@ void SetupProfileAttributes(ContextProfile profile, ContextMode mode)
 
 Теперь в конце метода Show мы можем добавить вызов вспомогательной функции, которая с помощью функций [glDebugMessageCallback](https://www.opengl.org/sdk/docs/man/html/glDebugMessageCallback.xhtml) и [glDebugMessageControl](https://www.opengl.org/sdk/docs/man/html/glDebugMessageControl.xhtml) настроит обработку сообщений об ошибке, созданных видеодрайвером.
 
-```
-
+```cpp
 void CWindow::Impl::Show(const std::string &title, const glm::ivec2 &size)
 {
     // ...
