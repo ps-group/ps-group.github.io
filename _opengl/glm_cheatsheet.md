@@ -252,3 +252,47 @@ glm::decompose(transformation, sizeScale, orientation, position, skew, perspecti
 ```cpp
 rotation = glm::conjugate(rotation);
 ```
+
+## Линейная интерполяция
+
+Линейная интерполяция двух значений вычисляет новое значение как среднее между двумя с заданными значениями с применением весового коэффициента. Формула для обыкновенных чисел очень проста, и она легко масштабируется на векторные величины:
+
+```cpp
+float lerp(float a, float b, float weight)
+{
+    // Ключевой момент: сумма коэффициентов `weight` и `1 - weight` равна 1.
+    return a * weight + b * (1 - weight);
+}
+```
+
+Представьте, как зелёная точка движется между красной и синей; математически это движение описывается изменением весового коэффициента от 0 до 1:
+
+![Иллюстрация](figures/visualisation_of_linear_interpretation.png)
+
+Функция glm::lerp выполняет линейную интерполяцию. Она перегружена для скаляров, для векторов из 2-4 значений и для кватернионов.
+
+```cpp
+
+// для перегруженной glm::lerp, принимающей glm::vec3
+#include <glm/gtx/compatibility.hpp>
+
+using glm::vec2;
+using glm::vec3;
+using glm::vec4;
+
+int main()
+{
+    {
+        vec2 a = { 1, 3 };
+        vec2 b = { -3, 5 };
+        vec2 median = glm::lerp(a, b, 0.5f);
+        assert(glm::distance(median, {-1, 4}) < 0.001f);
+    }
+    {
+        vec3 a = { 1, 3 };
+        vec3 b = { -3, 5 };
+        vec3 median = glm::lerp(a, b, 0.5f);
+        assert(glm::distance(median, {-1, 4}) < 0.001f);
+    }
+}
+```
