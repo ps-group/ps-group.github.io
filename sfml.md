@@ -44,3 +44,5 @@ permalink: /sfml/
 - [Проектирование собственных структур на C++](/sfml/structs-design.html)
 - [Что такое программирование по контракту](/sfml/design-by-contract.html)
 - [Грамотное применение enum](/sfml/mastering-enums.html)
+- [Явное преобразование типов в языке C++](/sfml/explicit-cast.html)
+- [F.A.Q. по Visual Studio 2015](/sfml/vs2015-faq.html)
