@@ -60,10 +60,15 @@ permalink: /opengl/
 
 ## Часть IV: сырые данные
 
-Дополнительная статья:
+Дополнительные статьи:
 
 - [Шпаргалка по GLM](/opengl/glm_cheatsheet.html)
+- [Паттерн проектирования игр Component-Entity-System](/opengl/component-entity-system-anax.md)
+- [Форматы 3D-моделей и библиотека Assimp](/opengl/assimp.html)
 
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_4](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_4)
 
  1. [Системы частиц и Component-Entity-System](/opengl/lesson_19.html)
+ 2. [Загрузка 3D моделей из файла](/opengl/lesson_20.html)
+ 3. [Симуляция солнечной системы в 3D](/opengl/lesson_21.html)
+ 4. [Скелетная анимация загруженной из файла 3D модели](/opengl/lesson_22.html)
