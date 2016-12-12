@@ -31,6 +31,11 @@ permalink: /sfml/
 
 ## Часть II: полируем детали клона Packman
 
+Мы реализовали ключевые возможности, но игра всё ещё лишена теплоты. В следующих примерах мы будем наполнять наш клон Packman'а деталями из оригинала. Ключевым источником вдохновения стала статья [Алгоритм поведения привидений в игре Pac-Man](https://habrahabr.ru/post/109406/), которая является переводом статьи [Understanding Pac-Man Ghost Behavior](http://gameinternals.com/post/2072558330/understanding-pac-man-ghost-behavior).
+
+- [Реалистичный персонаж](/packman/7.html)
+- [Реалистичные призраки](/packman/8.html)
+
 ## Отдельные примеры
 
 - [Визуализация операций над структурой данных](/sfml/array-visualization.html)

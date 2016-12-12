@@ -24,3 +24,10 @@ title: 'Скелетная анимация загруженной из файл
 - 3D-вектор масштабирования, задающего размер
 - Кватернион поворота, задающего ориентацию
 - 3D-вектор перемещения, задающего положение кости в пространстве.
+
+## Ссылки
+
+- [Статья "Doing animations in OpenGL" (blogspot.com)](http://ephenationopengl.blogspot.com/2012/06/doing-animations-in-opengl.html)
+- [Вопрос "Skeletal animation with Assimp and glm" (gamedev.stackexchange.com)](http://gamedev.stackexchange.com/questions/67664/skeletal-animation-with-assimp-and-glm/67670)
+- [Tutorial 17 : Rotations (opengl-tutorial.org)](http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-17-quaternions/)
+- [Статья "Основы скелетной анимации" (steps3d.narod.ru)](http://steps3d.narod.ru/tutorials/skeletal-animation-tutorial.html)
