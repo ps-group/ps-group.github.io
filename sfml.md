@@ -24,7 +24,7 @@ permalink: /sfml/
 
 - [99 бутылок](/sfml/cpp_99bottles.html)
 - [Игра "Змейка"](/sfml/cpp_snake.html)
-- [Волновой поиск](/sfml/cpp-wave-search.md)
+- [Волновой поиск](/sfml/cpp-wave-search.html)
 
 ## Часть I: минимальный клон игры Packman
 
