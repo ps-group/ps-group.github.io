@@ -48,6 +48,7 @@ permalink: /sfml/
 
 - [Визуализация операций над структурой данных](/sfml/array-visualization.html)
 - [Явное ожидание завершения кадра](/sfml/chronometer.html)
+- [Используем Tiled Map Editor](/sfml/sfml_tiled.html)
 
 ## Частые ошибки
 
