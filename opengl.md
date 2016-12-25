@@ -65,6 +65,7 @@ permalink: /opengl/
 - [Шпаргалка по GLM](/opengl/glm_cheatsheet.html)
 - [Паттерн проектирования игр Component-Entity-System](/opengl/component-entity-system-anax.html)
 - [Форматы 3D-моделей и библиотека Assimp](/opengl/assimp.html)
+- [Коллекция сниппетов с сайта steps3d.narod.ru](http://steps3d.narod.ru/snippets.html)
 
 Примеры ко всем статьям ищите в репозитории примеров в [директории chapter_4](https://github.com/PS-Group/cg_course_examples/blob/master/chapter_4)
 

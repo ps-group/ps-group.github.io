@@ -50,8 +50,9 @@ permalink: /sfml/
 - [Явное ожидание завершения кадра](/sfml/chronometer.html)
 - [Используем Tiled Map Editor](/sfml/sfml_tiled.html)
 
-## Частые ошибки
+## Общие статьи
 
+- [Как спроектировать мир и объекты в игре](/sfml/world_interaction.html)
 - [Коллекция избранных ответов на stackoverflow](/sfml/stackoverflow-answers.html)
 - [Проектирование собственных структур на C++](/sfml/structs-design.html)
 - [Что такое программирование по контракту](/sfml/design-by-contract.html)
