@@ -316,9 +316,9 @@ Expression *ParseAtom(std::string &str)
 
 В нашем парсере происходит множественное копирование строк в процессе разбора. Этого можно было бы избежать, если каждая рекурсивно вызываемая функция принимала бы [string_view &mdash; невладеющую ссылку на строку](http://htrd.su/wiki/zhurnal/2016/04/29/std_string_view_i_vremennye_obekty). Реализацию string_view можно раздобыть несколькими способами:
 
- 1) Найти компилятор и IDE с поддержкой C++17, в котором `<string_view>` и объявленные в этом заголовке классы стали частью стандартной библиотеки
- 2) Взять тривиальную реализацию на Github, состоящую из одного заголовка: [github.com/sergey-shambir/string_view](https://github.com/sergey-shambir/string_view/blob/master/string_view.h)
- 3) Получить Boost версии 1.61 или выше, в котором есть `<boost/utility/string_view.hpp>`
+ 1. Найти компилятор и IDE с поддержкой C++17, в котором `<string_view>` и объявленные в этом заголовке классы стали частью стандартной библиотеки
+ 2. Взять тривиальную реализацию на Github, состоящую из одного заголовка: [github.com/sergey-shambir/string_view](https://github.com/sergey-shambir/string_view/blob/master/string_view.h)
+ 3. Получить Boost версии 1.61 или выше, в котором есть `<boost/utility/string_view.hpp>`
 
 По сути string_view &mdash; это удобная замена такой вот структуры для чтения строки слева направо:
 

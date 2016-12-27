@@ -55,7 +55,7 @@ gs "-sDEVICE=pngalpha" "-sOutputFile=page-%d.png" -dBATCH -dNOPAUSE "$@"
 Использовать `ps_to_png.sh` из оболочки командной строки можно так:
 
 ```bash
-$ ./ps_to_png.sh rect.ps 
+$ ./ps_to_png.sh rect.ps
 GPL Ghostscript 9.18 (2015-10-05)
 Copyright (C) 2015 Artifex Software, Inc.  All rights reserved.
 This software comes with NO WARRANTY: see the file PUBLIC for details.
@@ -103,7 +103,7 @@ showpage
 
 ```ps
 %!PS-Adobe-1.0
-% По умолчанию, постскрипт использует единицу измерения 1 пункт=1/72 дюйма, 
+% По умолчанию, постскрипт использует единицу измерения 1 пункт=1/72 дюйма,
 % а нам нравятся миллиметры.
 72 25.4 div           % 1 мм = 72/25.4 пунктов
 dup                   % дублировать значение на вершине стека
@@ -121,7 +121,7 @@ setfont               % установить выбранный шрифт
     (Wikipedia) show    % написать слово текущим шрифтом
   grestore              % вернуть преобразование координат
 } for                 % конец цикла for
- 
+
 showpage              % вывести страницу
 ```
 
