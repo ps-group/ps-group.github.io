@@ -111,11 +111,11 @@ a {
  */
 blockquote {
     color: $grey-color;
-    border-left: 4px solid $grey-color-light;
+    border-left: 4px solid $grey-color;
     padding-left: $spacing-unit / 2;
-    font-size: 18px;
-    letter-spacing: -1px;
+    font-size: $base-font-size;
     font-style: italic;
+    letter-spacing: -1px;
 
     > :last-child {
         margin-bottom: 0;
