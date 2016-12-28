@@ -42,3 +42,9 @@ void main(void)
 ```
 
 ![Скриншот](figures/lambert-red-colored.png)
+
+## SDL2_ttf.dll выдаёт ошибку на Windows в Debug-конфигурации
+
+Проблема описана в сети, например, в вопросе [The procedure entry point interlockedcompareexchange@12 could not be located in the dynamic link library SDL2_ttf.dll](http://stackoverflow.com/questions/38639337/). Ошибка, очевидно, находится в недрах библиотек SDL2_ttf и libfreetype. Есть простое решение, хотя и странное:
+
+- Если DLL-библиотеки `SDL2_ttf` и `libfreetype` и `zlib` лежат в том же каталоге, где лежит `*.exe`, то проблемы не возникает. Настройте процесс сборки или скопируйте DLL вручную.

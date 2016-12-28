@@ -18,27 +18,41 @@ permalink: /sfml/
  3. [Анимация на SFML](/sfml/1.3-animation.html)
  4. [Мини-игра на SFML](/sfml/1.4-minigames.html)
 
-## Пример реализации клона Packman
+## Дополнительные задания
+
+Дополнительные задания выдаются преподавателем отдельно.
+
+- [99 бутылок](/sfml/cpp_99bottles.html)
+- [Игра "Змейка"](/sfml/cpp_snake.html)
+- [Волновой поиск](/sfml/cpp-wave-search.html)
+
+## Часть I: минимальный клон игры Packman
 
 В примере новые возможности добавляются отдельными слоями. Каждый пример сопровождается статьей и имеет свой каталог [в репозитории sfml-packman](https://github.com/ps-group/sfml-packman).
 
-- [Создаём проект](/packman/1.html)
-- [Управление персонажем](/packman/2.html)
-- [Стены и проходы лабиринта](/packman/3.html)
-- [Обработка столкновений](/packman/4.html)
-- [Призраки](/packman/5.html)
-- [Печенье](/packman/6.html)
+- [Создаём проект, окно и кружок](/packman/1.html)
+- [Управляем персонажем](/packman/2.html)
+- [Рисуем стены и проходы лабиринта](/packman/3.html)
+- [Обрабатываем столкновения со стенами](/packman/4.html)
+- [Добавляем призраков и возможность поражения](/packman/5.html)
+- [Добавляем печенье и возможность победы](/packman/6.html)
 
-При желании можно собрать и сами примеры к статьям:
+## Часть II: полируем детали клона Packman
 
-- [Сборка примеров из репозитория](/packman/building_examples.html)
+Мы реализовали ключевые возможности, но игра всё ещё лишена теплоты. В следующих примерах мы будем наполнять наш клон Packman'а деталями из оригинала. Ключевым источником вдохновения стала статья [Алгоритм поведения привидений в игре Pac-Man](https://habrahabr.ru/post/109406/), которая является переводом статьи [Understanding Pac-Man Ghost Behavior](http://gameinternals.com/post/2072558330/understanding-pac-man-ghost-behavior).
+
+- [Реалистичный персонаж](/packman/7.html)
+- [Реалистичные призраки](/packman/8.html)
 
 ## Отдельные примеры
 
 - [Визуализация операций над структурой данных](/sfml/array-visualization.html)
+- [Явное ожидание завершения кадра](/sfml/chronometer.html)
+- [Используем Tiled Map Editor](/sfml/sfml_tiled.html)
 
-## Частые ошибки
+## Общие статьи
 
+- [Как спроектировать мир и объекты в игре](/sfml/world_interaction.html)
 - [Коллекция избранных ответов на stackoverflow](/sfml/stackoverflow-answers.html)
 - [Проектирование собственных структур на C++](/sfml/structs-design.html)
 - [Что такое программирование по контракту](/sfml/design-by-contract.html)

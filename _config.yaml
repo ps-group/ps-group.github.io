@@ -5,7 +5,6 @@ url: 'http://ps-group.github.io'
 github_username: ps-group
 markdown: kramdown
 highlighter: rouge
-#theme: minima
 
 collections:
   opengl:
@@ -17,6 +16,9 @@ collections:
   packman:
     output: true
     permalink: '/packman/:path'
+  compilers:
+    output: true
+    permalink: '/compilers/:path'
 defaults:
     - scope:
         type: opengl
@@ -30,3 +32,7 @@ defaults:
         type: packman
       values:
         layout: sfml
+    - scope:
+        type: compilers
+      values:
+        layout: compilers
