@@ -1,5 +1,5 @@
 ---
-title: "Web packman 4 "
+title: 'Противники и с чем их "едят"'
 ---
 
 ## Призраки и главный герой
@@ -56,3 +56,7 @@ this.changeDirection = function()
         }
     };
 ```
+
+Результат:
+
+![Скриншот](img\web-packman\web_packman-screenshot-4.png)

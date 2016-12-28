@@ -1,9 +1,11 @@
 ---
-title: "Web packman 1"
+title: "Отрисовка круга"
 ---
 
 ## Отрисовка круга
-[Рисование на canvas](https://habrahabr.ru/post/111308/)
+> [Рисование на canvas](https://habrahabr.ru/post/111308/)
+
+![Скриншот](img\web-packman\web_packman-screenshot-1.png)
 
 ## Подключение внешних файлов
 
@@ -20,9 +22,9 @@ var GAME_FIELD_HEIGHT = 400;
 var GAME_FIELD_ID = "gameField";
 ```
 
- По скольку в js нет констант, разработчики договорились, что переменные записанные так: THIS_IS_CONSTANT считаются константами, то есть такой код
+По скольку в js нет констант, разработчики договорились, что переменные записанные так: THIS_IS_CONSTANT считаются константами, то есть такой код
 
- ```js
+```js
 GAME_FIELD_WIDTH = 2;
 ```
 

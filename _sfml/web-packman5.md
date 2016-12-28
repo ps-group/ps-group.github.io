@@ -1,5 +1,5 @@
 ---
-title: "Web packman 5 "
+title: "Очки и особенности js"
 ---
 
 ## Особенности разработки на js
@@ -27,3 +27,6 @@ this._updatePoints = function(state)
     }
 };
 ````
+Результат:
+
+![Скриншот](img\web-packman\web_packman-screenshot-5.png)
