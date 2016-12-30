@@ -13,16 +13,24 @@ permalink: /compilers/
 - [Компилятор процедурного языка](/compilers/project_compiler.html)
 - [Интерпретатор языка PostScript для 2D графики](/compilers/project_postscript.html)
 
+## Обзорные статьи
+
+- [Книги о разработке компиляторов?](/compilers/compiler_books.html)
+- [А что такое Compiler Driver?](/compilers/what_is_driver.html)
+- [А что такое Compiler Frontend?](/compilers/what_is_frontend.html)
+- [А что такое Compiler Backend?](/compilers/what_is_backend.html)
+
 ## Frontend компилятора, основы
 
-- [А что такое Compiler Frontend?](/compilers/what_is_frontend.html)
 - [Калькулятор на основе рекурсивного спуска](/compilers/simple_recursive_parser.html)
+- [Грамматики](/compilers/grammars.html)
 
 ## Backend, основы
 
-- [А что такое Compiler Backend?](/compilers/what_is_backend.html)
 - [FFI - механизм интеграции между языками программирования](/compilers/backend_ffi.html)
-- [Стековые и регистровые машины](stack_and_register.html)
+- [Стековые и регистровые машины](/compilers/stack_and_register.html)
+- [Исследуем работу компилятора C/C++](/compilers/c_in_depth.html)
+- [Автоматизируем вызов graphviz из командной строки](/compilers/driver_popen.html)
 
 ## Frontend, продвинутый уровень
 

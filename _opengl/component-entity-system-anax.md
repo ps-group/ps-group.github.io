@@ -196,8 +196,8 @@ struct CMovementSystem : anax::System<anax::Requires<CPositionComponent, CDirect
     {
         auto entities = getEntities();
         for (auto entity : entities) {
-            Position_Anax& position = entity.getComponent<Position_Anax>();
-            Direction_Anax& direction = entity.getComponent<CDirectionComponent>();
+            CPositionComponent& position = entity.getComponent<CPositionComponent>();
+            CDirectionComponent& direction = entity.getComponent<CDirectionComponent>();
             position.x += direction.x * dt;
             position.y += direction.y * dt;
         }
