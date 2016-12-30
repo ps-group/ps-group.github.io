@@ -24,6 +24,7 @@ permalink: /compilers/
 
 - [Калькулятор на основе рекурсивного спуска](/compilers/simple_recursive_parser.html)
 - [Грамматики](/compilers/grammars.html)
+- [Abstract Syntax Tree](/compilers/ast.html)
 
 ## Backend, основы
 
