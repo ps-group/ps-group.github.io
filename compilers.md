@@ -26,7 +26,7 @@ permalink: /compilers/
 - [Грамматики](/compilers/grammars.html)
 - [Калькулятор на основе рекурсивного спуска](/compilers/simple_recursive_parser.html)
 - [Abstract Syntax Tree](/compilers/ast.html)
-- [Восходящий разбор по принципу сдвига и свёртки (shift-recude)](/compilers/shift_reduce.html)
+- [Восходящий разбор по принципу сдвига и свёртки (shift-reduce)](/compilers/shift_reduce.html)
 - [Полезные утилиты из STL и Boost для фронтенда](/compilers/frontend_utils.html)
 
 ## Backend, основы
