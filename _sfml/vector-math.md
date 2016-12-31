@@ -88,6 +88,6 @@ sf::Vector2f Math::Cartesian(float radius, float angle)
 - функция ```float PolarAngle(sf::Vector2f vec)```, которая превращает вектор направления в угол в градусах (или радианах).
 
 ### Читать далее
-- [контракты функций](design-by-contract.md)
+- [контракты функций](design-by-contract.html)
 - [линейная алгебра для программистов (habrahabr.ru)](http://habrahabr.ru/post/131931/)
 - [механизм перегрузки функций (cplusplus.com)](http://www.cplusplus.com/doc/tutorial/functions2/)

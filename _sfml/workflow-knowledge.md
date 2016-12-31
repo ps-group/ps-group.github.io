@@ -49,6 +49,6 @@ title: Процесс разработки в рамках курса
 
 Полезные материалы:
 
-- [Стиль кодирования в рамках курса](cpp-style-sfml.md)
+- [Стиль кодирования в рамках курса](cpp-style-sfml.html)
 - [Русскоязычный сайт о рефакторинге: refactoring.guru](https://refactoring.guru/ru)
 - [Англоязычный сайт по книге о рефакторинге: sourcemaking.com](https://sourcemaking.com/refactoring)
