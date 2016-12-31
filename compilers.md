@@ -31,9 +31,9 @@ permalink: /compilers/
 
 ## Backend, основы
 
-- [FFI - механизм интеграции между языками программирования](/compilers/backend_ffi.html)
 - [Стековые и регистровые машины](/compilers/stack_and_register.html)
 - [Исследуем работу компилятора C/C++](/compilers/c_in_depth.html)
+- [FFI - механизм интеграции между языками программирования](/compilers/backend_ffi.html)
 - [Автоматизируем вызов graphviz из командной строки](/compilers/driver_popen.html)
 
 ## Frontend, продвинутый уровень
