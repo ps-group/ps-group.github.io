@@ -4,10 +4,12 @@
 @charset "utf-8";
 
 // Our variables
-$base-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$base-font-family: "PT Serif", Arial, sans-serif;
+$code-font-family: "Consolas", "Lucida Console", monospace;
 $base-font-size:   21px;
 $base-font-weight: 400;
 $small-font-size:  18px;
+$code-block-font-size: 15px;
 $base-line-height: 1.5;
 
 $spacing-unit:     30px;
@@ -15,6 +17,8 @@ $spacing-unit:     30px;
 $text-color:       #000;
 $background-color: #fefefe;
 $brand-color:      #2a7ae2;
+$code-background-color: rgb(242, 248, 255); /*#f4f8fb;*/
+$code-border-color: rgb(108, 108, 108);
 
 $grey-color:       #323232;
 $grey-color-light: lighten($grey-color, 40%);
@@ -30,8 +34,13 @@ $on-laptop:        960px;
 pre.highlight code
 {
     /*font-family: Consolas,Lucida Console,Menlo,Monaco,monospace;*/
-    font-family: "Droid Sans Mono", "Lucida Console", monospace;
-    background: #f0f4f8 !important;
+    font-family: $code-font-family;
+    background: $code-background-color !important;
+}
+code.highlighter-rouge
+{
+    font-size: $small-font-size;
+    font-family: $code-font-family;
 }
 .page-content
 {
@@ -53,8 +62,8 @@ pre.highlight code
 }
 .highlighter-rouge pre.highlight
 {
-    border: 1px solid $grey-color;
-    background: #f0f4f8 !important;
+    border: 1px solid $code-border-color;
+    background: $code-background-color !important;
 }
 // CUSTOM OVERRIDES END
 
