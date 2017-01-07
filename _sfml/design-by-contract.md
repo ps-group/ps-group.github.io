@@ -18,15 +18,21 @@ struct Math
     static int Random(int a, int b);
 }
 ```
-- GameMath.cpp
+
 ```cpp
+// файл GameMath.cpp
+#include "GameMath.h"
+
 int Math::Random(int a, int b)
 {
     return a + rand() % (a - b);
 }
 ```
-- код, использующий Math
+
 ```cpp
+// файл, использующий структуру Math
+#include "GameMath.h"
+
 void foo()
 {
     const int MIN_SPEED = 1;
