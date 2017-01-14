@@ -1,14 +1,14 @@
 ---
-title: Используем Apitrace для отладки OpenGL
+title: Отладка OpenGL API
+preview: figures/apitrace-replay.png
+subtitle: Apitrace — это ПО с открытым исходным кодом, позволяющее отладить программу, использующую OpenGL или DirectX. Утилита незаменима в поиске причин багов с текстурами и шейдерами.
 ---
 
-[Apitrace](http://apitrace.github.io/#about) &mdash; пакет программ с открытым исходным кодом, позволяющий отлаживать работу с OpenGL и DirectX. Ссылки:
+Ссылки:
 
 - [Страница apitrace на github.io](http://apitrace.github.io/#about)
 - [Сборки Apitrace для Windows](https://people.freedesktop.org/~jrfonseca/apitrace/) (выбирайте сборку через MSVC, а не MinGW)
 - для Ubuntu можно собрать apitrace из исходного кода или найти пакет в Ubuntu PPA
-
-Утилита крайне полезна для отладки проблем с текстурами или шейдерами.
 
 ## Как использовать QApitrace
 

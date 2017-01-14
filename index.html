@@ -2,6 +2,40 @@
 layout: default
 ---
 
+<!--
+Свойства в Liquid у объекта page in site.pages:
+ - layout: String, e.g. 'page'
+ - title: String
+ - permalink: String, e.g. '/compilers'
+ - content: String (large text)
+ - dir: String, e.g. '/compilers'
+ - name: String, e.g. 'compilers.md'
+ - path: String, e.g. 'compilers.md'
+ - url: String, e.g. '/compilers'
+ -->
+
+<!--
+ Свойства у объекта post in site.opengl, например
+ - path: String, e.g. '_opengl/apitrace.md'
+ - id: String, e.g. /opengl/apitrace
+ - output
+ - content
+ - relative_path
+ - url
+ - collection
+ - excerpt
+ - previous
+ - next
+ - draft
+ - categories: StringList, empty by default
+ - layout: String, e.g. opengl
+ - title: String, e.g. 'Используем Apitrace для отладки OpenGL'
+ - slug
+ - ext
+ - tags: StringList, empty by default
+ - date: String, by default it's site build date
+-->
+
 <div class="home">
 
   <h1 class="post-heading">Разделы сайта</h1>
@@ -9,7 +43,6 @@ layout: default
     {% for page in site.pages %}
     {% if page.layout == 'page' %}
       <li>
-        <span class="post-meta">{{ page.date | date: "%b %-d, %Y" }}</span>
         <h5>
           <a class="post-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title | escape }}</a>
         </h5>
@@ -17,5 +50,19 @@ layout: default
     {% endif %}
     {% endfor %}
   </ul>
-
+  <h1 class="post-heading">Все объекты site.opengl<h1>
+      {% for post in site.opengl %}
+        <div class="post-box">
+          {% if post.preview %}
+          <div class="post-preview">
+            <img src="/{{ post.collection }}/{{ post.preview }}" />
+          </div>
+          {% endif %}
+          <div class="post-description">
+            <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title | escape }}</a>
+            <span class="post-subtitle">{{ post.subtitle | escape }}</span>
+          </div>
+        </div>
+      {% endfor %}
+  </h1>
 </div>

@@ -21,7 +21,7 @@ $code-background-color: rgb(242, 248, 255); /*#f4f8fb;*/
 $code-border-color: rgb(108, 108, 108);
 
 $grey-color:       #323232;
-$grey-color-light: lighten($grey-color, 40%);
+$grey-color-light: lighten($grey-color, 25%);
 $grey-color-dark:  darken($grey-color, 25%);
 
 // Width of the content area
@@ -66,6 +66,57 @@ code.highlighter-rouge
     background: $code-background-color !important;
 }
 // CUSTOM OVERRIDES END
+
+// CUSTOM POST PREVIEW BOX
+$post-preview-width: 120px;
+$post-description-width: $content-width - $post-preview-width - 20px;
+$post-box-outline-color: #7080b0;
+$post-box-fill-color: #f8f8f8;
+
+.post-box
+{
+    display: block;
+    width: $content-width;
+    height: auto;
+    border: 1px solid $post-box-outline-color;
+    padding: 4px;
+    background-color: $post-box-fill-color;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+.post-box:first-child
+{
+    margin-top: 0;
+}
+.post-box .post-preview
+{
+    display: inline-block;
+    width: $post-preview-width;
+    height: auto;
+}
+.post-box .post-preview img
+{
+    width: $post-preview-width;
+    height: auto;
+}
+.post-box .post-description
+{
+    vertical-align: top;
+    display: inline-block;
+    width: $post-description-width;
+}
+.post-box .post-description .post-link
+{
+    font-size: $base-font-size;
+    display: block;
+}
+.post-box .post-description .post-subtitle
+{
+    color: $grey-color;
+    font-size: $small-font-size;
+    display: block;
+}
+// END CUSTOM POST PREVIEW BOX
 
 // CUSTOM TABLE OF CONTENTS
 .table-of-contents
