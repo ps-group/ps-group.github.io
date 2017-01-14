@@ -1,7 +1,7 @@
 ---
 title: 'Паттерн проектирования игр Component-Entity-System'
 preview: figures/gameloop_chart.png
-subtitle: Component-Entity-System — это гибкий шаблон, призванный навести порядок в большой кодовой базе движка игры. Он продолжает идею Game Loop, и похож на шаблон Model-View-Controller, популярного среди разработчиков GUI-приложений.
+subtitle: Component-Entity-System — это гибкий шаблон, призванный навести порядок в большой кодовой базе движка игры. Он продолжает идею Game Loop, и похож на шаблон Model-View-Controller.
 ---
 
 ![Иллюстрация](figures/gameloop_chart.png)

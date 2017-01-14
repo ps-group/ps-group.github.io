@@ -50,19 +50,4 @@ layout: default
     {% endif %}
     {% endfor %}
   </ul>
-  <h1 class="post-heading">Все объекты site.opengl<h1>
-      {% for post in site.opengl %}
-        <div class="post-box">
-          {% if post.preview %}
-          <div class="post-preview">
-            <img src="/{{ post.collection }}/{{ post.preview }}" />
-          </div>
-          {% endif %}
-          <div class="post-description">
-            <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title | escape }}</a>
-            <span class="post-subtitle">{{ post.subtitle | escape }}</span>
-          </div>
-        </div>
-      {% endfor %}
-  </h1>
 </div>
