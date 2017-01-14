@@ -1,0 +1,15 @@
+{% for post in site.opengl %}
+  {% if post.id == include.post_id %}
+    <div class="post-box">
+      {% if post.preview %}
+      <div class="post-preview">
+        <img src="/{{ post.collection }}/{{ post.preview }}" />
+      </div>
+      {% endif %}
+      <div class="post-description">
+        <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title | escape }}</a>
+        <span class="post-subtitle">{{ post.subtitle | escape }}</span>
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}

@@ -1,5 +1,6 @@
 ---
 title: 'F.A.Q. по 3-й главе'
+preview: img/help-contents.png
 ---
 
 ## Отладка освещения в шейдерах

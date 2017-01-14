@@ -1,6 +1,6 @@
 ---
 title: Отладка OpenGL API
-preview: figures/apitrace-replay.png
+preview: figures/apitrace-inspect.png
 subtitle: Apitrace — это ПО с открытым исходным кодом, позволяющее отладить программу, использующую OpenGL или DirectX. Утилита незаменима в поиске причин багов с текстурами и шейдерами.
 ---
 

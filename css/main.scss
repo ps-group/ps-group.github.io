@@ -68,7 +68,7 @@ code.highlighter-rouge
 // CUSTOM OVERRIDES END
 
 // CUSTOM POST PREVIEW BOX
-$post-preview-width: 120px;
+$post-preview-width: 100px;
 $post-description-width: $content-width - $post-preview-width - 20px;
 $post-box-outline-color: #7080b0;
 $post-box-fill-color: #f8f8f8;
@@ -82,11 +82,7 @@ $post-box-fill-color: #f8f8f8;
     padding: 4px;
     background-color: $post-box-fill-color;
     border-radius: 4px;
-    margin-top: 20px;
-}
-.post-box:first-child
-{
-    margin-top: 0;
+    margin-bottom: 20px;
 }
 .post-box .post-preview
 {

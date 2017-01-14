@@ -1,16 +1,16 @@
 ---
 title: 'Паттерн проектирования игр Component-Entity-System'
+preview: figures/gameloop_chart.png
+subtitle: Component-Entity-System — это гибкий шаблон, призванный навести порядок в большой кодовой базе движка игры. Он продолжает идею Game Loop, и похож на шаблон Model-View-Controller, популярного среди разработчиков GUI-приложений.
 ---
-
-Component-Entity-System (далее просто *CES*) &mdash; это гибкий шаблон, призванный навести порядок в большой кодовой базе движка игры. Он продолжат идею Game Loop, и является альтернативой Model-View-Controller, популярному среди разработчиков GUI-приложений.
-
-## Игровой цикл игры Asteroids
 
 ![Иллюстрация](figures/gameloop_chart.png)
 
 Component-Entity-System развивает идею Game Loop, поэтому надо разобраться, как могла бы выглядеть игра "Asteroids" с чистым паттерном Game Loop и простыми списками объектов. Вот скриншот одной из таких игр:
 
 ![Скриншот](figures/asteroids-game-ufo.jpg)
+
+## Модель игры Asteroids
 
 В игре есть четыре типа сущностей:
 

@@ -1,0 +1,29 @@
+---
+layout: default
+---
+
+{% if page.collection == 'opengl' %}
+{% include post_breadcrumbs.html collection_name='OpenGL' %}
+{% else if page.collection == 'sfml' %}
+{% include post_breadcrumbs.html collection_name='SFML' %}
+{% else if page.collection == 'packman' %}
+{% include post_breadcrumbs.html collection_name='SFML' %}
+{% else if page.collection == 'compilers' %}
+{% include post_breadcrumbs.html collection_name='Компиляторы' %}
+{% else %}
+{% include post_breadcrumbs.html collection_name='Все статьи' %}
+{% endif %}
+
+<section class='page-section docs strong-headers'>
+  <div class='container-narrow'>
+    <hr>
+    <div class="table-of-contents hidden">
+    <h2 class="table-of-contents-title not-in-toc">Содержание</h2>
+    <div class="table-of-contents-rows"></div>
+    </div>
+    {{ content }}
+    {% if page.category != 'ignore' %}
+    <hr>
+    {% endif %}
+  </div>
+</section>

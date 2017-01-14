@@ -1,5 +1,6 @@
 ---
 title: 'Переход на Core Profile'
+preview: figures/lesson_17_preview.png
 ---
 
 В данном примере мы будем портировать программу, рисующую планету Земля, на OpenGL 3.2 в режиме Core Profile

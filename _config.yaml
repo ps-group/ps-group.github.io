@@ -9,6 +9,7 @@ highlighter: rouge
 collections:
   opengl:
     output: true
+    name: Курс по OpenGL
     permalink: '/opengl/:path'
   sfml:
     output: true
@@ -23,16 +24,16 @@ defaults:
     - scope:
         type: opengl
       values:
-        layout: opengl
+        layout: article
     - scope:
         type: sfml
       values:
-        layout: sfml
+        layout: article
     - scope:
         type: packman
       values:
-        layout: sfml
+        layout: article
     - scope:
         type: compilers
       values:
-        layout: compilers
+        layout: article
