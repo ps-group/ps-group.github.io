@@ -16,6 +16,12 @@ layout: default
 
 <section class='page-section docs strong-headers'>
   <div class='container-narrow'>
+    {% if page.subtitle %}
+      <p>{{ page.subtitle }}</p>
+      {% if page.preview %}
+        <p><img src="{{ page.preview }}" alt="Иллюстрация"></p>
+      {% endif %}
+    {% endif %}
     <hr>
     <div class="table-of-contents hidden">
     <h2 class="table-of-contents-title not-in-toc">Содержание</h2>

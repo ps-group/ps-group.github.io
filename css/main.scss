@@ -30,6 +30,12 @@ $content-width:    960px;
 $on-palm:          600px;
 $on-laptop:        960px;
 
+@mixin media-query($device) {
+    @media screen and (max-width: $device) {
+        @content;
+    }
+}
+
 // CUSTOM OVERRIDES
 pre.highlight code
 {
@@ -68,49 +74,56 @@ code.highlighter-rouge
 // CUSTOM OVERRIDES END
 
 // CUSTOM POST PREVIEW BOX
-$post-preview-width: 100px;
-$post-description-width: $content-width - $post-preview-width - 20px;
+$post-preview-width: 12%;
+$post-description-width: 100% - $post-preview-width;
 $post-box-outline-color: #7080b0;
 $post-box-fill-color: #f8f8f8;
+$post-box-padding: 4px;
 
 .post-box
 {
     display: block;
-    width: $content-width;
+    width: 100%;
     height: auto;
     border: 1px solid $post-box-outline-color;
-    padding: 4px;
+    padding: $post-box-padding;
     background-color: $post-box-fill-color;
     border-radius: 4px;
     margin-bottom: 20px;
-}
-.post-box .post-preview
-{
-    display: inline-block;
-    width: $post-preview-width;
-    height: auto;
-}
-.post-box .post-preview img
-{
-    width: $post-preview-width;
-    height: auto;
-}
-.post-box .post-description
-{
-    vertical-align: top;
-    display: inline-block;
-    width: $post-description-width;
-}
-.post-box .post-description .post-link
-{
-    font-size: $base-font-size;
-    display: block;
-}
-.post-box .post-description .post-subtitle
-{
-    color: $grey-color;
-    font-size: $small-font-size;
-    display: block;
+
+    .post-preview
+    {
+        display: inline-block;
+        width: $post-preview-width;
+        height: auto;
+
+        img
+        {
+            width: 100%;
+            height: auto;
+        }
+    }
+
+    .post-description
+    {
+        vertical-align: top;
+        display: inline-block;
+        max-width: -webkit-calc(#{$post-description-width} - 2 * #{$post-box-padding});
+        max-width: calc(#{$post-description-width} - 2 * #{$post-box-padding});
+
+        .post-link
+        {
+            font-size: $base-font-size;
+            display: block;
+        }
+
+        .post-subtitle
+        {
+            color: $grey-color;
+            font-size: $small-font-size;
+            display: block;
+        }
+    }
 }
 // END CUSTOM POST PREVIEW BOX
 
@@ -124,18 +137,21 @@ $post-box-fill-color: #f8f8f8;
     margin-top: 5px;
     padding: 10px;
     display: inline-block;
+
+    h2
+    {
+        margin: 0;
+    }
+
+    .table-of-contents-rows
+    {
+        padding-left: 15px;
+    }
 }
+
 .table-of-contents.hidden
 {
     display: none;
-}
-.table-of-contents h2
-{
-    margin: 0;
-}
-.table-of-contents-rows
-{
-    padding-left: 15px;
 }
 // CUSTOM TABLE OF CONTENTS END
 
@@ -147,10 +163,5 @@ $post-box-fill-color: #f8f8f8;
 //         padding-left: $spacing-unit / 2;
 //     }
 // }
-@mixin media-query($device) {
-    @media screen and (max-width: $device) {
-        @content;
-    }
-}
 
 @import "minima";
