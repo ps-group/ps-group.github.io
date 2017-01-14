@@ -83,45 +83,57 @@ auto ast = parser.parseAST();
 
 ### Способы обхода AST
 
-- в глубину слева направо
-```go
-func visit(node):
+В глубину слева направо
+
+```js
+function visit(node) {
     actionBeforeVisit(node)
-    for child : node.children():
+    for child in node.children()
         child.accept(this)
-    actionAfterVisit(node);
+    actionAfterVisit(node)
+}
 ```
-- в глубину справа налево
-```go
-func visit(node):
+
+В глубину справа налево
+
+```js
+function visit(node) {
     actionBeforeVisit(node)
-    for child : reverse(node.children()):
+    for child in reverse(node.children())
         child.accept(this)
-    actionAfterVisit(node);
+    actionAfterVisit(node)
+}
 ```
-- в ширину слева направо (лишний расход памяти)
-```go
-func visit(node_list):
+
+В ширину слева направо (влечёт значительный расход памяти):
+
+```js
+function visit(node_list) {
     new_node_list = []
-    for node : node_list:
+    for node in node_list {
         actionOnVisit(node)
-        for child : node.children():
+        for child in node.children()
             new_node_list << child
+    }
     visit(new_node_list)
+}
 ```
-- в ширину справа налево (лишний расход памяти)
+
+В ширину справа налево (влечёт значительный расход памяти).
 
 ### Проблема расширяемости кода:
 
-- программы манипулируют данными с помощью операций.
-- в процессе эволюции программы добавляются новые типы данных и новые операции
-  - новая операция должна работать с существующими типами данных
-  - новый тип данных совместим с существующими операциями
-- по-настоящему расширяемый код не требует модификации существующих модулей
-   - модулем может считаться один файл, один класс, одна функция
-   - новое расширение попадает в отдельный модуль
-   - при расширении надо сохранить существующие абстрации
-   - следует сохранить типобезопасность
+Программы манипулируют данными с помощью операций. В процессе эволюции программы добавляются новые типы данных и новые операции
+
+- новая операция должна работать с существующими типами данных
+- новый тип данных совместим с существующими операциями
+
+По-настоящему расширяемый код не требует модификации существующих модулей
+
+- модулем может считаться один файл, один класс, одна функция
+- новое расширение попадает в отдельный модуль
+- при расширении надо сохранить существующие абстрации
+- следует сохранить типобезопасность
 
 ### Expression problem
 
@@ -132,36 +144,60 @@ func visit(node_list):
 
 Подходит для процедурных и функциональных языков. Варианты: if/elseif/else, switch/case или pattern matching.
 
-```go
-func print(node):
-  case node of:
+```js
+// Печатает поддерево, начиная с узла node
+function print(node) {
+  case node of {
     AddOperator => print(node.left) + '+' + print(node.right)
     NotOperator => '!' + print(node)
+    Variable    => print(variables.get(node.name).value)
+    Literal     => print(node.value)
+  }
+}
 
-func eval(node):
-  case node of:
-    AddOperator => eval(node.left) + eval(node.right)
-    NotOperator => !eval(node)
+// Вычисляет значение, начиная с узла node
+function eval(node) {
+  case node of {
+    AddOperator => return eval(node.left) + eval(node.right)
+    NotOperator => return !eval(node)
+    Variable    => return variables.get(node.name).value
+    Literal     => return node.value
+  }
+}
 ```
 
 ### Решение 2: полиморфные методы
 
-Подходит для объектно-ориентированных и некоторых функциональных языков. Нужно наследование или утиная типизация, плюс иерархия классов.
+Подходит для объектно-ориентированных и некоторых функциональных языков. В языке должно быть наследование либо утиная типизация, а также иерархия классов.
 
-```python
-class AddOperator(left: Node, right: Node) < Node:
-  meth print:
-    left.print + '+' + right.print
+```js
+class AddOperator extends Node {
+  let left: Node = null
+  let right: Node = null
 
-  meth eval
-    left.eval + right.eval
+  function print() {
+    left.print()
+    print(' + ')
+    right.print()
+  }
 
-class NotOperator(expr: Node) < Node:
-  meth print:
-    '!' + expr.print
+  function eval() {
+    return left.eval() + right.eval()
+  }
+}
 
-  meth eval
-    not expr.eval
+class NotOperator extends Node {
+  let child: Node = null
+
+  function print() {
+    print('!')
+    child.print()
+  }
+
+  function eval() {
+    return not child.eval()
+  }
+}
 ```
 
 ### Решение 3: Visitor (Посетитель)
@@ -172,31 +208,65 @@ class NotOperator(expr: Node) < Node:
 
 Реализовать паттер Visitor в C++ можно с помощью полиморфизма (virtual-методы и классы) или с помощью шаблонов (Curiously recurring template pattern).
 
-Реализация на CRTP (Curiously recurring template pattern):
+Реализация на виртуальных методах:
+
+```cpp
+struct VaribleAst;
+struct LiteralAst;
+
+struct IVisitor
+{
+    virtual ~IVisitor() = default;
+    virtual void visit(VaribleAst &ast) = 0;
+    virtual void visit(LiteralAst &ast) = 0;
+};
+
+struct IExpressionAst
+{
+    virtual ~IExpressionAst() = default;
+    virtual void accept(IVisitor &visitor) = 0;
+}
+
+struct VariableAst : IExpressionAst
+{
+    void accept(IVisitor &visitor) override {
+        visitor.visit(*this);
+    }
+}
+
+struct LiteralAst : IExpressionAst
+{
+    void accept(IVisitor &visitor) override {
+        visitor.visit(*this);
+    }
+}
+```
+
+Реализация на CRTP (Curiously recurring template pattern), которую не рекомендуется использовать из-за бесмыссленной сложности:
 
 - [шаблоны Visitor и Visitable](https://gist.github.com/matovitch/5dfdac845b159b6a0a8e)
 - [пример использования](https://gist.github.com/matovitch/3dad7e9092dec9427c79)
 
-### Вывод
-
-ООП не снимает Expression Problem, но позволяет выбирать, что будет простым: добавление новых типов данных или новых операций
+Объектно-ориентированный подход не снимает Expression Problem, но позволяет выбирать, что будет простым: добавление новых типов данных или новых операций
 
 - если AST создан без паттерна Visitor (решение №2), проще будет добавлять новые типы данных;
-- если AST создан с паттерном Visitor (решение №3), проще будет добавлять новые операции.
+- если AST создан с паттерном Visitor (решение №3), проще будет добавлять новые операции
 
 ### Решение 4: Обход дерева и case-распознавание
 
 Псевдокод:
 
-```go
-func (this *EvaluationVisitor) visit(node):
+```js
+function (this *EvaluationVisitor) visit(node) {
   case node of:
     AddOperator => print(node.left) + '+' + print(node.right)
     NotOperator => '!' + print(node)
+}
 
-func eval(ast):
+function eval(ast) {
   var visitor EvaluationVisitor
   ast.walk(visitor)
+}
 ```
 
 - Решение хорошо работает в языках с поддержкой ООП и pattern matching, таких как Golang.
