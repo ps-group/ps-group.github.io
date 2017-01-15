@@ -1,11 +1,10 @@
 ---
 title: 'Загрузка 3D моделей из файла'
 preview: figures/lesson_20_preview.png
+subtitle: Геометрию и материалы сложных объектов проще загрузить из структурированного файла, чем создавать программно. Мы создадим загрузчик 3D моделей в разных форматах.
 ---
 
-В данном примере мы создадим программный слой для загрузки элементов трёхмерных сцен из файлов в форматах различных 3D редакторов, таких как Blender или 3D Max. Мы также видоизменим загрузчик текстур, применив в нём более качественные методы интерполяции цвета текстур по поверхности.
-
-![Скриншот](figures/lesson_20_preview.png)
+Цель примера — показать, как создаётся программный слой для загрузки элементов трёхмерных сцен из файлов в форматах различных 3D редакторов, таких как Blender или 3D Max. Мы также видоизменим использованный ранее загрузчик текстур, применив в нём более качественные методы интерполяции цвета текстур по поверхности.
 
 ## Библиотека Assimp
 
@@ -15,9 +14,7 @@ preview: figures/lesson_20_preview.png
 
 ![Скриншот](figures/lesson_20_preview.png)
 
-Полный код к данной статье вы можете найти [в каталоге примера в репозитории на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_19).
-
-## Ссылки
+Полный код к данной статье вы можете найти [в каталоге примера в репозитории на github](https://github.com/PS-Group/cg_course_examples/tree/master/lesson_19). Дополнительные материалы:
 
 - [Tutorial 17 : Rotations (opengl-tutorial.org)](http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-17-quaternions/)
 - [What is the correct order to multiply scale, rotation and translation matrices for a proper world matrix? (gamedev.stackexchange.com)](http://gamedev.stackexchange.com/questions/16719/)
