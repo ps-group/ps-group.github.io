@@ -48,23 +48,38 @@ code.highlighter-rouge
     font-size: $small-font-size;
     font-family: $code-font-family;
 }
+.wrapper
+{
+    padding-top: 30px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
 .page-content
 {
     padding: 0 !important;
+
+    .wrapper
+    {
+        background-color: #fefefe;
+    }
 }
 .site-footer
 {
     padding-top: 0 !important;
     border-top: 0 !important;
+
+    .wrapper
+    {
+        background-color: #e0e0e8;
+    }
 }
 .site-header
 {
     border-bottom: 0 !important;
-}
-.wrapper
-{
-    background-color: #fefefe;
-    padding-top: 30px;
+
+    .wrapper
+    {
+        background-color: #e0e0e8;
+    }
 }
 .highlighter-rouge pre.highlight
 {
