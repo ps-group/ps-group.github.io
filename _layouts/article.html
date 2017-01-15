@@ -2,17 +2,18 @@
 layout: default
 ---
 
-{% if page.collection == 'opengl' %}
-{% include post_breadcrumbs.html collection_name='OpenGL' %}
-{% else if page.collection == 'sfml' %}
-{% include post_breadcrumbs.html collection_name='SFML' %}
-{% else if page.collection == 'packman' %}
-{% include post_breadcrumbs.html collection_name='SFML' %}
-{% else if page.collection == 'compilers' %}
-{% include post_breadcrumbs.html collection_name='Компиляторы' %}
-{% else %}
-{% include post_breadcrumbs.html collection_name='Все статьи' %}
-{% endif %}
+{% case page.collection %}
+  {% when 'opengl' %}
+    {% include post_breadcrumbs.html collection_name='OpenGL' %}
+  {% when 'compilers' %}
+  {% include post_breadcrumbs.html collection_name='Компиляторы' %}
+  {% when 'sfml' %}
+    {% include post_breadcrumbs.html collection_name='SFML' %}
+  {% when 'packman' %}
+    {% include post_breadcrumbs.html collection_name='SFML' %}
+  {% else %}
+    {% include post_breadcrumbs.html collection_name='Все статьи' %}
+{% endcase %}
 
 <section class='page-section docs strong-headers'>
   <div class='container-narrow'>
