@@ -20,6 +20,9 @@ collections:
   compilers:
     output: true
     permalink: '/compilers/:path'
+  os:
+    output: true
+    permalink: '/os/:path'
 defaults:
     - scope:
         type: opengl
@@ -35,5 +38,9 @@ defaults:
         layout: article
     - scope:
         type: compilers
+      values:
+        layout: article
+    - scope:
+        type: os
       values:
         layout: article
