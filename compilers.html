@@ -1,0 +1,51 @@
+---
+layout: page
+title: "Компиляторы"
+permalink: /compilers/
+---
+
+{% assign posts_collection = site.compilers %}
+
+<h1 class="post-heading">Проекты</h1>
+
+<p>
+Проекты выполняются в течении всего курса и сдаются в конце. В некоторых проектах возможна командная работа &mdash; об этом написано явно в спецификации. Ссылки на спецификации проектов ниже.
+</p>
+
+{% include post_box.html post_id='/compilers/project_compiler' %}
+{% include post_box.html post_id='/compilers/project_postscript' %}
+
+<h1 class="post-heading">Обзорные статьи</h1>
+
+{% include post_box.html post_id='/compilers/compiler_books' %}
+{% include post_box.html post_id='/compilers/what_is_driver' %}
+{% include post_box.html post_id='/compilers/what_is_frontend' %}
+{% include post_box.html post_id='/compilers/what_is_backend' %}
+
+<h1 class="post-heading">Compiler Frontend, основы</h1>
+
+{% include post_box.html post_id='/compilers/fsm' %}
+{% include post_box.html post_id='/compilers/grammars' %}
+{% include post_box.html post_id='/compilers/simple_recursive_parser' %}
+{% include post_box.html post_id='/compilers/ast' %}
+{% include post_box.html post_id='/compilers/shift_reduce' %}
+{% include post_box.html post_id='/compilers/frontend_utils' %}
+
+<h1 class="post-heading">Compiler Backend &amp; Driver, основы</h1>
+
+{% include post_box.html post_id='/compilers/stack_and_register' %}
+{% include post_box.html post_id='/compilers/c_in_depth' %}
+{% include post_box.html post_id='/compilers/backend_ffi' %}
+{% include post_box.html post_id='/compilers/driver_popen' %}
+
+<h1 class="post-heading">Frontend, продвинутый уровень</h1>
+<p>
+Примеры ко всем статьям ищите в репозитории примеров в каталоге <a href='https://github.com/PS-Group/cg_course_examples/blob/master/chapter_3'>chapter_3</a>
+</p>
+
+{% include post_box.html post_id='/compilers/lemon_doc' %}
+
+<h1 class="post-heading">Backend, продвинутый уровень</h1>
+<p>
+Изучаем LLVM, виртуальный ассемблер LLVM-IR, генерируем машинный код. Все примеры в этой серии статей основаны на C++14, генераторе кода Lemon или библиотеках проекта LLVM.
+</p>

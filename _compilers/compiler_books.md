@@ -1,5 +1,6 @@
 ---
 title: 'Книги и материалы по разработке компиляторов'
+preview: img/dragon_book_header.jpg
 ---
 
 ## Книга Мага
