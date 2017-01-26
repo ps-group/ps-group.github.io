@@ -1,5 +1,6 @@
 ---
 title: 'F.A.Q. по первой главе'
+preview: img/help-contents.png
 ---
 
 ## Что такое OpenGL и DirectX?

@@ -1,16 +1,16 @@
 ---
 title: 'Паттерн проектирования игр Component-Entity-System'
+preview: figures/gameloop_chart.png
+subtitle: Component-Entity-System — это гибкий шаблон, призванный навести порядок в большой кодовой базе движка игры. Он продолжает идею Game Loop, и похож на шаблон Model-View-Controller.
 ---
-
-Component-Entity-System (далее просто *CES*) &mdash; это гибкий шаблон, призванный навести порядок в большой кодовой базе движка игры. Он продолжат идею Game Loop, и является альтернативой Model-View-Controller, популярному среди разработчиков GUI-приложений.
-
-## Игровой цикл игры Asteroids
 
 ![Иллюстрация](figures/gameloop_chart.png)
 
 Component-Entity-System развивает идею Game Loop, поэтому надо разобраться, как могла бы выглядеть игра "Asteroids" с чистым паттерном Game Loop и простыми списками объектов. Вот скриншот одной из таких игр:
 
 ![Скриншот](figures/asteroids-game-ufo.jpg)
+
+## Модель игры Asteroids
 
 В игре есть четыре типа сущностей:
 
@@ -196,8 +196,8 @@ struct CMovementSystem : anax::System<anax::Requires<CPositionComponent, CDirect
     {
         auto entities = getEntities();
         for (auto entity : entities) {
-            Position_Anax& position = entity.getComponent<Position_Anax>();
-            Direction_Anax& direction = entity.getComponent<CDirectionComponent>();
+            CPositionComponent& position = entity.getComponent<CPositionComponent>();
+            CDirectionComponent& direction = entity.getComponent<CDirectionComponent>();
             position.x += direction.x * dt;
             position.y += direction.y * dt;
         }

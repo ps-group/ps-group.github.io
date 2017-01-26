@@ -1,0 +1,36 @@
+---
+layout: default
+---
+
+{% case page.collection %}
+  {% when 'opengl' %}
+    {% include post_breadcrumbs.html collection_name='OpenGL' %}
+  {% when 'compilers' %}
+  {% include post_breadcrumbs.html collection_name='Компиляторы' %}
+  {% when 'sfml' %}
+    {% include post_breadcrumbs.html collection_name='SFML' %}
+  {% when 'packman' %}
+    {% include post_breadcrumbs.html collection_name='SFML' %}
+  {% else %}
+    {% include post_breadcrumbs.html collection_name='Все статьи' %}
+{% endcase %}
+
+<section class='page-section docs strong-headers'>
+  <div class='container-narrow'>
+    {% if page.subtitle %}
+      <p>{{ page.subtitle }}</p>
+      {% if page.preview %}
+        <p><img src="{{ page.preview }}" alt="Иллюстрация"></p>
+      {% endif %}
+    {% endif %}
+    <hr>
+    <div class="table-of-contents hidden">
+    <h2 class="table-of-contents-title not-in-toc">Содержание</h2>
+    <div class="table-of-contents-rows"></div>
+    </div>
+    {{ content }}
+    {% if page.category != 'ignore' %}
+    <hr>
+    {% endif %}
+  </div>
+</section>

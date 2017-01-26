@@ -1,5 +1,6 @@
 ---
 title: 'F.A.Q. по второй главе'
+preview: img/help-contents.png
 ---
 
 ## Нормализация вектора
@@ -10,7 +11,7 @@ title: 'F.A.Q. по второй главе'
 - В библиотеке GLM имеется функция [glm::normalize](https://glm.g-truc.net/0.9.4/api/a00131.html#ga68b931c228750eeba844c273c54ca43d)
 
 ```cpp
-genType glm::normalize(genType const &x) 	
+genType glm::normalize(genType const &x)
 ```
 
 - Если нормализованный вектор умножить на число, вы получите вектор с тем же направлением, что и исходный, но с другой длиной
@@ -34,8 +35,8 @@ genType glm::normalize(genType const &x)
 ```cpp
 detail::tvec3<valType> glm::cross(
 	detail::tvec3< valType > const & x,
-	detail::tvec3< valType > const & y 
-) 
+	detail::tvec3< valType > const & y
+)
 ```
 
 ## Рисование поверхностей с гранями и гладких поверхностей
