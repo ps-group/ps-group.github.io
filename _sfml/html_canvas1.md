@@ -39,14 +39,12 @@ canvasContext.beginPath(); // начинает запоминать фигуру
 canvasContext.moveTo(150, 100); // ставит перо на одну из вершин треугольника
 canvasContext.lineTo(150, 100); // проводит линию к следующей вершине
 canvasContext.lineTo(100, 200); // ещё одна линия
-canvasContext.lineTo(200, 100); // последняя сторона фигуру
+canvasContext.lineTo(200, 100); // последняя сторона фигуру. Можно и canvasContext.closePath(), но она завершит фигуру  
 canvasContext.fill(); // закрашивает фигуру заливкой
 canvasContext.stroke(); // обводит фигуру контуром
 canvasContext.closePath(); // очищает память
 ```
 ![Скриншот](img\html_canvas\screenshot1.png)
-
-Не стоит забывать вызыват closePath. Его отсутствие вызовет склеивание рисунков.
 
 ## Движение и поворот системы координат
 Всё относительно, как говорил один дядка в двадцатом веке. Это правило не обошло и canvas. Добрые разработчики ввели две очень полезные функции
@@ -61,7 +59,7 @@ var radius = 100;
 var smileAngel = degToRad(90);
 canvasContext.translate(cordX, cordY); // смещаем центр в центр фигуры пакмена
 canvasContext.rotate(-smileAngel / 2); // поворачиваем систему координат на заданный угол
-drawPackmenFigure(canvasContext, 0, 0, 100, "#cccc11", smileAngel); // реализуем после
+drawPackmenFigure(canvasContext, 0, 0, 100, "#cccc11", smileAngel); // рисуем пакмена
 canvasContext.rotate(smileAngel / 2); // возвращаем всё на круги своя
 canvasContext.translate(-cordX, -cordY);
 ```
@@ -101,4 +99,11 @@ function drawPackmenFigure(canvasContext, x, y, radius, color, endAngle)
 ```
 ![Скриншот](img\html_canvas\screenshot2.png)
 
-Чтобы лучше погрузиться в технологию стоит прочитать [эту статью](https://developer.mozilla.org/ru/docs/Web/API/Canvas_API/Tutorial/%D0%9F%D1%80%D0%B8%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_%D1%81%D1%82%D0%B8%D0%BB%D0%B5%D0%B9_%D0%B8_%D1%86%D0%B2%D0%B5%D1%82%D0%BE%D0%B2)
+## Изображения
+Чтобы нарисовать изображение на canvas придётся использовать функцию [drawImage](https://developer.mozilla.org/ru/docs/Web/API/CanvasRenderingContext2D/drawImage). Она рисует выбранную часть изображения с заданными размерами и координатами и может принимать до 9 агрументов. Первым аргументом во всех случаях является объект [Image](https://developer.mozilla.org/ru/docs/Web/API/HTMLImageElement/Image). После идут аргументы, описывающие маштаб и коордитнаты изображения. Существует всего три способа параметризовать эту функцию.
+ 1. drawImage(image, x, y) - нарисует image в координатах x, y.
+ 2. drawImage(image, x, y, width, height) - нарисует image в координатах x, y размера width на height.
+ 3. drawImage(image, sx, sy, sWidth, sHeight, x, y, width, height) - нарисует часть image, обрезанную начиная с точки (sx, sy) размером sWidth, sHeight,  в координатах x, y, размера width на height.
+Последний способ полезен для работы со спрайтами.
+
+Чтобы лучше погрузиться в технологию canvas стоит прочитать [эту статью](https://developer.mozilla.org/ru/docs/Web/API/Canvas_API/Tutorial/%D0%9F%D1%80%D0%B8%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_%D1%81%D1%82%D0%B8%D0%BB%D0%B5%D0%B9_%D0%B8_%D1%86%D0%B2%D0%B5%D1%82%D0%BE%D0%B2)
