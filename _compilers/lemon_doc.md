@@ -72,7 +72,27 @@ translation_unit ::= expression(A).
 
 Действия в фигурных скобках могут ссылаться на терминальные и нетерминальные символы, используя нотацию вида `expression(A)` для придания символу имени `A`, или любого другого имени. Когда правило грамматики однозначно распознаётся, оно "сворачивается", а связанное действие выполняется. Если быть точным, исходный код действия копируется в сгенерированный код парсера, попадая внутрь какого-то блока кода внутри функции Parse, и получая доступ к именованным символам, терминальным и нетерминальным. Задача действия &mdash; прочитать значения ячеек стека, соответствующих символам в правой части правила, и заполнить ячейку стека, соответствующую конструируемому символу в левой части.
 
-<!-- Тут неплохо бы иллюстрацию стека LALR -->
+![Схема](img/lalr-stack.png)
+
+### Разделение на токены
+
+На первом шаге разбора формальных языков текст разбивается на лексические токены. Вы можете выполнять этот шаг любым удобным способом, и Lemon в этом не помощник &mdash; он всего лишь объявляет целочисленные идентификаторы токенов для каждого терминального символа, описанного в грамматике. Ядро сгенерированного парсера ожидает, что токены поступают один за другим последоватеьно, формируя виртуальный (либо реальный) поток токенов, которые и разбираются по грамматике.
+
+![Схема](img/tokens.png)
+
+Задача лексера/сканнера &mdash; создать поток токенов. Каждая категория токенов имеет свой идентификатор, такой как TOK_LEFT_PAREN, TOK_CLASS_KEYWORD и другие. Каждый токен имеет связанное с ним значение, дополняющее идентификатор токена. Примером служит, например, токен TOK_NUMBER со значением "1234". Все токены используют один и тот же тип для хранения своих значений, и этот тип определён директивой `%token_type` (по-умолчанию `int`). Дополнительная информация о токене может выглядеть так:
+
+```cpp
+#pragma once
+
+struct Token
+{
+    // Позиция в исходном коде.
+    unsigned position;
+    // Числовое значение литерала (0 для остальных токенов).
+    double value;
+};
+```
 
 ### Восходящий разбор в стиле shift-reduce
 
@@ -87,6 +107,37 @@ struct Expression
     Expression *pRight; // необязательный правый дочерний узел
 };
 ```
+
+В объектно-ориентированном стиле принят паттерн, известный как Abstract Syntax Tree. Вместо универсальной структуры, описывающей узел разбора, используются конкретные классы, наследуемые от одного или нескольких базовых интерфейсов: IExpressionAst, IStatementAst, IDeclarationAst.
+
+```cpp
+interface IExpression
+{
+    double Evaluate(RuntimeEnvironment &env) = 0;
+};
+
+class BinaryOperationNode : public IExpression
+{
+public:
+    // в свойствах класса - информация об операторе и двух операндах,
+    //  также имеющих тип IExpression
+};
+
+class LiteralNode : public IExpression
+{
+public:
+    // в свойствах класса - тип и значение литерала
+};
+
+class IdentifierNode : public IExpression
+{
+public:
+    // в свойствах класса - строковое имя и указатель на объект,
+    //  на который ссылается идентификатор
+};
+```
+
+![Схема](img/ast_classes_tree.png)
 
 ## Процедурный интерфейс генерируемого кода
 
@@ -359,6 +410,7 @@ void CCalcParser::PrintResult(double value)
 ```
 
 <!--
+
 ## Token recognition
 
 The first step to parsing anything is to break it into lexical tokens. You can do this in any way you want. Lemon does not help you here, it only defines an integer "token id", for each terminal in your grammar, see cfg.h. It wants you to pass these id’s in sequentially, to represent the "token stream" being parsed.
@@ -393,4 +445,6 @@ As a side note you could "lex" the whole input into tokens (keeping the string a
 <!--TODO: контроль приоритетов операторов -->
 <!--TODO: обработка ошибок -->
 <!--TODO: генерация AST с помощью шаблонов -->
-<!--TODO: -->
+<!--TODO: Shell Parser, part I: https://brskari.wordpress.com/2012/04/29/writing-a-basic-shell-using-flex-and-lemon-part-1/ -->
+<!--TODO: Shell Parser, part II: https://brskari.wordpress.com/2012/04/30/writing-a-simple-shell-using-flex-and-lemon-part-2/ -->
+<!--TODO: http://souptonuts.sourceforge.net/readme_lemon_tutorial.html -->
