@@ -15,7 +15,7 @@ title: "Анимация"
  3. какого он цвета
  4. как широка его улыбка.
 
-Вот таким он получился красавцем.
+Вот таким он получился.
 
 ```js
 function Packman(x, y, radius, color)
@@ -128,4 +128,5 @@ window.onload = function()
 ```
 
 Полюбуемся результатом.
+
 ![Скриншот](img\html_canvas\animated_packman.gif)
