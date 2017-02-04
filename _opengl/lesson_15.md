@@ -71,7 +71,7 @@ void CWhitneyUmbrella::Tesselate(unsigned slices, unsigned stacks)
             SVertexP3N vertex;
             vertex.position = GetSurfacePoint(u, v);
 
-            // Нормаль к поверхности можно расчитать численным методом,
+            // Нормаль к поверхности можно рассчитать численным методом,
             // для этого достаточно вычислить значение функции, задающей
             // преобразование (u, v)->(x, y, z), для (u + delta, v) и
             // (u, v + delta), а затем вычислить векторное произведение
@@ -168,7 +168,7 @@ int CProgramInfo::GetMaxFragmentUniforms()
 Есть несколько способов определить «расположение». Рассмотрим два способа:
 
 - можно после компоновки программы вызывать функцию glGetUniformLocation, передав ей дескриптор программного объекта и строку, задающую имя uniform-переменной. Если такой переменной нет среди активных uniform-переменных программы, либо имя начинается с зарезервированного префикса «gl_», функция вернет значение, равное -1.
-- начиная с OpenGL 4.3, программисту доступен [явный выбор расположения переменной (opengl.org)](https://www.opengl.org/wiki/Layout_Qualifier_(GLSL)#Explicit_uniform_location), который объявляется следующи образом:
+- начиная с OpenGL 4.3, программисту доступен [явный выбор расположения переменной (opengl.org)](https://www.opengl.org/wiki/Layout_Qualifier_(GLSL)#Explicit_uniform_location), который объявляется следующим образом:
 
 ```glsl
 // Requires OpenGL 4.3+ !!
@@ -204,7 +204,7 @@ CProgramUniform CShaderProgram::FindUniform(const char *name) const
 }
 ```
 
-Для уменьшения количества вызовов к API OpenGL можно создать кеш расположений uniform-переменных, связанный с одной шейдерной программой. Для этого добавим поле `mutable std::map<std::string, int> m_uniformLocationCache` к классу CShaderProgram, и модифицируем метод FindUniform:
+Для уменьшения количества вызовов к API OpenGL можно создать кэш расположений uniform-переменных, связанный с одной шейдерной программой. Для этого добавим поле `mutable std::map<std::string, int> m_uniformLocationCache` к классу CShaderProgram, и модифицируем метод FindUniform:
 
 ```cpp
 CProgramUniform CShaderProgram::FindUniform(const std::string &name) const
@@ -620,7 +620,7 @@ void CTwistValueController::Update(float deltaSeconds)
 - "-" уменьшает параметр закручивания
 - "Пробел" отключает шейдер закручивания и включает фиксированный конвейер
 
-Для удобства информация о сочетаниях клавиш добавлена в заголовок окна, определяемый в функци `main`:
+Для удобства информация о сочетаниях клавиш добавлена в заголовок окна, определяемый в функции `main`:
 
 ```cpp
 int main(int, char *[])

@@ -182,7 +182,7 @@ quat(vec3 const& eulerAngles);
 vec3 glm::eulerAngles(quat const& quaternion);
 ```
 
-## Авиационно-космическое представление ориентаци
+## Авиационно-космическое представление ориентации
 
 Ориентация в авиационных терминах задаётся тремя углами:
 
@@ -254,7 +254,7 @@ bool glm::intersectRayTriangle(vec3 const& rayOrigin, vec3 const& rayDirection, 
 
 ## Декомпозиция матрицы 4x4 на составляющие
 
-В GLM есть расширение, позволяющее провести разделение матрицы на базовые афинные и неафинные преобразования. Подробнее об этом рассказано:
+В GLM есть расширение, позволяющее провести разделение матрицы на базовые аффинные и неаффинные преобразования. Подробнее об этом рассказано:
 
 - [в вопросе "glm - Decompose mat4 into translation and rotation?" на stackoverflow](http://stackoverflow.com/questions/17918033/)
 - [в документации GLM (glm.g-truc.net)](https://glm.g-truc.net/0.9.6/api/a00204.html)
@@ -269,8 +269,8 @@ glm::mat4 transformation;
 glm::vec3 sizeScale; // масштабирование, задающее размер
 glm::quat orientation; // ориентация тела
 glm::vec3 position; // перемещение тела
-glm::vec3 skew; // афинная трансформация сдвига
-glm::vec4 perspective; // неафинное перспективное искажение
+glm::vec3 skew; // аффинная трансформация сдвига
+glm::vec4 perspective; // неаффинное перспективное искажение
 
 // вызов функции декомпозиции
 glm::decompose(transformation, sizeScale, orientation, position, skew, perspective);

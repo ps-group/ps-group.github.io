@@ -113,7 +113,7 @@ CWindowClient::CWindowClient(CWindow &window)
 void CWindowClient::SetupView(const glm::ivec2 &size)
 {
     // Матрица ортографического проецирования изображения в трёхмерном пространстве
-    // из параллелипипеда с размером, равным (size.X x size.Y x 2).
+    // из параллелепипеда с размером, равным (size.X x size.Y x 2).
     const float halfWidth = float(size.x) * 0.5f;
     const float halfHeight = float(size.y) * 0.5f;
     const glm::mat4 matrix = glm::ortho<float>(-halfWidth, halfWidth, -halfHeight, halfHeight);

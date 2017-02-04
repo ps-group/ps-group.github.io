@@ -554,7 +554,7 @@ void CWindow::SetupView()
 {
     const float viewScale = m_system.GetViewScale();
     // Матрица ортографического проецирования изображения в трёхмерном пространстве
-    // из параллелипипеда с размером, равным (size.X x size.Y x 2).
+    // из параллелепипеда с размером, равным (size.X x size.Y x 2).
     const float halfWidth = float(m_windowSize.x) * 0.5f / viewScale;
     const float halfHeight = float(m_windowSize.y) * 0.5f / viewScale;
     const glm::mat4 matrix = glm::ortho<float>(-halfWidth, halfWidth, -halfHeight, halfHeight);
