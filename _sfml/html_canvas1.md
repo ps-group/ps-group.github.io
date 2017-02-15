@@ -107,6 +107,7 @@ function drawPackmenFigure(canvasContext, x, y, radius, color, endAngle)
 
 ## Изображения
 Чтобы нарисовать изображение на canvas придётся использовать функцию [drawImage](https://developer.mozilla.org/ru/docs/Web/API/CanvasRenderingContext2D/drawImage). Она рисует выбранную часть изображения с заданными размерами и координатами и может принимать до 9 агрументов. Первым аргументом во всех случаях является объект [Image](https://developer.mozilla.org/ru/docs/Web/API/HTMLImageElement/Image). После идут аргументы, описывающие маштаб и коордитнаты изображения. Существует всего три способа параметризовать эту функцию.
+
  1. drawImage(image, x, y) - нарисует image в координатах x, y.
  2. drawImage(image, x, y, width, height) - нарисует image в координатах x, y размера width на height.
  3. drawImage(image, sx, sy, sWidth, sHeight, x, y, width, height) - нарисует часть image, обрезанную начиная с точки (sx, sy) размером sWidth, sHeight,  в координатах x, y, размера width на height.
