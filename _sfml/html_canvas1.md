@@ -9,11 +9,13 @@ Canvas - html блок, который появился вместе с выхо
 ```
 Чтобы получить доступ к интерфейсу canvas надо обратиться в js к этому элементу и вызвать функцию getContext.
 Она принимает аргументом контекст в котором будет рисовать.
+
 ```js
 var canvas = document.getElementById("canvas");
 var canvasContext = canvas.getContext("2d");
 ```
 В js можно изменить размеры окна canvas. Для этого стоит использовать константы.
+
 ```js
 // ./js/constants.js
 var CANVAS_WIDTH = 1000;
@@ -24,6 +26,7 @@ canvas.height = CANVAS_HEIGHT;
 ```
 ## Прямоугольники в canvas
 В контексте canvas уже реализованы функции, отрисовывающие прямоугольники. Их всего три.
+
  * clearRect(x, y, width, height) - прямоугольник, работает, как ластик в paint
  * strokeRect(x, y, width, height) - контур прямоугольника
  * fillRect(x, y, width, height) - закрашенный прямоугольник
@@ -31,6 +34,7 @@ canvas.height = CANVAS_HEIGHT;
 
 ## Использование линий для отрисовки фигур
 Разберём функции рисования прямых линий на примере отрисовки треугольника.
+
 ```js
 canvasContext.fillStyle = "#660033"; // устанавливает цвет заливки
 canvasContext.strokeStyle = "#999900"; // устанавливает цвет контура
