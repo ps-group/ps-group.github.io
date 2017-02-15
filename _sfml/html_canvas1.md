@@ -26,6 +26,7 @@ var CANVAS_HEIGHT = 600;
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 ```
+
 ## Прямоугольники в canvas
 В контексте canvas уже реализованы функции, отрисовывающие прямоугольники. Их всего три.
 
