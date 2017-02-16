@@ -9,7 +9,7 @@ Canvas - html блок, который появился вместе с выхо
 <canvas id="canvas"></canvas>
 ```
 
-Чтобы получить доступ к интерфейсу надо обратиться в js к канвасу и вызвать функцию getContext.
+Чтобы получить доступ к интерфейсу надо обратиться в js к канвасу и вызвать функцию *getContext*.
 Она принимает аргументом контекст, в котором будет рисовать.
 
 ```js
@@ -31,11 +31,11 @@ canvas.height = CANVAS_HEIGHT;
 ## Прямоугольники в canvas
 В контексте canvas уже реализованы функции, отрисовывающие прямоугольники. Их всего три:
 
- * clearRect(x, y, width, height) - прямоугольник, работает, как ластик в paint
- * strokeRect(x, y, width, height) - контур прямоугольника
- * fillRect(x, y, width, height) - закрашенный прямоугольник
+ * *clearRect(x, y, width, height)* - прямоугольник, работает, как ластик в paint
+ * *strokeRect(x, y, width, height)* - контур прямоугольника
+ * *fillRect(x, y, width, height)* - закрашенный прямоугольник
 
-Цвета контура и заливки совпадают с цвеами, установленными в fillStyle и strokeStyle. Для установки цветов можно использовать как rgb, так и rgba.
+Цвета контура и заливки совпадают с цвеами, установленными в *fillStyle* и *strokeStyle*. Для установки цветов можно использовать как rgb, так и rgba.
 
 ## Использование линий для отрисовки фигур
 Разберём функции рисования прямых линий на примере отрисовки треугольника.
@@ -58,8 +58,8 @@ canvasContext.closePath(); // очищает память
 ## Движение и поворот системы координат
 Всё относительно, как говорил один дядка в двадцатом веке. Это правило не обошло и canvas. Добрые разработчики ввели две очень полезные функции:
 
- * translate(x, y)
- * rotate(angle)
+ * *translate(x, y)*
+ * *rotate(angle)*
 
 Первая смещает центр координат в заданную точку, вторая поворачивает его по часовой стрелке на заданный угол вокруг центра координат.
 
@@ -78,10 +78,9 @@ canvasContext.translate(-cordX, -cordY);
 ## Окружности и дуги
 В canvas есть функция отрисовки дуг и окружностей.
 
-arc(centerX, centeY, radius, startAngle, endAngle, direction)
+*arc(centerX, centeY, radius, startAngle, endAngle, direction)*
 
 Вот [здесь](http://www.w3schools.com/tags/canvas_arc.asp) разобран её синтаксис.
-
 Вот так можно нарисовать пакмена с её помощью:
 
 ```js
@@ -114,11 +113,11 @@ function drawPackmenFigure(canvasContext, x, y, radius, color, endAngle)
 ![Скриншот](img\html_canvas\screenshot2.png)
 
 ## Изображения
-Кроме того в канвасе есть замечательная функция [drawImage](https://developer.mozilla.org/ru/docs/Web/API/CanvasRenderingContext2D/drawImage), которая рисует выбранную часть изображения с заданными размерами и координатами. Эта громадина может принимать до 9 агрументов. Первым аргументом во всех случаях является объект [Image](https://developer.mozilla.org/ru/docs/Web/API/HTMLImageElement/Image), после идут аргументы, описывающие маштаб и коордитнаты изображения. Существует всего три способа параметризовать эту функцию:
+Кроме того в канвасе есть замечательная функция *[drawImage](https://developer.mozilla.org/ru/docs/Web/API/CanvasRenderingContext2D/drawImage)*, которая рисует выбранную часть изображения с заданными размерами и координатами. Эта громадина может принимать до 9 агрументов. Первым аргументом во всех случаях является объект *[Image](https://developer.mozilla.org/ru/docs/Web/API/HTMLImageElement/Image)*, после идут аргументы, описывающие маштаб и коордитнаты изображения. Существует всего три способа параметризовать эту функцию:
 
- 1. drawImage(image, x, y) - нарисует image в координатах x, y.
- 2. drawImage(image, x, y, width, height) - нарисует image в координатах x, y размера width на height.
- 3. drawImage(image, sx, sy, sWidth, sHeight, x, y, width, height) - нарисует часть image, обрезанную начиная с точки (sx, sy) размером sWidth, sHeight,  в координатах x, y, размера width на height.
+ 1. *drawImage(image, x, y)* - нарисует image в координатах x, y.
+ 2. *drawImage(image, x, y, width, height)* - нарисует image в координатах x, y размера width на height.
+ 3. *drawImage(image, sx, sy, sWidth, sHeight, x, y, width, height)* - нарисует часть image, обрезанную начиная с точки (sx, sy) размером sWidth, sHeight,  в координатах x, y, размера width на height.
 
 Последний способ полезен для работы со спрайтами.
 
