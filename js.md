@@ -1,10 +1,10 @@
 ---
 layout: page
-title: "Статьи по Javascript и HTML5"
+title: "JS&HTML5"
 permalink: /js/
 ---
 
-Все примеры и статьи построены вокруг языка Javascript. Полезные источники информации:
+Все примеры и статьи построены вокруг языка Javascript и технологий HTML5. Полезные источники информации:
 
 - [Сайт javascript.ru со справочником, учебником и другими качественными материалами](http://javascript.ru/)
 - [MDN - Mozilla Developer Network](https://developer.mozilla.org/ru/)
