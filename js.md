@@ -12,12 +12,12 @@ permalink: /js/
 
 ## Packman на Javascript и HTML5 Canvas
 
-- [Canvas - работа с графическими примитивами ](https://ps-group.github.io/sfml/html_canvas1.html)
-- [Canvas - анимация](https://ps-group.github.io/sfml/html_canvas2.html)
-- [Canvas - кнопки и меню](https://ps-group.github.io/sfml/html_canvas3.html)
-- [Отрисовка круга ](https://ps-group.github.io/sfml/web-packman1.html)
-- [Добавим движение](https://ps-group.github.io/sfml/web-packman2.html)
-- [Препятствия и обработка столкновений ](https://ps-group.github.io/sfml/web-packman3.html)
-- [Противники и с чем их "едят"](https://ps-group.github.io/sfml/web-packman4.html)
-- [Очки и особенности js](https://ps-group.github.io/sfml/web-packman5.html)
-- [Окна и цикл игры](https://ps-group.github.io/sfml/web-packman6.html)
+- [Canvas - работа с графическими примитивами ](/sfml/html_canvas1.html)
+- [Canvas - анимация](/sfml/html_canvas2.html)
+- [Canvas - кнопки и меню](/sfml/html_canvas3.html)
+- [Отрисовка круга ](/sfml/web-packman1.html)
+- [Добавим движение](/sfml/web-packman2.html)
+- [Препятствия и обработка столкновений ](/sfml/web-packman3.html)
+- [Противники и с чем их "едят"](/sfml/web-packman4.html)
+- [Очки и особенности js](/sfml/web-packman5.html)
+- [Окна и цикл игры](/sfml/web-packman6.html)
