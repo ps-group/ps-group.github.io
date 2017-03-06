@@ -739,7 +739,7 @@ in vec3 normal;
 in vec2 textureUV;
 ```
 
-Класс будет поход на CProgramUniform, служащий для установки uniform-переменных, но будет расчитан не на присваивание единственного значения, а на задание массива данных атрибута, хранимого внутри VBO (для работы с которым мы используем класс CBufferObject).
+Класс будет поход на CProgramUniform, служащий для установки uniform-переменных, но будет рассчитан не на присваивание единственного значения, а на задание массива данных атрибута, хранимого внутри VBO (для работы с которым мы используем класс CBufferObject).
 
 Продемонстрируем определение класса:
 
@@ -772,7 +772,7 @@ private:
 
 Поиск атрибута в шейдерной программе будет выполнять метод `CVertexAttribute CShaderProgram::FindAttribute(const std::string &name) const`. Этот метод будет очень похож на метод `FindUniform`, и разница будет только в двух мелочах:
 
-- для кеширования расположения переменной будет использоваться другой объект std::map, чтобы избежать коллизий ключей
+- для кэширования расположения переменной будет использоваться другой объект std::map, чтобы избежать коллизий ключей
 - для запроса расположения переменной у OpenGL будет вызвана функция `glGetAttribLocation`
 
 Для уменьшения дублирования кода вынесем общую часть двух методов в функцию GetCachedVariableLocation:
@@ -784,7 +784,7 @@ using GetProgramLocationFn = int (*)(unsigned programId, const GLchar *name);
 
 // Запрашивает расположение uniform или attribute переменной
 //  по имени, используя переданный вызов API OpenGL.
-// Использует переданный кеш для уменьшения числа вызовов API OpenGL.
+// Использует переданный кэш для уменьшения числа вызовов API OpenGL.
 // Выбрасывает std::runtime_error в случае, если переменной нет в программе.
 int GetCachedVariableLocation(unsigned programId,
                               std::map<std::string, int> &cache,
@@ -1081,7 +1081,7 @@ void CMeshP3NT2::Draw(IRenderer3D &renderer) const
 
 ## Vertex Array Object
 
-После запуска модифицированной программы можно обнаружить, что вызов glVertexAttribPointer порождает ошибку GL_INVALID_OPERATION. Дело в том, что в OpenGL 3.0+ Core Profile введено ещё одно ограничение: VAO по-умолчанию, имеющий индекс 0, больше не создаётся. Чтобы понять последствия данного изменения, рассмотрим, что такое [VAO](https://www.opengl.org/wiki/Vertex_Specification#Vertex_Array_Object).
+После запуска модифицированной программы можно обнаружить, что вызов glVertexAttribPointer порождает ошибку GL_INVALID_OPERATION. Дело в том, что в OpenGL 3.0+ Core Profile введено ещё одно ограничение: VAO по умолчанию, имеющий индекс 0, больше не создаётся. Чтобы понять последствия данного изменения, рассмотрим, что такое [VAO](https://www.opengl.org/wiki/Vertex_Specification#Vertex_Array_Object).
 
 Класс для работы с VAO рассмотрен ниже:
 
@@ -1165,7 +1165,7 @@ class CWindowClient
 {
     // ...
 private:
-    // Данный VAO будет объектом по-умолчанию.
+    // Данный VAO будет объектом по умолчанию.
     // Его привязка должна произойти до первой привязки VBO.
     //  http://stackoverflow.com/questions/13403807/
     CArrayObject m_defaultVAO;
