@@ -82,7 +82,7 @@ function Packman(x, y, radius, color)
 ```
 
 Для отрисовки пакмена можно использовать уже написанные в первой статье функции, предварительно дописав их для работы с нашим объектом.
-В результате получилось слудующее:
+В результате получилось следующее:
 
 ```js
 function drawPackman(canvasContext, packman)
@@ -99,7 +99,7 @@ function drawPackman(canvasContext, packman)
 }
 ```
 
-Вот мы и добрались до кульминации, функции "серцебиения" анимации.
+Вот мы и добрались до кульминации, функции "сердцебиения" анимации.
 
 ```js
 function initTick(canvasContext)
@@ -165,7 +165,7 @@ function SpritePackman(x, y, width, height, packmanSprite)
         that._spriteHeight = that._sprite.height;
     };
     /*
-        Если написать буз обработчика события,
+        Если написать без обработчика события,
         то браузер может не успеть подгрузить картинку,
         так что that._sprite.width будет равно undefined.
     */
