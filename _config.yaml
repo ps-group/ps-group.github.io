@@ -14,6 +14,9 @@ collections:
   sfml:
     output: true
     permalink: '/sfml/:path'
+  js:
+    output: true
+    permalink: '/js/:path'
   packman:
     output: true
     permalink: '/packman/:path'
@@ -30,6 +33,10 @@ defaults:
         layout: article
     - scope:
         type: sfml
+      values:
+        layout: article
+    - scope:
+        type: js
       values:
         layout: article
     - scope:

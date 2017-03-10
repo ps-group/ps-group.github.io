@@ -14,6 +14,10 @@ Lemon &mdash; генератор синтаксических анализато
 - Bison и Yacc не позволяют выполнить указанный программистом код при выбрасывании значения из стека автомата, что может спровоцировать утечки памяти, если в стеке лежат указатели.
 - Bison и Yacc генерируют не самый удобный и чистый код на C
 
+## Установка
+
+Lemon состоит из двух файлов: 
+
 ## Интерфейс командной строки
 
 Синтаксис вызова lemon следующий:
@@ -408,38 +412,6 @@ void CCalcParser::PrintResult(double value)
     std::cerr << value << std::endl;
 }
 ```
-
-<!--
-
-## Token recognition
-
-The first step to parsing anything is to break it into lexical tokens. You can do this in any way you want. Lemon does not help you here, it only defines an integer "token id", for each terminal in your grammar, see cfg.h. It wants you to pass these id’s in sequentially, to represent the "token stream" being parsed.
-
-The lexer/tokenizer’s job is simple: produce a list of tokens. Each token is identified by its integer id. E.g. TOK_LCURLY, TOK_SERVER, etc. Each token a value in addition to its id. For example a token with id TOK_NUMBER might have the value "1234". The tokens (terminals) all have the same data type determined by the %token_type directive `[default int]`. In our example code we use a char* for our tokens. Whenever a token is identified, we make a string from it and pass that char* and its associated integer token id into the lemon-generated Parse function.
-
-### Regular expressions
-
-A nice way to tokenize the input would be to define a bunch of regular expressions (e.g. using PCRE) and then apply them in a specified order til one hits. But this example doesn’t need that complexity.
-
-### Simple custom lexer
-
-See the tok.c file for our simple lexical analyzer. It just reads a minimal number of characters until a keyword is recognized or a whitespace-delimited number or dotted-alphanumeric string is found. As a bonus feature it also keeps track of our line number so that we can print nice error messages during lexing/parsing.
-
-## Final notes
-
-### Careful memory management of the terminals!
-
-This bit me once or twice while learning how to write parsers. Recognize that lemon has a stack internally that keeps its state as it shifts and reduces rules. The token that your lexer passes in to Parse, will persist on that Lemon stack (maybe a long time) while other tokens are shifted. So, whatever token values you pass in, cannot be overwritten or reused while parsing proceeds.
-
-In other words, don’t just re-use the same char* as your token value and keep passing it into Lemon for each token-- you need a unique char* for each one. If you’re lazy you can just strndup() every token before calling Parse (and then you could define the %token_destructor to free() each one). There’s nothing wrong with that approach. I prefer a more manually-tracked approach so I strndup each token and throw it onto a vector of tokens before passing it into Parse. At the conclusion of parsing I iterate over that token vector and free all of them.
-
-Within my grammar actions in cfg.y, the "value" of each terminal is a pointer to one of those strings in my token vector. I write my grammar actions so that they, in turn, make their own copies of any tokens (strings) they want to "keep around" for inclusion in the final parsing result. This way I can free my token vector without worrying about whether the parsing result has remaining pointers into the token vector.
-
-### Why lex and parse in unison?
-
-As a side note you could "lex" the whole input into tokens (keeping the string and the integer id for each token, and if you want to be friendly, the line number it was on) prior to doing any parsing at all. I.e. the parsing could be done in an entirely separate phase using the pre-prepared token vector. But doing the lexing and the parsing in concert means that you can avoid the cost of further lexical analysis if you encounter a grammar error.
-
--->
 
 <!--TODO: https://www.sqlite.org/src/doc/trunk/doc/lemon.html-->
 <!--TODO: контроль приоритетов операторов -->

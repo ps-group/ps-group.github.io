@@ -138,9 +138,9 @@ CPU : Intel(R) Core(TM)2 Quad CPU    Q9550  @ 2.83GHz (2833.07 - MHz K8 - class 
 <expr> ::= <expr_add_sub> | <expr_add_sub><operator_mul_div><expr>
 ```
 
-Кстати, с левой рекурсией методы нисходящего разбора напрямую не справляются. Исключение &mdash; рекурсивный спуск, который может запросто использовать цикл вместо рекурсии, самостоятельно после каждой итерации склеивать два нетерминала, формируя новый нетерминал для левой части того же правила.
+Кстати, с проблемой левой рекурсии методы нисходящего разбора напрямую не справляются. Исключение &mdash; это рекурсивный спуск, который может запросто использовать цикл вместо рекурсии, самостоятельно после каждой итерации склеивать два нетерминала, получая новый нетерминал для левой части того же правила.
 
-Можно устранить левую рекурсию с помощью добавления правила:
+Можно устранить левую рекурсию с помощью добавления нового правила:
 
 ```bash
 # Была левая рекурсия
@@ -151,7 +151,7 @@ CPU : Intel(R) Core(TM)2 Quad CPU    Q9550  @ 2.83GHz (2833.07 - MHz K8 - class 
 <expr> ::= <expr_add_sub> | <expr_add_sub><expr_tail>
 <argument_list> ::= <argument> | <argument><argument_list_tail>
 
-<expr_tail> ::= <operator_mul_div><expr_add_sub> | <operator_mul_div><<expr_add_sub><expr_tail>
+<expr_tail> ::= <operator_mul_div><expr_add_sub> | <operator_mul_div><expr_add_sub><expr_tail>
 <argument_list_tail> ::= ","<argument> | ","<argument><argument_list_tail>
 ```
 

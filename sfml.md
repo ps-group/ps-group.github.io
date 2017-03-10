@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "Статьи по SFML"
+title: "SFML"
 permalink: /sfml/
 ---
 
