@@ -208,7 +208,7 @@ std::string str = GetSomeString();
 char *data = str.data();
 ```
 
-### Метод emplace/emplace_back возвращает ссылку
+### Метод emplace_back возвращает ссылку
 
 Методы emplace_back у различных контейнеров, таких как vector, конструируют новый элемент непосредственно в памяти коллекции, используя все переданные аргументы как параметры конструктора. В C++14 эти методы ничего не возвращали, и часто приходилось явно обращаться к созданному элементу:
 
@@ -234,7 +234,7 @@ template< class... Args >
 std::pair<iterator,bool> emplace( Args&&... args );
 ```
 
-### try_emplace, insert_or_assign в контейнерах map и unordered_map
+### Методы try_emplace и insert_or_assign в контейнерах map и unordered_map
 
 - Метод [try_emplace](http://en.cppreference.com/w/cpp/container/map/try_emplace) выполняет вставку тогда и только тогда, когда заданного ключа ещё нет в контейенере.
 
