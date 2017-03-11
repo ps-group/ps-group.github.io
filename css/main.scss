@@ -60,6 +60,29 @@ code.highlighter-rouge
     .wrapper
     {
         background-color: #fefefe;
+
+        h1, h2, h3
+        {
+            font-weight: bold;
+        }
+
+        h1
+        {
+            margin-top: 18px;
+            margin-bottom: 16px;
+        }
+        
+        h2
+        {
+            margin-top: 14px;
+            margin-bottom: 12px;
+        }
+        
+        h3
+        {
+            margin-top: 10px;
+            margin-bottom: 8px;
+        }
     }
 }
 .site-footer
