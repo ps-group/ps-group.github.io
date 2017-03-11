@@ -40,6 +40,8 @@ std::wstring utf8_to_wstring(std::string_view str)
 - единственные модифицирующие операции над string_view &mdash; [remove_prefix](en.cppreference.com/w/cpp/string/basic_string_view/remove_prefix) и [remove_suffix](http://en.cppreference.com/w/cpp/string/basic_string_view/remove_suffix), которые отсекают от видимого диапазона string_view заданное число символов с начала или с конца; исходная строка не меняется, а меняется только наблюдаемый диапазон
 - в стандартной библиотеке добавлен литерал ""sv, конструирующий string_view.
 
+![Иллюстрация](img/cxx/string_view.png)
+
 ### Тип данных optional
 
 Известный тип данных optional из Boost мигрировал в стандарт под именем `std::optional`. Мы не будем описывать класс в этой статье, отметим лишь основные особенности:
@@ -93,6 +95,98 @@ void Class::DestroyChild()
 ### Тип данных variant
 
 Известный тип данных variant из Boost мигрировал в стандарт под именем `std::variant`, и в процессе миграции интерфейс класса значительно изменился благодаря другим нововведениям C++17.
+
+Шаблонный variant параметризуется несколькими типами значений. Он способен хранить внутри значение любого из перечисленных в параметрах типов. Размер variant в байтах равен размеру наибольшего типа плюс 4 байта на хранение номера текущего типа:
+
+![Иллюстрация](img/cxx/variant_size.png)
+
+- variant корректно вызывает конструкторы и деструкторы для внутреннего значения
+- variant сам по себе не выделяет память в куче, но хранимый тип, такой как std::string, может сам выделять память
+    - оговорка: рекурсивно определённый variant может выделять память в куче
+
+В variant предусмотрена обработка исключений. При присваивании variant нового значения может быть выброшено исключение:
+
+```cpp
+// класс AlwaysThrowsOnMove бросает исключение при перемещении
+std::variant<int, AlwaysThrowsOnMove> value;
+// может быть выброшено исключение, когда старое значение уже удалено,
+//  а новое перемещается во внутренний буфер памяти variant
+value = AlwaysThrowsOnMove();
+```
+
+В случае выброса исключение variant потеряет внутреннее значение и перейдёт в специальное состояние valueless_by_exception, для запроса этого состояния существует одноимённый метод:
+
+```cpp
+std::variant<int, AlwaysThrowsOnMove> value;
+try
+{
+    value = AlwaysThrowsOnMove();
+}
+catch (...)
+{
+    assert(value.valueless_by_exception());
+}
+```
+
+Совет: используйте variant для хранения одного из нескольких состояний, если разные состояния могут иметь разные данные
+
+```cpp
+struct AnonymousUserState
+{
+};
+
+struct TrialUserState
+{
+    std::string userId;
+    std::string username;
+};
+
+struct SubscribedUserState
+{
+    std::string userId;
+    std::string username;
+    Timestamp expirationDate;
+    LicenseType licenceType;
+};
+
+using UserState = std::variant<
+    AnonymousUserState,
+    TrialUserState,
+    SubscribedUserState
+>;
+```
+
+Методы работы с variant:
+
+- функция `std::get<KnownType>(...)` бросает исключение, если тип внутри variant не совпадает с ожидаемым, а иначе возвращает ссылку на запрощенный тип
+- функция `std::get_if<KnownType>(...)`, которая возвращает указатель на запрошенный тип, если тип внутри variant совпадает с ожидаемым, и возвращает nullptr в противном случае
+- функция [visit](http://en.cppreference.com/w/cpp/utility/variant/visit), которая позволяет обойти variant либо с помощью полиморфной лямбды, либо с помощью класса с перегруженным для каждого варианта оператором "()"
+
+Вызов visit принимает callable-объект, выполняет switch-case по внутреннему индексу типа и вызывает callable в той ветке, куда программа перейдёт во время выполнения после switch. Другими словами, во время компиляции вызовы callable будут компилироваться для каждого из вариантов типов. Так может быть использован visit:
+
+```cpp
+using variant_t = std::variant<int, double, std::string>;
+variant_t value = "Hello, world!";
+
+std::visit([](auto&& arg) {
+    // Извлекаем тип аргумента текущего применения полиморфной лямбды
+    using T = std::decay_t<decltype(arg)>;
+    // Выполняем constexpr if (ещё одна особенность C++17)
+    if constexpr (std::is_same_v<T, int>)
+        // Эта ветвь компилируется, если T имеет тип int
+        std::cout << "int with value " << arg << '\n';
+    else if constexpr (std::is_same_v<T, double>)
+        // Эта ветвь компилируется, если T имеет тип double
+        std::cout << "double with value " << arg << '\n';
+    else if constexpr (std::is_same_v<T, std::string>)
+        // Эта ветвь компилируется, если T имеет тип std::string
+        std::cout << "std::string with value " << std::quoted(arg) << '\n';
+    else 
+        // Эта ветвь выдаст ошибку компиляции, если не все типы
+        //  были обработаны в остальных ветвях.
+        static_assert(always_false<T>::value, "non-exhaustive visitor!");
+}, value);
+```
 
 ## Изменения в стандартных контейнерах
 
@@ -206,15 +300,29 @@ std::tuple<int, int> foo_tuple()
 }
 ```
 
+## Небольшие улучшения разных модулей STL
+
+### Манипулятор quoted для вывода в ostream
+
+Манипулятор quoted позволяет выводить в поток текст, обёрнутый в кавычки. При этом кавычки внутри текста по умолчанию экранируются с помощью "\". Параметризовать quoted символом кавычек и экранирующим символом можно через второй и третий параметры std::quoted.
+
+```cpp
+// Экранируем обратным слешем '\', в роли кавычки используем '"'
+std::cout << "std::string with value " << std::quoted(arg) << '\n';
+
+// Экранируем прямым слешем '/', в роли кавычки используем '`'
+std::cout << "std::string with value " << std::quoted(arg, '`', '/') << '\n';
+```
+
 ## Инструкции и поток управления
 
 ### switch-case и fallthrough
 
-В C++17 появился атрибут fallthrough, способный решить вечные проблемы с case/break. Суть такова:
+В C++17 появился атрибут fallthrough, способный помочь с вечными проблемами case/break:
 
 - обычно в конце case происходит break, return или throw, что завершает выполнение блока кода
 - если в конце case ничего нет, в C++17 надо поставить `[[fallthrough]]` &mdash; атрибут для следующего case
-- если компилятор не увидит `[[fallthrough]]`, в C++17 он должен выдать предупреждение
+- если компилятор не увидит `[[fallthrough]]`, в C++17 он должен выдать предупреждение о неожиданном переходе к следующей метке case
 
 ```
 void example(int action)
@@ -225,13 +333,13 @@ void example(int action)
     case 1:
     case 2:
         handler1();
-        [[fallthrough]]; // атрибут привязан к следующему case
-    case 3: 
+        [[fallthrough]] // атрибут привязан к следующему case
+    case 3:
         handler2();
         // предупреждение: переход к следующей метке без fallthrough
     case 4:
         handler3();
-        [[fallthrough]]; // некорректный код: атрибут ни к чему не привязан
+        [[fallthrough]] // некорректный код: атрибут ни к чему не привязан
     }
 }
 ```
@@ -246,10 +354,11 @@ void example(int action)
 Это может упростить работу с итераторами или некоторыми указателями:
 
 ```cpp
-// C++17: if с инициализатором
+// C++17: if с инициализатором, в котором объявляется переменная,
+//        видимая для обеих веток if и else.
 if (auto p = m.try_emplace(key, value); !p.second)
 {
-    FATAL("Element already registered");
+    throw std::runtime_error("Element already registered");
 }
 else
 {
