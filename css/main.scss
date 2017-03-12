@@ -17,8 +17,9 @@ $spacing-unit:     30px;
 $text-color:       #000;
 $background-color: #fefefe;
 $brand-color:      #2a7ae2;
-$code-background-color: rgb(242, 248, 255); /*#f4f8fb;*/
-$code-border-color: rgb(108, 108, 108);
+$code-background-color: #f2f8ff;
+$code-border-color: #6c6c6c;
+$inline-code-border-color: #b0b0b0;
 
 $grey-color:       #323232;
 $grey-color-light: lighten($grey-color, 25%);
@@ -47,6 +48,8 @@ code.highlighter-rouge
 {
     font-size: $small-font-size;
     font-family: $code-font-family;
+    background: $background-color !important;
+    border: 1px solid $inline-code-border-color !important;
 }
 .wrapper
 {
