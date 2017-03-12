@@ -111,7 +111,7 @@ bool isInitialized = bool(optValue);
 
 - optional можно использовать для композиции объекта, время жизни которого короче времени жизни владельца:
 
-```
+```cpp
 void Class::InitChild()
 {
     // Если m_child - это std::optional<T>, то arg1, arg2 передаются в конструктор типа T
@@ -320,7 +320,7 @@ mapping.insert(std::move(nodeHandle));
 
 В C++17 для данных контейнеров появился метод [merge](http://en.cppreference.com/w/cpp/container/map/merge), который пытается один за другим извлечь все узлы из переданного контейнера методом extract и переместить их в другой контейнер методом insert. Такие перегрузки есть у метода в контейнере map:
 
-```
+```cpp
 // Есть перегрузка для Allocator& и Allocator&&
 template<class C2>
 void merge(std::map<Key, T, C2, Allocator>& source);
@@ -514,7 +514,7 @@ void destroy_n(ForwardIterator first, Size n);
 - если в конце case ничего нет, в C++17 надо поставить `[[fallthrough]]` &mdash; атрибут для следующего case
 - если компилятор не увидит `[[fallthrough]]`, в C++17 он должен выдать предупреждение о неожиданном переходе к следующей метке case
 
-```
+```cpp
 void example(int action)
 {
     void handler1(), handler2(), handler3();
