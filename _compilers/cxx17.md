@@ -33,6 +33,14 @@ title: 'Миграция на повседневный C++17'
 
 - [Антон Полухин. C++17 (C++ SIBERIA 2016)](http://cpp-russia.ru/?page_id=1253)
 
+## Таблицы поддержки C++17 в компиляторах
+
+- [Ядро языка и реализация STL в Microsoft C++ Compiler](https://docs.microsoft.com/en-us/cpp/visual-cpp-language-conformance)
+- [Ядро языка в LLVM/Clang](https://clang.llvm.org/cxx_status.html)
+- [Реализация STL от LLVM/Clang - libc++](https://libcxx.llvm.org/cxx1z_status.html)
+- [Ядро языка в GCC](https://gcc.gnu.org/projects/cxx-status.html)
+- [Реализация STL от GCC - libstdc++](https://gcc.gnu.org/onlinedocs/libstdc++/manual/status.html)
+
 ## Новый модуль std::filesystem
 
 Знаменитая библиотека Boost.Filesystem мигрировала в стандарт, и теперь будет реализована производителями компиляторов в пространстве имён [std::filesystem](http://en.cppreference.com/w/cpp/filesystem). Это радует, потому что Boost.Filesystem имеет известные проблемы внутренней архитектуры:
