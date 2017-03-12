@@ -405,6 +405,8 @@ int main()
 
 ### to_chars и from_chars
 
+> Пример взят из доклада [Антон Полухин. C++17 (C++ SIBERIA 2016)](http://cpp-russia.ru/?page_id=1253)
+
 В C++17 появились две функции для безопасного и предсказуемого преобразования из диапазона `char*` в числа и обратно, прекрасно дополняющие функции to_string. Однако, функции [to_chars](http://en.cppreference.com/w/cpp/utility/to_chars) и [from_chars](http://en.cppreference.com/w/cpp/utility/from_chars), рекомендуется использовать их в библиотеках и утилитах, но не напрямую в повседневном коде.
 
 Старый подход подразумевал применение strtoi (strtod, strtoll) либо ostringstream:
