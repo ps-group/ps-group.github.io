@@ -13,6 +13,7 @@ title: 'Миграция на повседневный C++17'
 - в параметрах всех функций и методов вместо `const string&` принимайте невладеющий `string_view` по значению, но возвращайте владеющий string
 - завершайте все блоки case, кроме последнего, либо атрибутом `[[fallthrough]]`, либо инструкцией `break;`
 - смело пишите `auto object = Class(a, b, c, ...);`, в C++17 гарантировано не произойдёт ни копирования, ни перемещения независимо от перегрузок конструкторов класса
+- избегайте вложенности пространств имён, а если не избежать, то объявляйте их с помощью `namespace product::account::details`
 
 Гайдлайны по STL:
 
@@ -21,6 +22,12 @@ title: 'Миграция на повседневный C++17'
 - используйте тип variant вместо enum в ситуации, когда данные, такие как код ошибки в исключении, должны быть обработаны во всех вариантах, и неполная обработка вариантов должна приводить к ошибке компиляции
 - используйте тип variant вместо any везде, где это возможно
 - предпочитайте std::filesystem вместо boost::filesystem
+- используйте [to_chars](http://en.cppreference.com/w/cpp/utility/to_chars) и [from_chars](http://en.cppreference.com/w/cpp/utility/from_chars) для реализации библиотечных функций сериализации и парсинга чисел, но не используйте их напрямую: рискуете сделать небрежную обработку ошибок
+- используйте [std::size](http://en.cppreference.com/w/cpp/iterator/size) для измерения длины C-style массива
+
+## Доклады с конференций
+
+- [Антон Полухин. C++17 (C++ SIBERIA 2016)](http://cpp-russia.ru/?page_id=1253)
 
 ## Новый модуль std::filesystem
 
@@ -347,6 +354,39 @@ std::tuple<int, int> foo_tuple()
 
 Функция [clamp](http://en.cppreference.com/w/cpp/algorithm/clamp) дополняет функции min и max. Она обрезает значение и сверху, и снизу.
 
+### Функции size, empty и data
+
+Используйте [std::size](http://en.cppreference.com/w/cpp/iterator/size) для измерения длины C-style массива:
+
+```cpp
+#include <vector>
+#include <iterator> //< для std::size
+
+int main() 
+{
+    {
+        std::vector<int> values = { 3, 14, 41 };
+        size_t valuesSize = std::size(values);
+        assert(valuesSize == 3);
+    }
+
+    {
+        int values[] = { -5, 5, 15 };
+        size_t valuesSize = std::size(values);
+        assert(valuesSize == 3);
+    }
+
+    {
+        // ! ошибка компиляции на вызове std::size !
+        int *values = new int[3];
+        size_t valuesSize = std::size(values);
+        assert(valuesSize == 3);
+    }
+}
+```
+
+Свободные функции [std::empty](http://en.cppreference.com/w/cpp/iterator/empty) и [std::data](http://en.cppreference.com/w/cpp/iterator/data) дополняют функции std::size, std::begin, std::end, позволяя прозрачно работать как с контейнерами STL, так и с C-style массивами либо списками инициализации std::initializer_list
+
 ### Функция sample
 
 Функция [sample](http://en.cppreference.com/w/cpp/algorithm/sample) выбирает n элементов из последовательности [first, last) таких, что каждый выбранный образец имеет одинаковую вероятности появления. Для генерации случайных чисел используется переданный генератор.
@@ -358,6 +398,45 @@ std::tuple<int, int> foo_tuple()
 ### Новые перегрузки алгоритма search и объекты searcher
 
 В предыдущих стандартах C++ алгоритмы [search](http://en.cppreference.com/w/cpp/algorithm/search) и [search_n](http://en.cppreference.com/w/cpp/algorithm/search_n) выполнял поиск "в лоб", без оптимизаций по алгоритмам Бойера-Мура или Бойера-Мура-Хорспула. В новом стандарте появились объекты [default_searcher](http://en.cppreference.com/w/cpp/utility/functional/default_searcher), [boyer_moore_searcher](http://en.cppreference.com/w/cpp/utility/functional/boyer_moore_searcher), [boyer_moore_horspool_searcher](http://en.cppreference.com/w/cpp/utility/functional/boyer_moore_horspool_searcher), а также перегрузки search и search_n, работающие с этими объектами.
+
+### to_chars и from_chars
+
+В C++17 появились две функции для безопасного и предсказуемого преобразования из диапазона `char*` в числа и обратно, прекрасно дополняющие функции to_string. Однако, функции [to_chars](http://en.cppreference.com/w/cpp/utility/to_chars) и [from_chars](http://en.cppreference.com/w/cpp/utility/from_chars), рекомендуется использовать их в библиотеках и утилитах, но не напрямую в повседневном коде.
+
+Старый подход подразумевал применение strtoi (strtod, strtoll) либо ostringstream:
+
+```cpp
+// ! устаревший код !
+#include <sstream>
+
+// ! устаревший код !
+// конвертирует строку в число, в случае ошибки возвращает 0
+template<class T>
+T atoi_14(const std::string &str)
+{
+    T res{};
+    std::ostringstream oss(str);
+    oss >> res;
+    return res;
+}
+```
+
+Новый подход позволяет избежать как C-style кода, так и громоздкого stringstream, который к тому же конструирует объект locale. Теперь реализация может выглядеть так:
+
+```cpp
+#include <utility>
+
+// конвертирует строку в число, в случае ошибки возвращает 0
+template<class T>
+T atoi_17(std::string_view str)
+{
+    T res{};
+    std::from_chars(str.data(), str.data() + str.size(), res);
+    return res;
+}
+```
+
+Функции to_chars и from_chars поддерживают обработку ошибок: они возвращают по два значения, одно из которых имеет тип `std::error_code`, а второй &mdash; тип `char*` и `const char*` соответственно. Поскольку в прикладном коде способ реакции на ошибку может различаться, следует помещать вызовы to_chars и from_chars внутрь библиотек и утилитных классов.
 
 ### Специальные математические функции
 
@@ -532,6 +611,16 @@ fn(std::make_pair(42, 'a'));
 
 // новый подход C++17
 fn(std::pair(42, 'a'));
+```
+
+Эта фишка упрощает работу с std::array:
+
+```cpp
+// ! устаревший код !
+std::array<char, 43> data = "The quick brown fox jumps over the lazy dog";
+
+// новый подход C++17
+std::array<char> data = "The quick brown fox jumps over the lazy dog";
 ```
 
 ### Новые гарантии порядка вычислений
