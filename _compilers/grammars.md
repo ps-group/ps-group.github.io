@@ -155,6 +155,103 @@ CPU : Intel(R) Core(TM)2 Quad CPU    Q9550  @ 2.83GHz (2833.07 - MHz K8 - class 
 <argument_list_tail> ::= ","<argument> | ","<argument><argument_list_tail>
 ```
 
+## Примеры контекстно-свободных грамматик
+
+> Вы читаете перевод [Examples of BNF Grammars](http://www.cs.utsa.edu/~wagner/CS3723/grammar/examples.html)
+
+### Грамматика для простых предложений
+
+Порождает предложения такого плана:
+
+```
+THE MAN BITES A DOG
+A DOG PETS A DOG
+```
+
+Но не порождает это предложение:
+
+```
+MAN BITES DOG
+```
+
+Набор правил выглядит так:
+
+```
+sentence ::= subject predicate
+subject ::= article noun
+predicate ::= verb direct-object
+direct-object ::= article noun
+article ::= 'THE' | 'A'
+noun ::= 'MAN' | 'DOG'
+verb ::= 'BITES' | 'PETS'
+```
+
+### Грамматика для чисел в двоичной системе счисления
+
+Для чисел вида '010110111'. Неоднозначная (ambiguous) версия грамматики:
+
+```
+binary_string ::= '0' | '1' | binary_string binary_string
+```
+
+Однозначная (unambiguous) версия грамматики:
+
+```
+binary_string ::= binary_string '0' | binary_string '1' | '0' | '1'
+```
+
+### Грамматика для простой арифметики
+
+Поддерживает операторы '+', '*' и переменные X, Y, Z. Первая версия будет однозначной для LALR-парсеров, и неоднозначной для LL-парсеров:
+
+```
+sentence ::= expression
+expression ::= expression + expression
+             | expression * expression
+             | identifier
+identifier ::= 'X' | 'Y' | 'Z'
+```
+
+Вторая версия будет однозначной и для LL-парсеров тоже:
+
+```
+sentence ::= expression
+expression ::= term | expression + term
+term ::= identifier | term * identifier
+identifier ::= 'X' | 'Y' | 'Z'
+```
+
+Третья версия неоднозначная. Как думаете, почему?
+
+```
+sentence ::= expression
+expression ::= term | expression + term
+term ::= identifier | term * identifier | expression
+identifier ::= 'X' | 'Y' | 'Z'
+```
+
+### Примеры ошибочных грамматик
+
+Эта грамматика неоднозначная:
+
+```
+zot ::= zot 'b' zot | 'a'
+```
+
+И эта тоже неоднозначная:
+
+```
+zot ::= zing | 'a'
+zing ::= zot | 'b'
+```
+
+В этой есть иная проблема. Подумайте, какая:
+
+```
+zot ::= zing | 'a'
+zing ::= zing 'b'
+```
+
 ## Контекстно-зависимые грамматики
 
 Способа разобрать текст по контекстно-зависимой грамматике в один проход нет. Точно так же не справится и разбор с возвратами и стеком. Существующие алгоритмы имеют чрезмерно большую вычислительную сложность и не подходят для быстрой компиляции исходного кода. Поэтому все формальные языки используют простой трюк:

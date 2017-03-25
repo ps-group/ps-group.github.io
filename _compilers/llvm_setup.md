@@ -1,7 +1,7 @@
 ---
 title: Руководство по установке LLVM
 preview: img/LLVM-Logo-Derivative-1.png
-subtitle: Руководство по сборке и установке LLVM на Windows и Linux
+subtitle: Руководство по сборке и установке LLVM на Windows и Linux. Знакомит с примерами и утилитами в составе LLVM.
 ---
 
 Ключевые шаги установки:
