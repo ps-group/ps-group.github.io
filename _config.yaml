@@ -6,6 +6,9 @@ github_username: ps-group
 markdown: kramdown
 highlighter: rouge
 
+gems:
+  - jekyll-redirect-from
+
 collections:
   opengl:
     output: true
