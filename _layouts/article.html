@@ -2,25 +2,17 @@
 layout: default
 ---
 
-{% case page.collection %}
-  {% when 'opengl' %}
-    {% include post_breadcrumbs.html collection_name='OpenGL' %}
-  {% when 'compilers' %}
-  {% include post_breadcrumbs.html collection_name='Компиляторы' %}
-  {% when 'html5' %}
-    {% include post_breadcrumbs.html collection_name='JS+HTML5' %}
-  {% when 'sfml' %}
-    {% include post_breadcrumbs.html collection_name='SFML' %}
-  {% when 'packman' %}
-    {% include post_breadcrumbs.html collection_name='SFML' %}
-  {% else %}
-    {% include post_breadcrumbs.html collection_name='Все статьи' %}
-{% endcase %}
+{% include post_breadcrumbs.html collection_name='Все статьи' %}
 
 <section class='page-section docs strong-headers'>
   <div class='container-narrow'>
     {% if page.subtitle %}
       <p>{{ page.subtitle }}</p>
+      {% if page.github %}
+        <blockquote>
+          <p>Пример к статье <a href="{{ page.github }}">доступен на github</a></p>
+        </blockquote>
+      {% endif %}
       {% if page.preview %}
         <p><img src="{{ page.preview }}" alt="Иллюстрация"></p>
       {% endif %}

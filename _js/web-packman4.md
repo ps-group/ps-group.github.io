@@ -1,5 +1,6 @@
 ---
 title: 'Противники и с чем их "едят"'
+preview: img/web-packman/web_packman-screenshot-4.png
 ---
 
 ## Призраки и главный герой

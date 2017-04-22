@@ -1,5 +1,6 @@
 ---
 title: "Окна и цикл игры"
+preview: img/web-packman/web_packman-screenshot-6.png
 ---
 
 ## Подходы к созданию окон

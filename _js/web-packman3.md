@@ -1,5 +1,6 @@
 ---
 title: "Препятствия и обработка столкновений"
+preview: img/web-packman/web_packman-screenshot-3.png
 ---
 
 ## Обработка столкновений

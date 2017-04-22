@@ -1,5 +1,6 @@
 ---
 title: "Отрисовка круга"
+preview: img/web-packman/web_packman-screenshot-1.png
 ---
 
 ## Отрисовка круга

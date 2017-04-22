@@ -20,15 +20,15 @@ collections:
   js:
     output: true
     permalink: '/js/:path'
-  packman:
-    output: true
-    permalink: '/packman/:path'
   compilers:
     output: true
     permalink: '/compilers/:path'
   os:
     output: true
     permalink: '/os/:path'
+  cxx:
+    output: true
+    permalink: '/cxx/:path'
 defaults:
     - scope:
         type: opengl
@@ -52,5 +52,9 @@ defaults:
         layout: article
     - scope:
         type: os
+      values:
+        layout: article
+    - scope:
+        type: cxx
       values:
         layout: article

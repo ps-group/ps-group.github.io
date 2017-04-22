@@ -76,7 +76,7 @@ function  Button(id, canvas, canvasContext)
 }
 ```
 
-Напишим функцию, инициализирующую события.
+Напишем функцию, инициализирующую события.
 
 ```js
 this.activate = function (view)
@@ -182,16 +182,16 @@ this._outEventHandle = function (event)
 };
 ```
 
-Заметьте, что для высчитывания координат был использован метод *_getClickCoordinates*, так как свойства события *event.clientX* и *event.clientY* хранят координаты мыши относительно экрана, а не относительно документа.
+Заметим, что для расчёта координат был использован метод *_getClickCoordinates*, так как свойства события *event.clientX* и *event.clientY* хранят координаты мыши относительно экрана, а не относительно документа.
 
 ```js
 this._getClickCoordinates = function (event)
-    {
-        var click = {};
-        click.x = event.pageX - canvas.getBoundingClientRect().left - window.scrollX;
-        click.y = event.pageY - canvas.getBoundingClientRect().top - window.scrollY;
-        return click;
-    };
+{
+    var click = {};
+    click.x = event.pageX - canvas.getBoundingClientRect().left - window.scrollX;
+    click.y = event.pageY - canvas.getBoundingClientRect().top - window.scrollY;
+    return click;
+};
 ```
 
 Напишем метод, который деактивирует кнопку, уничтожающую обработчики событий.
@@ -331,5 +331,3 @@ window.onload = function()
     });
 };
 ```
-
-![Скриншот](img\html_canvas\buttons_screenshot.png)

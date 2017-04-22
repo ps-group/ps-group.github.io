@@ -1,0 +1,10 @@
+{% for page in site.pages %}
+  {% if page.permalink == include.permalink %}
+    <li>
+      <h5>
+        <a class="post-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title | escape }}</a>
+      </h5>
+    </li>
+  {% endif %}
+{% endfor %}
+

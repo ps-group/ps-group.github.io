@@ -1,5 +1,6 @@
 ---
 title: "Работа с графическими примитивами"
+preview: img/html_canvas/screenshot2.png
 ---
 
 ## Что такое canvas и с чем его едят?
@@ -53,7 +54,7 @@ canvasContext.fill(); // закрашивает фигуру заливкой
 canvasContext.stroke(); // обводит фигуру контуром
 canvasContext.closePath(); // очищает память
 ```
-![Скриншот](img\html_canvas\screenshot1.png)
+![Скриншот](img/html_canvas/screenshot1.png)
 
 ## Движение и поворот системы координат
 Всё относительно, как говорил один старичок в двадцатом веке. Это правило не обошло и canvas. Добрые разработчики ввели две очень полезные функции:
@@ -110,7 +111,7 @@ function drawPackmenFigure(canvasContext, x, y, radius, color, endAngle)
 };
 ```
 
-![Скриншот](img\html_canvas\screenshot2.png)
+![Скриншот](img/html_canvas/screenshot2.png)
 
 ## Изображения
 Кроме того в канвасе есть замечательная функция *[drawImage](https://developer.mozilla.org/ru/docs/Web/API/CanvasRenderingContext2D/drawImage)*, которая рисует выбранную часть изображения с заданными размерами и координатами. Эта громадина может принимать до 9 аргументов. Первым аргументом во всех случаях является объект *[Image](https://developer.mozilla.org/ru/docs/Web/API/HTMLImageElement/Image)*, после идут аргументы, описывающие масштаб и координаты  изображения. Существует всего три способа параметризовать эту функцию:

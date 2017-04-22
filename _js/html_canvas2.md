@@ -1,5 +1,6 @@
 ---
 title: "Анимация"
+preview: img/html_canvas/packman_sprite.png
 ---
 
 ## Предисловие
@@ -131,7 +132,7 @@ window.onload = function()
 
 Полюбуемся результатом.
 
-![Скриншот](img\html_canvas\animated_packman.gif)
+![Скриншот](img/html_canvas/animated_packman.gif)
 
 ## Спрайты
 Для создания анимации можно использовать двухмерные [спрайты](https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D1%80%D0%B0%D0%B9%D1%82_(%D0%BA%D0%BE%D0%BC%D0%BF%D1%8C%D1%8E%D1%82%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%BA%D0%B0)). При этом принцип кардинально не меняется, меняется лишь способ отрисовки кадров. Напишем пакмена, который бы использовал спрайты для отрисовки самого себя.
@@ -143,7 +144,7 @@ window.onload = function()
  3. Сдвиг относительно начала спрайта
  4. Размеры одного состояния на спрайте
 
- ![Схема](img\html_canvas\packman_sprite.png)
+ ![Схема](img/html_canvas/packman_sprite.png)
 
 Напишим объект пакмена по заданным требованиям.
 
@@ -230,4 +231,4 @@ function initTick(canvasContext)
 
 Результат несильно отличается от первого.
 
-![Скриншот](img\html_canvas\animated_packman.gif)
+![Скриншот](img/html_canvas/animated_packman.gif)

@@ -2,52 +2,19 @@
 layout: default
 ---
 
-<!--
-Свойства в Liquid у объекта page in site.pages:
- - layout: String, e.g. 'page'
- - title: String
- - permalink: String, e.g. '/compilers'
- - content: String (large text)
- - dir: String, e.g. '/compilers'
- - name: String, e.g. 'compilers.md'
- - path: String, e.g. 'compilers.md'
- - url: String, e.g. '/compilers'
- -->
-
-<!--
- Свойства у объекта post in site.opengl, например
- - path: String, e.g. '_opengl/apitrace.md'
- - id: String, e.g. /opengl/apitrace
- - output
- - content
- - relative_path
- - url
- - collection
- - excerpt
- - previous
- - next
- - draft
- - categories: StringList, empty by default
- - layout: String, e.g. opengl
- - title: String, e.g. 'Используем Apitrace для отладки OpenGL'
- - slug
- - ext
- - tags: StringList, empty by default
- - date: String, by default it's site build date
--->
-
 <div class="home">
-
-  <h1 class="post-heading">Разделы сайта</h1>
+  <h1 class="post-heading">Курсы</h1>
   <ul class="post-list">
-    {% for page in site.pages %}
-    {% if page.layout == 'page' %}
-      <li>
-        <h5>
-          <a class="post-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title | escape }}</a>
-        </h5>
-      </li>
-    {% endif %}
-    {% endfor %}
+    {% include course_item.html permalink='/opengl/' %}
+    {% include course_item.html permalink='/compilers/' %}
+    {% include course_item.html permalink='/opr_js/' %}
+    {% include course_item.html permalink='/opr_cxx/' %}
+    {% include course_item.html permalink='/os/' %}
+  </ul>
+  <h1 class="post-heading">Циклы статей</h1>
+  <ul class="post-list">
+    {% include course_item.html permalink='/js/' %}
+    {% include course_item.html permalink='/cxx/' %}
+    {% include course_item.html permalink='/sfml/' %}
   </ul>
 </div>

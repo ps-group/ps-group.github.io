@@ -1,5 +1,6 @@
 ---
 title: "Очки и особенности js"
+preview: img/web-packman/web_packman-screenshot-5.png
 ---
 
 ## Особенности разработки на js

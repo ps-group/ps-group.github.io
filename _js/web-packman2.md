@@ -1,5 +1,6 @@
 ---
 title: "Добавим движение"
+preview: img/web-packman/web_packman-screenshot-2.png
 ---
 
 ## Цикл игры
