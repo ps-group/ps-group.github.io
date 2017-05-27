@@ -4,6 +4,7 @@ source:
 destination: '_site'
 url: 'http://ps-group.github.io'
 github_username: ps-group
+vk_username: sshambir
 markdown: kramdown
 highlighter: rouge
 email: sshambir@gmail.com
