@@ -1,10 +1,12 @@
 title: 'PS-Group'
+description: 'Материалы для курсов в Институте Программных Систем и в Волгатехе'
 source:
 destination: '_site'
 url: 'http://ps-group.github.io'
 github_username: ps-group
 markdown: kramdown
 highlighter: rouge
+email: sshambir@gmail.com
 
 gems:
   - jekyll-redirect-from
