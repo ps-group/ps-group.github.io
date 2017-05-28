@@ -6,7 +6,7 @@ preview: img/multiplexer.png
 
 > Материал основан на статье [Blocking I/O, Nonblocking I/O, And Epoll (англ.)](https://eklitzke.org/blocking-io-nonblocking-io-and-epoll)
 
-В этой статье мы покажем, что именно происходит, когда вы используете неблокирующий ввод-вывод. Мы расмотрим:
+В этой статье мы покажем, что именно происходит, когда вы используете неблокирующий ввод-вывод. Мы рассмотрим:
 
 * Что означают понятия "неблокирующий", "асинхронный", "событийный" для ввода-вывода
 * Смысл добавления флага `O_NONBLOCK` для файловых дескрипторов через `fcntl`
@@ -30,7 +30,7 @@ preview: img/multiplexer.png
 Блокировки - это проблема для всех программ, требующих конкурентного выполнения, поскольку заблокированные потоки процесса засыпают и не получают процессорное время. Существует два различных, но взаимодополняющих способа устранить блокировки:
 
 - неблокирующий режим ввода-вывода
-- мультиплексировани с помощью системного API, такого как `select` либо `epoll`
+- мультиплексирование с помощью системного API, такого как `select` либо `epoll`
 
 Эти решения часто применяются совместно, но предоставляют разные стратегии решения проблемы. Скоро мы узнаем разницу и выясним, почему их часто совмещают.
 
@@ -205,3 +205,9 @@ for (;;) {
 
 - Ищите справку в [man-документации для epoll](https://www.opennet.ru/man.shtml?topic=epoll&category=4&russian=0)
 - Полный пример с использованием epoll есть на [github.com/eklitzke/epollet](https://github.com/eklitzke/epollet)
+
+## Мультиплексирование в других операционных системах
+
+- Механизм `select` и `read`/`write` доступны на всех современных системах, включая Windows, MacOSX, FreeBSD.
+- В Windows есть механизм [I/O Completion Ports](https://msdn.microsoft.com/en-gb/library/windows/desktop/aa365198(v=vs.85).aspx)
+- В MacOSX и FreeBSD есть механизм [Kernel Queues](https://developer.apple.com/library/content/documentation/Darwin/Conceptual/FSEvents_ProgGuide/KernelQueues/KernelQueues.html)
