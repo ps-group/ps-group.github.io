@@ -96,7 +96,7 @@ std::wstring utf8_to_wstring(std::string_view str)
 - единственные модифицирующие операции над string_view &mdash; [remove_prefix](en.cppreference.com/w/cpp/string/basic_string_view/remove_prefix) и [remove_suffix](http://en.cppreference.com/w/cpp/string/basic_string_view/remove_suffix), которые отсекают от видимого диапазона string_view заданное число символов с начала или с конца; исходная строка не меняется, а меняется только наблюдаемый диапазон
 - в стандартной библиотеке добавлен литерал ""sv, конструирующий string_view.
 
-![Иллюстрация](img/cxx/string_view.png)
+![Иллюстрация](img/string_view.png)
 
 ### Тип данных optional
 
@@ -154,7 +154,7 @@ void Class::DestroyChild()
 
 Шаблонный variant параметризуется несколькими типами значений. Он способен хранить внутри значение любого из перечисленных в параметрах типов. Размер variant в байтах равен размеру наибольшего типа плюс 4 байта на хранение номера текущего типа:
 
-![Иллюстрация](img/cxx/variant_size.png)
+![Иллюстрация](img/variant_size.png)
 
 - variant корректно вызывает конструкторы и деструкторы для внутреннего значения
 - variant сам по себе не выделяет память в куче, но хранимый тип, такой как std::string, может сам выделять память
