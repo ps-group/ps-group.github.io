@@ -3,6 +3,19 @@ title: 'Соглашения о кодировании на C++'
 subtitle: 'В статье описаны соглашения для курса компьютерной графики 2017 года'
 ---
 
+## Список отмазок
+
+Отмазки из этого списка не будут приняты во внимание:
+
+- "я забыл прочитать соглашения о кодировании"
+- "я забыл настроить автоформатирование"
+- "я забыл включить проверку C++ Core Guidelines"
+- "я потом поменяю, вместе с другими замечаниями"
+- "это не мой код, я его взял со stackoverflow / с Интернета / у товарища"
+    - профессиональные программисты смотрят примеры в Интернете, но перепроверяют их и адаптируют под свой стиль
+- "ах да, у меня тут плагин не установился, поэтому код не отформатирован"
+    - ничто не мешает сообщить о технической проблеме заранее, до того, как преподаватель обнаружит последствия
+
 ## Стандарт C++
 
 Мы используем последний актуальный стандарт &mdash; C++17. Если вы используете Visual Studio, выбирайте версию Visual Studio 2017 или выше и укажите в настройках проекта `/std=c++latest`:
@@ -32,7 +45,7 @@ subtitle: 'В статье описаны соглашения для курса
 
 ```bash
 #!/usr/bin/env bash
-
+# Скрипт вызывает clang-format для всех файлов *.cpp и *.h
 filepaths=$(find . -type f \( -name "*.cpp" -or -name "*.h" \))
 for filepath in $filepaths; do
     echo "Formatting ${filepath}..."
@@ -40,7 +53,12 @@ for filepath in $filepaths; do
 done
 ```
 
-Пример правильно отформатированного кода:
+Ниже показан правильно отформатированный код. Из него понятно, что
+
+- мы используем табуляции для отступов
+- символы указателя или ссылки прижимаются к имени типа, а не к имени переменной
+- скобки ставятся на новой строке
+- пробелы ставятся вокруг бинарных операторов и после инструкций `for`, `if` и т.д.
 
 ```cpp
 void DoEventLoop(SDL_Window* window, const std::function<void()>& draw)
@@ -71,13 +89,33 @@ void DoEventLoop(SDL_Window* window, const std::function<void()>& draw)
 }
 ```
 
+## Именование
+
+Следующая таблица даст понимание стиля именования. Особенности:
+
+- у классов нет префикса "C"
+- мы не используем глобальные переменные
+- мы не используем макросы
+
+| Категория                | Требования                  | Пример          |
+|--------------------------|-----------------------------|-----------------|
+| тип данных (enum, using) | UpperCamelCase              | Direction       |
+| класс или структура      | UpperCamelCase              | TableGenerator  |
+| поле класса              | префикс m_ и lowerCamelCase | m_frameNo       |
+| интерфейс                | префикс I и UpperCamelCase  | ITableGenerator |
+| глобальная константа     | префикс k и UpperCamelCase  | kColumnCount    |
+| переменная или параметр  | lowerCamelCase              | signatureLength |
+| функция или метод        | UpperCamelCase              | LinkProgram     |
+| константа enum class     | UpperCamelCase              | Direction::Left |
+
 ## Объектно-ориентированный стиль
 
-Код на C++ пишется в объектно-ориентированном стиле с разумным использованием классов, инкапсуляции полиморфизма, наследования и композиции. Следует помнить о нескольких правилах:
+Код на C++ пишется в объектно-ориентированном стиле с разумным использованием классов, инкапсуляции полиморфизма, наследования и композиции. Следует помнить о нескольких правилах.
+
+Правила, касающиеся создания классов:
 
 - [C.1:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c1-organize-related-data-into-structures-structs-or-classes) схожие данные объединяйте в структуры или классы
 - [C.2:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c2-use-class-if-the-class-has-an-invariant-use-struct-if-the-data-members-can-vary-independently) используйте класс, если объект имеет инвариант, а в случае независимо изменяющихся полей используйте структуры
-)
 - [C.3:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c3-represent-the-distinction-between-an-interface-and-an-implementation-using-a-class) разделяйте интерфейс и реализацию в классе, т.е. пользуйтесь инкапсуляцией данных
 - [C.9:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-private) минимизируйте публичный доступ к полям класса
 - [C.7:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-standalone) не объявляйте переменную в той же инструкции, в которой вы объявили структуру или `enum`
@@ -86,4 +124,65 @@ void DoEventLoop(SDL_Window* window, const std::function<void()>& draw)
 - [C.49](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-initialize) старайтесь использовать списки инициализации конструктора вместо присваивания в теле конструктора
 - [C.46:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-explicit) добавляйте ключевое слово `explicit` для конструкторов с одним параметром
 - [C.31:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-dtor-release) все захваченные объектом класса ресурсы должны быть освобождены в деструкторе
-- [C.35](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c35-a-base-class-destructor-should-be-either-public-and-virtual-or-protected-and-nonvirtual) публичный деструктор базового класса должен быть виртуальным, либо он должен быть защищённым (`protected`)
+- [C.82:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-ctor-virtual) не вызывайте виртуальные функции в конструкторах и деструкторах
+- [C.127](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-dtor) публичный деструктор класса с виртуальными функциями должен быть виртуальным, либо он должен быть защищённым (`protected`)
+
+Правила, касающиеся иерархий классов
+
+- [C.121:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-abstract) если базовый класс используется как интерфейс, то в нём не должно быть полей и все методы должны быть виртуальными
+- [C.128:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-override) виртуальные функции должны быть помечены ровно одним из ключевых слов `virtual`, `override`, `final`
+- [C.133:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-protected) избегайте protected полей класса
+- [C.153:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-use-virtual) используйте полиморфизм вместо приведения базового класса к нужному типу
+
+Все указанные правила входят в состав C++ Core Guidelines. Вы можете настроить автоматическую проверку исходного кода проекта:
+
+- в Visual Studio 2017 и выше включите проверки в настройках проекта, как показано на скриншоте ниже
+- если вы используете CMake 3.6+, вы можете использовать анализатор clang-tidy
+
+## Как использовать анализатор в составе Visual Studio
+
+Нужная настройка показана на скриншоте ниже
+
+![Скриншот](img/setup/vscoreguidelines.png)
+
+### Как использовать анализатор clang-tidy вместе с CMake
+
+- установите clang-tidy (например, можно установить LLVm/Clang)
+- создайте файл `.clang-tidy` со следующим содержимым
+
+```
+---
+Checks: 'cppcoreguidelines-*,clang-analyzer-*,readability-*,modernize-*'
+...
+```
+
+- воспользуйтесь параметром `CMAKE_CXX_CLANG_TIDY` при запуске CMake, как показано в примере ниже
+
+```bash
+# Сначала проверьте, доступен ли clang-tidy
+clang-tidy --version
+
+# Параметр CMAKE_CXX_CLANG_TIDY - строка,
+#  сначала указывается имя или путь к утилите clang-tidy,
+#  затем указываются флаги проверок,
+#    - мы включили cppcoreguidelines
+#    - также включили readability
+# Подробнее см. документацию http://clang.llvm.org/extra/clang-tidy/
+cmake -DCMAKE_CXX_CLANG_TIDY:STRING="clang-tidy;-style=file;-checks=*" .
+```
+
+## Повседневный код на C++
+
+Вам не нужно использовать сложные техники языка C++ при освоении курса. Запомните три правила простого, повседневного кода C++:
+
+- избегайте низкоуровневой работы с памятью, поскольку это экспертная задача
+    - [C.149:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-smart) используйте умные указатели `unique_ptr` и `shared_ptr`, чтобы избегать прямого вызова `new` и `delete`
+    - [C.150:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-make_unique) используйте `make_unique()` для конструирования `unique_ptr<T>`
+    - [C.151:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-make_shared) используйте `make_shared()` для конструирования `shared_ptr<T>`
+- откажитесь от низкоуровневых циклов for и while в пользу алгоритмов STL/Boost, либо выносите их в отдельные функции
+    - см. доклад Михаила Матросова [Повседневный С++: boost и STL](http://cpp-russia.ru/?page_id=999)
+    - см. доклад Алексея Малова [Как современные возможности C++ облегчают повседневную разработку](http://cpp-russia.ru/?p=1352)
+- изолируйте
+    - см. статью [Повседневный C++: изолируем API в стиле C](https://habrahabr.ru/post/331100/)
+
+Также в современном C++ не принято писать многопоточный код на низком уровне. Однако, вы едва ли с этим столкнётесь.

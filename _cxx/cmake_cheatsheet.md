@@ -120,7 +120,8 @@ cmake --build . \
 
 - Используйте [target_link_libraries](https://cmake.org/cmake/help/latest/command/target_link_libraries.html) для добавления статических и динамических библиотек, от которых зависит цель
 - Используйте [target_include_directories](https://cmake.org/cmake/help/latest/command/target_include_directories.html) вместо include_directories для добавления путей поиска заголовков, от которых зависит цель
-- Используйте [target_compile_definitions](https://cmake.org/cmake/help/latest/command/target_compile_definitions..html) вместо add_definitions для добавления макросов, с которыми собирается цель
+- Используйте [target_compile_definitions](https://cmake.org/cmake/help/latest/command/target_compile_definitions.html) вместо add_definitions для добавления макросов, с которыми собирается цель
+- Используйте [target_compile_options](https://cmake.org/cmake/help/latest/command/target_compile_options.html) для добавления специфичных флагов компилятора, с которыми собирается цель
 
 Пример:
 
@@ -241,8 +242,29 @@ cmake -E chdir debug-build
 
 ## Функция find_package
 
-Подключение Qt5:
+Функция find_package принимает имя библиотеки как аргумент и обращается к CMake, чтобы найти скрипт для настройки переменных данной библиотеки. В итоге при сборке либо возникает ошибка из-за того что пакет не найден, либо добавляются переменные, хранящие пути поиска заголовков, имена библиотек для компоновщика и другие параметры.
+
+Пример подключения Boost, вызывающего встроенный в CMake скрипт [FindBoost](https://cmake.org/cmake/help/latest/module/FindBoost.html):
 
 ```cmake
-find_package(Qt5 REQUIRED COMPONENTS Widgets)
+# Весь Boost без указания конкретных компонентов
+find_package(Boost REQUIRED)
+# Теперь доступны переменные
+# - Boost_INCLUDE_DIRS: пути к заголовочным файлам
+# - Boost_LIBRARY_DIRS: пути к статическим/динамическим библиотекам
+# - Boost_LIBRARIES: список библиотек для компоновщика
+# - Boost_<C>_LIBRARY: библиотека для компоновки с компонентом <C> библиотек Boost
+```
+
+Пример подключения библиотеки Bullet с помощью встроенного скрипта [FindBullet](https://cmake.org/cmake/help/latest/module/FindBullet.html) и компоновки с приложением my_app:
+
+```cmake
+# Вызываем встроенный скрипт FindBullet.cmake
+find_package(Bullet REQUIRED)
+
+# Добавляем пути поиска заголовков к цели my_app
+target_include_directories(my_app ${BULLET_INCLUDE_DIRS})
+
+# Добавляем список библиотек для компоновки с целью my_app
+target_link_libraries(my_app ${BULLET_LIBRARIES})
 ```

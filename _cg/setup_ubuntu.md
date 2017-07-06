@@ -25,8 +25,27 @@ redirect_from: '/opengl/ubuntu_env'
 Команда для установки данных библиотек:
 
 ```bash
->sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
-    libsdl2-ttf-dev libtinyxml2-dev libassimp-dev libbullet-dev libglm-dev
+>sudo apt-get install libtinyxml2-dev libassimp-dev libbullet-dev libglm-dev
+```
+
+## Библиотека SFML
+
+Рекомендуется использовать самую новую версию SFML. Для этого нужно [скачать на sfml-dev.org](https://www.sfml-dev.org/download.php) архив с исходным кодом SFML и собрать его с помощью CMake.
+
+```bash
+# Установим зависимости для сборки
+sudo apt-get install libfreetype6-dev libpng-dev
+# Собираем SFML из исходного кода
+cmake --DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF .
+cmake --build . -- -j4
+
+# Устанавливаем, создавая пакет libsfml-dev-custom версии 2.4.2
+sudo checkinstall -D \
+    -y --strip --stripso --nodoc \
+    --pkgname=libsfml-dev-custom \
+    --pkgversion=2.4.2 \
+    --pkgrelease=git \
+    --deldesc=no
 ```
 
 ## Библиотека glbinding
@@ -35,12 +54,12 @@ redirect_from: '/opengl/ubuntu_env'
 
 Библиотека даёт прозрачный доступ к современным версиям OpenGL: программист использует API нужной ему версии, а glbinding сам запросит адреса функций выбранной версии у видеодрайвера. Рекомендуется использовать glbinding вместо обычных заголовков OpenGL.
 
-Пакеты распространяются в специальном ppa:
+Пакеты распространяются в специальном ppa. Подключить ppa и установить пакеты можно следующими командами:
 
 ```bash
-> sudo apt-add-repository ppa:cginternals/ppa
-> sudo apt-get update
-> sudo apt-get install libglbinding-dev libglbinding-dbg
+sudo apt-add-repository ppa:cginternals/ppa
+sudo apt-get update
+sudo apt-get install libglbinding-dev libglbinding-dbg
 ```
 
 После этого в CMake вы можете использовать find_package:
@@ -105,20 +124,25 @@ sudo checkinstall -D \
 
 Перед началом удалите существующую версию CMake: `sudo apt-get remove cmake`.
 
-Зайдите на [страницу загрузки (cmake.org)](https://cmake.org/download/) и скачайте пакет "Unix/Linux Source". Распакуйте скачанный архив, перейдите в каталог и выполните следующие команды:
+Зайдите на [страницу загрузки (cmake.org)](https://cmake.org/download/) и скачайте пакет "Unix/Linux Source" актуальной версии. Распакуйте скачанный архив, перейдите в каталог и выполните следующие команды:
 
 ```bash
 ./configure
+make -s -j4
 ```
 
 Далее выполните команду checkinstall, чтобы создать DEB-пакет "cmake-custom" и установить его. Также вам нужно удалить системный пакет cmake перед началом установки.
 
 ```bash
+# Удаляем существующую версию CMake
+sudo apt-get remove cmake
+
+# Создаём и устанавливаем пакет cmake-custom-3.8.2
 sudo checkinstall -D \
     -y --strip --stripso --nodoc \
     --pkgname=cmake-custom \
     --provides=cmake \
-    --pkgversion=3.8.1 \
+    --pkgversion=3.8.2 \
     --pkgrelease=latest \
     --deldesc=no
 ```
@@ -157,7 +181,10 @@ InstalledDir: /usr/local/bin
 Если у вас установлен clang, вы можете включить его в качестве компилятора по умолчанию:
 
 ```bash
+# Выбор компилятора C++ по умолчанию
 sudo update-alternatives --config c++
+# Выбор компилятора C по умолчанию
+sudo update-alternatives --config cc
 ```
 
 В появившемся консольном меню выберите clang:
