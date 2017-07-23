@@ -11,7 +11,7 @@ title: 'Игра "Змейка"'
 ## Полезные ссылки
 
 - [Проектирование структур на C++](/sfml/structs-design.html)
-- [Вопрос о том, как лучше объявлять константы в C++ &mdash; “static const” vs “#define” vs “enum”](http://stackoverflow.com/questions/1674032/)
+- [Вопрос о том, как лучше объявлять константы в C++ — “static const” vs “#define” vs “enum”](http://stackoverflow.com/questions/1674032/)
 - [Документация Visual Studio: "Навигация по коду с помощью отладчика"](https://msdn.microsoft.com/ru-ru/library/y740d9d3.aspx)
 - [Документация Visual Studio: "Использование точек останова"](https://msdn.microsoft.com/ru-ru/library/5557y8b4.aspx)
 
