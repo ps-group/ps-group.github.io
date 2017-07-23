@@ -6,4 +6,4 @@ title: 'Открытые источники ресурсов'
 
 ## Текстуры SkyBox
 
-- [Сайт с авторскими текстурами для SkyBox (humus.name)](http://www.humus.name/index.php?page=Textures) &mdash; индустриальный и природный стиль
+- [Сайт с авторскими текстурами для SkyBox (humus.name)](http://www.humus.name/index.php?page=Textures) — индустриальный и природный стиль

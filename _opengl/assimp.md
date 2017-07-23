@@ -12,7 +12,7 @@ subtitle: Assimp поддерживает множество форматов 3D
 Анимированная модель отличается от статичной:
 
 - Всегда есть данные о костях (для скелетной анимации)
-- Возможно, есть данные об анимациях. Анимации представляют движения в разных состояниях &mdash; прогулка, атака, гибель, охрана позиции. Одна анимация является набором трансформаций в разных точках времени для разных костей.
+- Возможно, есть данные об анимациях. Анимации представляют движения в разных состояниях — прогулка, атака, гибель, охрана позиции. Одна анимация является набором трансформаций в разных точках времени для разных костей.
 
 Так выглядят визуализированные кости в Blender (серые кости под поверхностью модели):
 
@@ -62,13 +62,13 @@ subtitle: Assimp поддерживает множество форматов 3D
 
 ## Программы для упрощённого создания моделей
 
-- [MakeHuman](http://www.makehuman.org/) &mdash; Open-Source кроссплатформенный WYSIWYG-редактор для создания модели человека, есть [ppa для Ubuntu](https://launchpad.net/~makehuman-official/+archive/ubuntu/makehuman-11x)
+- [MakeHuman](http://www.makehuman.org/) — Open-Source кроссплатформенный WYSIWYG-редактор для создания модели человека, есть [ppa для Ubuntu](https://launchpad.net/~makehuman-official/+archive/ubuntu/makehuman-11x)
 
 ## Где скачать
 
 - [Коллекция "Game Ready 3D Models" на opengameart.org](http://opengameart.org/content/game-ready-3d-models)
 - [Набор моделей в формате 3DS на wiki.margtu.ru](http://wiki.margtu.ru/index.php?wakka=HomePage/20092010/Komp%27juternajaGrafika/3dmodels&show_files=1#files)
-- [Архив Georgia Institute of Technology с набором стандартных моделей в формате PLY](http://www.cc.gatech.edu/projects/large_models/) &mdash; здесь можно найти такие широко известные модели, как Stanford Bunny. Все они создавались для обкатки различных шейдеров и проведения курсов компьютерной графики в университетах мира.
+- [Архив Georgia Institute of Technology с набором стандартных моделей в формате PLY](http://www.cc.gatech.edu/projects/large_models/) — здесь можно найти такие широко известные модели, как Stanford Bunny. Все они создавались для обкатки различных шейдеров и проведения курсов компьютерной графики в университетах мира.
 - [Модели в форматах MD2, FBX, 3DS, OBJ на telias.free.fr](http://telias.free.fr/Models_menu.html)
 - [Архив разнообразных предметов интерьера, транспортных средств и тому подобного на artist-3d.com](http://artist-3d.com/)
 - [Большой каталог разнообразных 3D моделей (tf3dm.com)](http://tf3dm.com/)
