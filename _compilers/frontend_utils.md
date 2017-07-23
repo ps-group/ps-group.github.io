@@ -38,13 +38,13 @@ vector<string> SplitWords(string const& text)
 
 ## Разбор с возвратом (backtracking parssing) на основе string_view
 
-Проще всего сделать парсер, работающий с объектами [string_view &mdash; невладеющими ссылками на строку](http://htrd.su/wiki/zhurnal/2016/04/29/std_string_view_i_vremennye_obekty). Реализацию string_view можно раздобыть несколькими способами:
+Проще всего сделать парсер, работающий с объектами [string_view — невладеющими ссылками на строку](http://htrd.su/wiki/zhurnal/2016/04/29/std_string_view_i_vremennye_obekty). Реализацию string_view можно раздобыть несколькими способами:
 
  1. Найти компилятор и IDE с поддержкой C++17, в котором `<string_view>` и объявленные в этом заголовке классы стали частью стандартной библиотеки
  2. Либо взять тривиальную реализацию на Github, состоящую из одного заголовка: [github.com/sergey-shambir/string_view](https://github.com/sergey-shambir/string_view/blob/master/string_view.h)
  3. Либо получить Boost версии 1.61 или выше, в котором есть `<boost/utility/string_view.hpp>`
 
-По сути string_view &mdash; это удобная замена такой структуры для чтения строки слева направо:
+По сути string_view — это удобная замена такой структуры для чтения строки слева направо:
 
 ```cpp
 struct StringScanState
