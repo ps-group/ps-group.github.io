@@ -18,7 +18,7 @@ subtitle: 'В статье описаны соглашения для курса
 
 ## Стандарт C++
 
-Мы используем последний актуальный стандарт &mdash; C++17. Если вы используете Visual Studio, выбирайте версию Visual Studio 2017 или выше и укажите в настройках проекта `/std=c++latest`:
+Мы используем последний актуальный стандарт — C++17. Если вы используете Visual Studio, выбирайте версию Visual Studio 2017 или выше и укажите в настройках проекта `/std=c++latest`:
 
 ![Скриншот](img/setup/vclangsettings.png)
 
@@ -134,42 +134,11 @@ void DoEventLoop(SDL_Window* window, const std::function<void()>& draw)
 - [C.133:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-protected) избегайте protected полей класса
 - [C.153:](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rh-use-virtual) используйте полиморфизм вместо приведения базового класса к нужному типу
 
-Все указанные правила входят в состав C++ Core Guidelines. Вы можете настроить автоматическую проверку исходного кода проекта:
+## Проверка C++ Core Guidelines в Visual Studio
 
-- в Visual Studio 2017 и выше включите проверки в настройках проекта, как показано на скриншоте ниже
-- если вы используете CMake 3.6+, вы можете использовать анализатор clang-tidy
-
-## Как использовать анализатор в составе Visual Studio
-
-Нужная настройка показана на скриншоте ниже
+Все указанные ранее правила входят в состав C++ Core Guidelines. Анализатор C++ Core Guidelines входит в состав Visual Studio 2017 и выше, и с его помощью вы можете настроить автоматическую проверку исходного кода проекта.
 
 ![Скриншот](img/setup/vscoreguidelines.png)
-
-### Как использовать анализатор clang-tidy вместе с CMake
-
-- установите clang-tidy (например, можно установить LLVm/Clang)
-- создайте файл `.clang-tidy` со следующим содержимым
-
-```
----
-Checks: 'cppcoreguidelines-*,clang-analyzer-*,readability-*,modernize-*'
-...
-```
-
-- воспользуйтесь параметром `CMAKE_CXX_CLANG_TIDY` при запуске CMake, как показано в примере ниже
-
-```bash
-# Сначала проверьте, доступен ли clang-tidy
-clang-tidy --version
-
-# Параметр CMAKE_CXX_CLANG_TIDY - строка,
-#  сначала указывается имя или путь к утилите clang-tidy,
-#  затем указываются флаги проверок,
-#    - мы включили cppcoreguidelines
-#    - также включили readability
-# Подробнее см. документацию http://clang.llvm.org/extra/clang-tidy/
-cmake -DCMAKE_CXX_CLANG_TIDY:STRING="clang-tidy;-style=file;-checks=*" .
-```
 
 ## Повседневный код на C++
 
@@ -182,7 +151,7 @@ cmake -DCMAKE_CXX_CLANG_TIDY:STRING="clang-tidy;-style=file;-checks=*" .
 - откажитесь от низкоуровневых циклов for и while в пользу алгоритмов STL/Boost, либо выносите их в отдельные функции
     - см. доклад Михаила Матросова [Повседневный С++: boost и STL](http://cpp-russia.ru/?page_id=999)
     - см. доклад Алексея Малова [Как современные возможности C++ облегчают повседневную разработку](http://cpp-russia.ru/?p=1352)
-- изолируйте
+- изолируйте код, написанный в стиле языка C
     - см. статью [Повседневный C++: изолируем API в стиле C](https://habrahabr.ru/post/331100/)
 
 Также в современном C++ не принято писать многопоточный код на низком уровне. Однако, вы едва ли с этим столкнётесь.
