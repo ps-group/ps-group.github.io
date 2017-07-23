@@ -13,7 +13,9 @@ layout: default
           <p>Пример к статье <a href="{{ page.github }}">доступен на github</a></p>
         </blockquote>
       {% endif %}
-      {% if page.preview %}
+      {% if page.screenshot %}
+        <p><img src="{{ page.screenshot }}" alt="Иллюстрация"></p>
+      {% else if page.preview %}
         <p><img src="{{ page.preview }}" alt="Иллюстрация"></p>
       {% endif %}
     {% endif %}

@@ -1,7 +1,7 @@
 {% if page.preview and page.subtitle %}
 <meta property="og:title" content="{{ page.title }}"/>
 <meta property="og:description" content="{{ page.subtitle }}"/>
-<meta property="og:image" content="{{ page.preview }}">
+<meta property="og:image" content="{{ page.screenshot | default page.preview }}">
 <meta property="og:type" content="article"/>
 <meta property="og:url" content= "{{ page.url | prepend: site.baseurl | prepend: site.url }}" />
 {% endif %}
