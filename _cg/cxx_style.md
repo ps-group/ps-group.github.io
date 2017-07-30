@@ -97,16 +97,16 @@ void DoEventLoop(SDL_Window* window, const std::function<void()>& draw)
 - мы не используем глобальные переменные
 - мы не используем макросы
 
-| Категория                | Требования                  | Пример          |
-|--------------------------|-----------------------------|-----------------|
-| тип данных (enum, using) | UpperCamelCase              | Direction       |
-| класс или структура      | UpperCamelCase              | TableGenerator  |
-| поле класса              | префикс m_ и lowerCamelCase | m_frameNo       |
-| интерфейс                | префикс I и UpperCamelCase  | ITableGenerator |
-| глобальная константа     | префикс k и UpperCamelCase  | kColumnCount    |
-| переменная или параметр  | lowerCamelCase              | signatureLength |
-| функция или метод        | UpperCamelCase              | LinkProgram     |
-| константа enum class     | UpperCamelCase              | Direction::Left |
+| Категория                | Требования                  | Пример            |
+|--------------------------|-----------------------------|-------------------|
+| тип данных (enum, using) | UpperCamelCase              | `Direction`       |
+| класс или структура      | UpperCamelCase              | `TableGenerator`  |
+| поле класса              | префикс m_ и lowerCamelCase | `m_frameNo`       |
+| интерфейс                | префикс I и UpperCamelCase  | `ITableGenerator` |
+| глобальная константа     | префикс k и UpperCamelCase  | `kColumnCount`    |
+| переменная или параметр  | lowerCamelCase              | `signatureLength` |
+| функция или метод        | UpperCamelCase              | `LinkProgram`     |
+| константа enum class     | UpperCamelCase              | `Direction::Left` |
 
 ## Объектно-ориентированный стиль
 
