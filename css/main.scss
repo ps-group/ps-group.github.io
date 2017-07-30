@@ -114,6 +114,27 @@ code.highlighter-rouge
         {
             text-align: left;
         }
+
+        table
+        {
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin-bottom: 12px;
+        }
+
+        th
+        {
+            background-color: #4CAF50;
+            border: 1px solid #4a644b;
+            padding: 6px;
+            color: white;
+        }
+
+        td
+        {
+            border: 1px solid #dddddd;
+            padding: 6px;
+        }
     }
 }
 .site-footer
