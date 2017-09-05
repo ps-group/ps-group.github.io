@@ -1,5 +1,6 @@
 ---
 title: 'Установка WxWidgets 3.0 и создание проекта'
+draft: true
 ---
 
 ## Ubuntu или Debian GNU/Linux

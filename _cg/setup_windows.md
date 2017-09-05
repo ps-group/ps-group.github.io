@@ -2,6 +2,7 @@
 title: 'Установка библиотек для Windows'
 subtitle: 'Краткая инструкция по установке всех нужных для курса библиотек для Visual Studio'
 redirect_from: '/opengl/windows_env'
+draft: true
 ---
 
 На Windows рекомендуется использовать

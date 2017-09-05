@@ -1,4 +1,7 @@
 {% for post in include.collection %}
+  {% if post.draft %}
+    {% continue %}
+  {% endif %}
   <div class="post-box">
     {% if post.preview %}
       <div class="post-preview">

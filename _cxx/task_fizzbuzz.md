@@ -1,5 +1,6 @@
 ---
-title: ''
+title: 'Задание: FizzBuzz'
+draft: true
 ---
 
 ##

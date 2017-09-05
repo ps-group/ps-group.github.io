@@ -3,6 +3,7 @@ title: 'Клон Packman: печенье'
 preview: img/preview_packman_6.png
 subtitle: 'В этом примере мы добавим печенье, которое пакман должен поедать, и реализуем возможность победы'
 github: https://github.com/ps-group/sfml-packman/tree/master/packman_6
+draft: true
 ---
 
 ## Счётчик съеденного печенья

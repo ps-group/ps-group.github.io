@@ -2,6 +2,7 @@
 title: Симуляция прыжка на C++
 preview: img/equation_step4.png
 subtitle: В примере мы займёмся рефакторингом
+draft: true
 ---
 
 

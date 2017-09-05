@@ -3,6 +3,7 @@ title: 'Реалистичный персонаж'
 preview: img/preview_packman_7.png
 subtitle: 'Цель статьи - показать, как добавить пакману ракрывающийся рот и правдоподобную анимацию движения'
 github: https://github.com/ps-group/sfml-packman/tree/master/packman_7
+draft: true
 ---
 
 ### Изучаем устройство sf::CircleShape

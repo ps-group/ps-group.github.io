@@ -2,6 +2,7 @@
 title: 'Установка библиотек для Ubuntu'
 subtitle: 'Краткая инструкция по установке всех нужных для курса библиотек в Ubuntu'
 redirect_from: '/opengl/ubuntu_env'
+draft: true
 ---
 
 На Linux рекомендуется использовать:
@@ -70,6 +71,34 @@ find_package(glbinding REQUIRED)
 
 target_link_libraries(${target} ... ${GLBINDING_LIBRARIES})
 ```
+
+Возможны проблемы с предоставленной ppa версией библиотеки: при вызове функций из заголовка `<glbinding/Meta.h>` происходят падения. Эта проблема скорее всего вызвана разными версиями стандарта C++ и стандартной библиотеки в бинарных файлах библиотеки glbinding и приложения, использующего её.
+
+Для решения проблемы надо пересобрать библиотеку:
+
+```bash
+# Загрузка исходного кода
+git clone https://github.com/cginternals/glbinding.git
+cd glbinding
+
+# Сборка glbinding
+cmake -DCMAKE_BUILD_TYPE=Release -DOPTION_BUILD_TESTS=OFF .
+cmake --build . -- -j8
+
+# Установка в виде пакета libglbinding-custom
+sudo checkinstall -D \
+    -y --strip --stripso --nodoc \
+    --pkgname=libglbinding-custom \
+    --pkgversion=2.1.1 \
+    --pkgrelease=git \
+    --deldesc=no
+```
+
+Библиотека установится в `/usr/local/lib`. Если при запуске приложений вы получаете сообщение, что файл `libglbinding.so` отсутствует, вы можете сделать следующее:
+
+- открыть конфигурацию поиска библиотек в системе редактором nano: `sudo nano /etc/ld.so.conf.d/x86_64-linux-gnu.conf`
+- добавить в конфиг путь `/usr/local/lib` в отдельной строке, выйти из редактора с сохранением
+- запустить `sudo ldconfig` для перезагрузки конфига
 
 ## Библиотека anax
 

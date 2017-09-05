@@ -20,6 +20,9 @@ collections:
   cg:
     output: true
     permalink: '/cg/:path'
+  ps1:
+    output: true
+    permalink: '/ps1/:path'
   sfml:
     output: true
     permalink: '/sfml/:path'
@@ -42,6 +45,10 @@ defaults:
         layout: article
     - scope:
         type: cg
+      values:
+        layout: article
+    - scope:
+        type: ps1
       values:
         layout: article
     - scope:
