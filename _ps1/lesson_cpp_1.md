@@ -154,14 +154,14 @@ int main()
 
 Рассмотрим линейное уравнение `ax + b = 0` — оно также называется уравнением прямой. Мы напишем программу, способную решать такие уравнения. Но прежде чем приступить к кодированию, мы составим план действий с помощью комментариев:
 
-```
+```cpp
 #include <cstdio>
 
 int main()
 {
 	// 1. prompt user to enter coefficients
 
-    // 2. read coefficients for equation `ax + b = 0`
+	// 2. read coefficients for equation `ax + b = 0`
     
 	// 3. solve equation `ax + b = 0`
 	// solution: `x = -b / a`
