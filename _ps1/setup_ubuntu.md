@@ -7,7 +7,11 @@ draft: true
 
 ## 1. Редактор
 
-Загрузите Visual Studio Code с адреса [code.visualstudio.com](https://code.visualstudio.com/).
+Загрузите Visual Studio Code (deb-пакет) с адреса [code.visualstudio.com](https://code.visualstudio.com/).
+
+- откройте терминал и перейдите в каталог, в котором лежит deb-пакет
+- запустите команду `dpkg -i code_*.deb` и проверьте результат выполнения
+- если не хватает каких-либо зависимостей, установите их через `apt-get install`
 
 ## 2. Последняя версия G++
 
