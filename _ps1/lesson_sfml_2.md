@@ -277,8 +277,266 @@ int main()
 - контроллер клавиатуры присылает состояние клавиш
 - каждая программа старается получить процессорное время, чтобы выполнить свои задачи
 
-В таких условиях операционной системе приходится ловко манипулировать множеством событий и потоков данных. Например, 60 раз в секунду система собирает изображения всех окон, рисует их поверх друг друга в одну картинку рабочего стола и выводит на экран.
+В таких условиях операционной системе (ОС) приходится ловко манипулировать множеством событий и потоков данных. Например, 60 раз в секунду система собирает изображения всех окон, рисует их поверх друг друга в одну картинку рабочего стола и выводит на экран.
+
+Чтобы ОС могла выполнить свою задачу, программа должна ей помогать: вести общение с системой в режиме интерактивного диалога, реагируя на переданные окну события ввода и рисуя новые кадры со скоростью ~60 кадров в секунду.
+
+С точки зрения программиста надо написать приложение так, чтобы в нём был цикл, в котором выполняются два действия:
+
+1. обработка событий
+2. рисование нового кадра
+
+Поскольку за один кадр может прийти несколько событий, цикла будет два: один внутри другого. Вся эта схема называется циклом событий (event loop).
+
+## Создаём приложение с event loop
+
+Откройте файл `sfml.2\CMakeLists.txt`, добавьте строку `add_subdirectory(01)`, чтобы он выглядел так:
+
+```cmake
+# Минимальная версия CMake: 3.8
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+
+# Имя проекта: sfml-lab-2
+project(sfml-lab-2)
+
+# Каждый подкаталог содержит CMakeLists.txt
+add_subdirectory(00)
+add_subdirectory(01)
+```
+
+Создайте в каталоге `sfml.2` подкаталог `01`, и создайте в нём файлы `01\CMakeLists.txt`, `01\main.cpp`.
+
+Перепишите в файл `sfml1.2\01\CMakeLists.txt` следующий скрипт:
+
+```cmake
+add_executable(01 main.cpp)
+
+set(SFML_STATIC_LIBRARIES TRUE)
+
+find_package(Freetype REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(SFML 2 COMPONENTS window graphics system REQUIRED)
+
+target_include_directories(01 PRIVATE ${SFML_INCLUDE_DIR})
+target_compile_features(01 PUBLIC cxx_std_17)
+target_compile_definitions(01 PRIVATE SFML_STATIC)
+
+target_link_libraries(01 ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
+```
+
+Теперь перепишите код в файл `sfml1.2\01\main.cpp`:
 
 ![Код](img/code/sfml2_v1.png)
 
+Соберите проект через CMake и запустите `01\01.exe`. Посмотрите на результат. Попробуйте сделать скриншот окна. Закройте окно, нажав на кнопку "закрыть" (крест в углу окна).
+
 ![Код](img/samples/sfml2_v1.png)
+
+## Добавляем движение
+
+Цикл событий выполняется постоянно, и непрерывно отправляет операционной системе новые кадры — это происходит при вызове `window.display()`. Для начала мы попробуем на каждом шаге цикла прибавлять значение к координате x позиции круга. Добавьте этот код перед вызовом `window.clear()`:
+
+```cpp
+sf::Vector2f position = shape.getPosition();
+position.x += 0.5;
+shape.setPosition(position);
+```
+
+Соберите программу через CMake и запустите её. Вы увидите, что шар быстро улетает в строну, причём на разных машинах он может лететь с разной скоростью.
+
+Почему так происходит? Потому мы не учли промежутки времени: прибавлять на каждом кадре 0.5px нельзя, если мы не знаем число кадром или если оно может меняться.
+
+Чтобы получить изменение местоположения численным методом, мы должны умножить текущую скорость на длину интервала времени. Чтобы это осознать, представьте себе разгоняющийся автомобиль, который вы фотографируете каждые 0.3 секунды. Если совместить фотографии, автомобиль будет выглядеть примерно так:
+
+![Иллюстрация](img/fig/moving_car.png)
+
+Если в программе мы будем каждые 0.3 секунды прибавлять текущую скорость, умноженную на время, мы получим правильное перемещение с предсказуемой скоростью!
+
+Для замера времени воспользуемся классом [sf::Clock](https://www.sfml-dev.org/documentation/2.4.2/classsf_1_1Clock.php). Он имеет метод `restart()`, который перезапускает часы и возвращает прошедшее с предыдущего перезапуска число секунд, хранимое в типе данных `sf::Time`. Получить число секунд в виде `float` можно вызовом метода `asSeconds()`. Доработайте код:
+
+![Иллюстрация](img/code/sfml2_v2.png)
+
+Соберите и запустите программу. Двигается ли шарик плавно? Совпадает ли на ваш взгляд его скорость с заданной скоростью?
+
+## Воспользуемся векторной алгеброй
+
+Библиотека SFML предоставляет готовые средства для работы с векторами вместо обычных значений. В частности, класс [sf::Vector2f](https://www.sfml-dev.org/documentation/2.4.2/classsf_1_1Vector2.php) поддерживает привычные арифметические операции сложения, умножения, деления и вычитания - как с другими векторами, так и с целыми числами. Мы воспользуемся этим и будем представлять скорость не в виде числа, а в виде вектора. Перепишите код:
+
+```cpp
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+
+int main()
+{
+    sf::RenderWindow window(sf::VideoMode({ 800, 600 }), "Moving Ball");
+    sf::Clock clock;
+
+    sf::CircleShape shape(40);
+    shape.setPosition({ 200, 120 });
+    shape.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+
+    while (window.isOpen())
+    {
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+            {
+                window.close();
+            }
+        }
+
+        const sf::Vector2f speed = { 50.f, 15.f };
+        const float deltaTime = clock.restart().asSeconds();
+        sf::Vector2f position = shape.getPosition();
+        position += speed * deltaTime;
+        shape.setPosition(position);
+
+        window.clear();
+        window.draw(shape);
+        window.display();
+    }
+}
+```
+
+Соберите приложение и запустите, оно должно работать так же (только скорость теперь будет векторной величиной).
+
+## Добавляем отталкивание от стенок
+
+Добавлять отталкивание мы будем в полном сооствествии с подходом "Игровой Цикл" (Game Loop). Он расширяет понятие цикла событий, и схематически выглядит так:
+
+![Иллюстрация](img/fig/game_loop.png)
+
+Чтобы шаг отталкивался от стенок, мы добавим серию проверок через if:
+
+```cpp
+#include <SFML/Graphics.hpp>
+#include <SFML/System.hpp>
+#include <SFML/Window.hpp>
+
+int main()
+{
+    constexpr unsigned WINDOW_WIDTH = 800;
+    constexpr unsigned WINDOW_HEIGHT = 600;
+    constexpr float BALL_SIZE = 40;
+
+    sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Bouncing Ball");
+    sf::Clock clock;
+
+    sf::CircleShape shape(BALL_SIZE);
+    shape.setPosition({ 200, 120 });
+    shape.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+
+    sf::Vector2f speed = { 100.f, 100.f };
+
+    while (window.isOpen())
+    {
+        // Обработка событий
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+            {
+                window.close();
+            }
+        }
+
+        // Обновление состояния
+        const float dt = clock.restart().asSeconds();
+
+        sf::Vector2f position = shape.getPosition();
+        position += speed * dt;
+
+        if ((position.x + 2 * BALL_SIZE >= WINDOW_WIDTH) && (speed.x > 0))
+        {
+            speed.x = -speed.x;
+        }
+        if ((position.x < 0) && (speed.x < 0))
+        {
+            speed.x = -speed.x;
+        }
+        if ((position.y + 2 * BALL_SIZE >= WINDOW_HEIGHT) && (speed.y > 0))
+        {
+            speed.y = -speed.y;
+        }
+        if ((position.y < 0) && (speed.y < 0))
+        {
+            speed.y = -speed.y;
+        }
+
+        shape.setPosition(position);
+
+        // Рисование текущего состояния
+        window.clear();
+        window.draw(shape);
+        window.display();
+    }
+}
+```
+
+## Волновое движение
+
+Создайте в каталоге `sfml.2` подкаталог `02`, в нём создайте `CMakeLists.txt` аналогично предыдущим упражениям. Создайте в каталоге `02` файл `main.cpp`, далее мы будем работать в нём.
+
+Мы нарисуем шар, движущийся по плавной траектории. Для этого воспользуемся тригонометрическими функциями: легко заметить, что их графики плавные, и движение по такой траектории будет приятно глазу:
+
+![Иллюстрация](img/fig/sinusoid.png)
+
+В C++ тригонометрические функции доступны в заголовке [cmath](http://en.cppreference.com/w/cpp/header/cmath) под именами `std::sin` и `std::cos`. Перепишите следующий код:
+
+```cpp
+#include <SFML/Graphics.hpp>
+#include <SFML/System.hpp>
+#include <SFML/Window.hpp>
+#include <cmath>
+
+constexpr unsigned WINDOW_WIDTH = 800;
+constexpr unsigned WINDOW_HEIGHT = 600;
+
+int main()
+{
+    constexpr float BALL_SIZE = 40;
+
+    sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Wave Moving Ball");
+    sf::Clock clock;
+
+    const sf::Vector2f position1 = { 10, 250 };
+    const sf::Vector2f position2 = { 10, 350 };
+
+    sf::CircleShape ball(BALL_SIZE);
+    ball.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+
+    while (window.isOpen())
+    {
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+            {
+                window.close();
+            }
+        }
+
+        constexpr float speedX = 100.f;
+        constexpr float amplitudeY = 80.f;
+        constexpr float periodY = 2;
+
+        const float time = clock.getElapsedTime().asSeconds();
+        const float x = speedX * time;
+        const float wavePhase = time * float(2 * M_PI);
+        const float y = amplitudeY * std::sin(wavePhase / periodY);
+        const sf::Vector2f offset = { x, y };
+
+        ball.setPosition(position1 + offset);
+
+        window.clear();
+        window.draw(ball);
+        window.display();
+    }
+}
+```
+
+## Задание sfml2.1: волновое движение с отталкиванием
+
+1. Создайте в каталоге `sfml.2` подкаталог `sfml2.1`, в нём создайте `CMakeLists.txt` аналогично предыдущим упражениям
+2. Создайте в каталоге `sfml2.1` файл `main.cpp` и в нём совместите волновое движение шарика с отталкиванием от стенок.
