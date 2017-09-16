@@ -1,6 +1,6 @@
 ---
-title:  Знакомство с SFML
-subtitle: SFML (Simple Fast Multimedia Library) — это C++ библиотека для мультимедиа. В статье мы воспользуемся SFML для рисования фигур в окне.
+title:  'Знакомство с SFML. Компьютерная графика.'
+subtitle: 'SFML (Simple Fast Multimedia Library) — это C++ библиотека для мультимедиа. В статье мы воспользуемся SFML для рисования фигур в окне.'
 preview: img/preview/sfml_1.png
 ---
 
