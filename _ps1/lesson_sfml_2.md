@@ -328,19 +328,21 @@ target_link_libraries(01 ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 
 ![Код](img/code/sfml2_v1.png)
 
-Соберите проект через CMake и запустите `01\01.exe`. Посмотрите на результат. Попробуйте сделать скриншот окна. Закройте окно, нажав на кнопку "закрыть" (крест в углу окна).
+Соберите проект через CMake и запустите `01\01.exe`. Посмотрите на результат. Попробуйте сделать скриншот окна. Закройте окно, нажав на кнопку "закрыть" (крест в углу окна). Как вы думаете, какой фрагмент кода в цикле событий позволяет закрывать окно?
 
 ![Код](img/samples/sfml2_v1.png)
 
 ## Добавляем движение
 
-Цикл событий выполняется постоянно, и непрерывно отправляет операционной системе новые кадры — это происходит при вызове `window.display()`. Для начала мы попробуем на каждом шаге цикла прибавлять значение к координате x позиции круга. Добавьте этот код перед вызовом `window.clear()`:
+Цикл выполняется постоянно, и непрерывно отправляет операционной системе новые кадры — это происходит при вызове `window.display()`. Для начала мы попробуем на каждом шаге цикла прибавлять значение к координате x позиции круга. Добавьте этот код перед вызовом `window.clear()`:
 
 ```cpp
 sf::Vector2f position = shape.getPosition();
 position.x += 0.5;
 shape.setPosition(position);
 ```
+
+>Тип данных `sf::Vector2f` - это вектор из двух чисел, он имеет поля `x` и `y`, а также поддерживает основные арифметические операции: сложение векторов, умножение вектоа на число, деление вектора на число, вычитание векторов.
 
 Соберите программу через CMake и запустите её. Вы увидите, что шар быстро улетает в строну, причём на разных машинах он может лететь с разной скоростью.
 
@@ -358,121 +360,31 @@ shape.setPosition(position);
 
 Соберите и запустите программу. Двигается ли шарик плавно? Совпадает ли на ваш взгляд его скорость с заданной скоростью?
 
+## Шаблон проектирования "Игровой Цикл" (Game Loop)
+
+Фактически мы реализовали игровой цикл. Шаблон Game Loop он расширяет обычный цикл событий, и схематически выглядит так:
+
+![Иллюстрация](img/fig/game_loop.png)
+
+Фактически Game Loop требует, чтобы в цикле событий было три явно выраженных шага:
+
+1. Вложенный цикл обработки событий, который должен срегировать на закрытие программы, на события мыши или клавиатуры
+2. Шаг обновления состояния, который получает прошедший интервал времени и меняет состояние программы - то есть состояние всех переменных, хранящих модель процесса, который программа симулирует.
+3. Шаг рисования, который может менять состояние некоторых переменных, но не должен задевать переменные, входящие в модель процесса
+
 ## Воспользуемся векторной алгеброй
 
 Библиотека SFML предоставляет готовые средства для работы с векторами вместо обычных значений. В частности, класс [sf::Vector2f](https://www.sfml-dev.org/documentation/2.4.2/classsf_1_1Vector2.php) поддерживает привычные арифметические операции сложения, умножения, деления и вычитания - как с другими векторами, так и с целыми числами. Мы воспользуемся этим и будем представлять скорость не в виде числа, а в виде вектора. Перепишите код:
 
-```cpp
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-
-int main()
-{
-    sf::RenderWindow window(sf::VideoMode({ 800, 600 }), "Moving Ball");
-    sf::Clock clock;
-
-    sf::CircleShape shape(40);
-    shape.setPosition({ 200, 120 });
-    shape.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
-
-    while (window.isOpen())
-    {
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-        }
-
-        const sf::Vector2f speed = { 50.f, 15.f };
-        const float deltaTime = clock.restart().asSeconds();
-        sf::Vector2f position = shape.getPosition();
-        position += speed * deltaTime;
-        shape.setPosition(position);
-
-        window.clear();
-        window.draw(shape);
-        window.display();
-    }
-}
-```
+![Код](img/code/sfml2_v3.png)
 
 Соберите приложение и запустите, оно должно работать так же (только скорость теперь будет векторной величиной).
 
 ## Добавляем отталкивание от стенок
 
-Добавлять отталкивание мы будем в полном сооствествии с подходом "Игровой Цикл" (Game Loop). Он расширяет понятие цикла событий, и схематически выглядит так:
+Чтобы шаг отталкивался от стенок, мы добавим серию проверок через if. Доработайте основной цикл:
 
-![Иллюстрация](img/fig/game_loop.png)
-
-Чтобы шаг отталкивался от стенок, мы добавим серию проверок через if:
-
-```cpp
-#include <SFML/Graphics.hpp>
-#include <SFML/System.hpp>
-#include <SFML/Window.hpp>
-
-int main()
-{
-    constexpr unsigned WINDOW_WIDTH = 800;
-    constexpr unsigned WINDOW_HEIGHT = 600;
-    constexpr float BALL_SIZE = 40;
-
-    sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Bouncing Ball");
-    sf::Clock clock;
-
-    sf::CircleShape shape(BALL_SIZE);
-    shape.setPosition({ 200, 120 });
-    shape.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
-
-    sf::Vector2f speed = { 100.f, 100.f };
-
-    while (window.isOpen())
-    {
-        // Обработка событий
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-        }
-
-        // Обновление состояния
-        const float dt = clock.restart().asSeconds();
-
-        sf::Vector2f position = shape.getPosition();
-        position += speed * dt;
-
-        if ((position.x + 2 * BALL_SIZE >= WINDOW_WIDTH) && (speed.x > 0))
-        {
-            speed.x = -speed.x;
-        }
-        if ((position.x < 0) && (speed.x < 0))
-        {
-            speed.x = -speed.x;
-        }
-        if ((position.y + 2 * BALL_SIZE >= WINDOW_HEIGHT) && (speed.y > 0))
-        {
-            speed.y = -speed.y;
-        }
-        if ((position.y < 0) && (speed.y < 0))
-        {
-            speed.y = -speed.y;
-        }
-
-        shape.setPosition(position);
-
-        // Рисование текущего состояния
-        window.clear();
-        window.draw(shape);
-        window.display();
-    }
-}
-```
+![Код](img/code/sfml2_v4.png)
 
 ## Волновое движение
 
