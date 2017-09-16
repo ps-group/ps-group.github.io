@@ -394,59 +394,28 @@ shape.setPosition(position);
 
 ![Иллюстрация](img/fig/sinusoid.png)
 
-В C++ тригонометрические функции доступны в заголовке [cmath](http://en.cppreference.com/w/cpp/header/cmath) под именами `std::sin` и `std::cos`. Перепишите следующий код:
+В C++ тригонометрические функции доступны в заголовке [cmath](http://en.cppreference.com/w/cpp/header/cmath) под именами `std::sin` и `std::cos`.
+
+Мы зададим несколько констант, параметризующих движение. Константы обозначим с помощью constexpr, что гарантирует вычисление константы ещё в момент компиляции, а не в помент выполнения программы.
 
 ```cpp
-#include <SFML/Graphics.hpp>
-#include <SFML/System.hpp>
-#include <SFML/Window.hpp>
-#include <cmath>
-
-constexpr unsigned WINDOW_WIDTH = 800;
-constexpr unsigned WINDOW_HEIGHT = 600;
-
-int main()
-{
-    constexpr float BALL_SIZE = 40;
-
-    sf::RenderWindow window(sf::VideoMode({ WINDOW_WIDTH, WINDOW_HEIGHT }), "Wave Moving Ball");
-    sf::Clock clock;
-
-    const sf::Vector2f position1 = { 10, 250 };
-    const sf::Vector2f position2 = { 10, 350 };
-
-    sf::CircleShape ball(BALL_SIZE);
-    ball.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
-
-    while (window.isOpen())
-    {
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-        }
-
-        constexpr float speedX = 100.f;
-        constexpr float amplitudeY = 80.f;
-        constexpr float periodY = 2;
-
-        const float time = clock.getElapsedTime().asSeconds();
-        const float x = speedX * time;
-        const float wavePhase = time * float(2 * M_PI);
-        const float y = amplitudeY * std::sin(wavePhase / periodY);
-        const sf::Vector2f offset = { x, y };
-
-        ball.setPosition(position1 + offset);
-
-        window.clear();
-        window.draw(ball);
-        window.display();
-    }
-}
+constexpr float speedX = 100.f;
+constexpr float amplitudeY = 80.f;
+constexpr float periodY = 2;
 ```
+
+Мы также будем вычислять координаты на основе только лишь времени. Вспомогательная переменная `wavePhase` - это фаза волны, которую мы поделим на период, чтобы фаза повторялась раз в `periodY` секунд:
+
+```cpp
+const float time = clock.getElapsedTime().asSeconds();
+const float wavePhase = time * float(2 * M_PI);
+const float x = speedX * time;
+const float y = amplitudeY * std::sin(wavePhase / periodY);
+```
+
+Перепишите следующий код:
+
+![Код](img/code/sfml2_wave_v1.png)
 
 ## Задание sfml2.1: волновое движение с отталкиванием
 
