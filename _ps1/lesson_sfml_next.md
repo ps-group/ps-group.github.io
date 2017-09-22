@@ -445,6 +445,6 @@ target_link_libraries(03 ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 
 ![Код](img/code/sfml3_mousepointer_v3.png)
 
-### Добавляем установку вращения фигуры
+### Добавляем обновление фигуры
 
 ![Код](img/code/sfml3_mousepointer_v4.png)
