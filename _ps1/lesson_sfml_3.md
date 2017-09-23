@@ -186,7 +186,6 @@ cmake --build .
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
-            "miDebuggerPath": "gdb.exe",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -203,6 +202,7 @@ cmake --build .
 
 - для поля "program" надо указать путь к программе, включая переменную workspaceRoot: `"program": "${workspaceRoot}/04/04"`
 - добавьте свойство `"preLaunchTask": "build all"`
+- добавьте свойство `"miDebuggerPath": "gdb.exe"`
 - поменяйте значение свойства "externalConsole" на `false`
 
 После изменений файл будет выглядеть так:
@@ -222,6 +222,7 @@ cmake --build .
 			"environment": [],
 			"externalConsole": false,
 			"MIMode": "gdb",
+            "miDebuggerPath": "gdb.exe",
 			"setupCommands": [
 				{
 					"description": "Enable pretty-printing for gdb",
