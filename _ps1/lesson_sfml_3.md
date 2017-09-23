@@ -209,30 +209,30 @@ cmake --build .
 
 ```js
 {
-	"version": "0.2.0",
-	"configurations": [
-		{
-			"name": "(gdb) Launch",
-			"type": "cppdbg",
-			"request": "launch",
-			"program": "${workspaceRoot}/00/00.exe",
-			"args": [],
-			"stopAtEntry": false,
-			"cwd": "${workspaceRoot}",
-			"environment": [],
-			"externalConsole": false,
-			"MIMode": "gdb",
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/00/00.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
             "miDebuggerPath": "gdb.exe",
-			"setupCommands": [
-				{
-					"description": "Enable pretty-printing for gdb",
-					"text": "-enable-pretty-printing",
-					"ignoreFailures": true
-				}
-			],
-			"preLaunchTask": "build all"
-		}
-	]
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build all"
+        }
+    ]
 }
 ```
 
