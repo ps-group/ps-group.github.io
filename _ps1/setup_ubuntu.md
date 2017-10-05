@@ -95,12 +95,12 @@ make -s -j4
 # Удаляем существующую версию CMake
 sudo apt-get remove cmake
 
-# Создаём и устанавливаем пакет cmake-custom-3.8.2
+# Создаём и устанавливаем пакет cmake-custom-3.9.4
 sudo checkinstall -D \
     -y --strip --stripso --nodoc \
     --pkgname=cmake-custom \
     --provides=cmake \
-    --pkgversion=3.8.2 \
+    --pkgversion=3.9.4 \
     --pkgrelease=latest \
     --deldesc=no
 ```
@@ -116,9 +116,28 @@ CMake suite maintained and supported by Kitware (kitware.com/cmake).
 
 ## 4. Библиотека SFML
 
-Установите пакет `libsfml-dev`:
+Рекомендуется использовать самую новую версию SFML. Для этого нужно [скачать на sfml-dev.org](https://www.sfml-dev.org/download.php) архив с исходным кодом SFML и собрать его с помощью CMake.
 
 ```bash
-sudo apt-get update
-sudo apt-get install libsfml-dev
+# Установим зависимости для сборки
+sudo apt-get install libfreetype6-dev libpng-dev
+
+# Собираем SFML из исходного кода
+cmake --DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF .
+cmake --build . -- -j4
+
+# Устанавливаем, создавая пакет libsfml-dev-custom версии 2.4.2
+sudo checkinstall -D \
+    -y --strip --stripso --nodoc \
+    --pkgname=libsfml-dev-custom \
+    --pkgversion=2.4.2 \
+    --pkgrelease=git \
+    --deldesc=no
 ```
+
+## 5. Добавляем модуль FindSFML.cmake
+
+Загрузить файл можно с [github хранилища проекта SFML](https://github.com/SFML/SFML/blob/master/cmake/Modules/FindSFML.cmake).
+
+ 1. Перейдите в каталог `/usr/local/share/cmake-3.9/Modules` (либо `/usr/share/cmake-3.9/Modules`, если предыдущего не существует)
+ 2. Скопируйте в этот каталог файл `FinSFML.cmake` (для записи потребуются права администратора; возможно, будет удобнее скопировать командой `sudo cp <путь-оригинала> <путь-копии>`)
