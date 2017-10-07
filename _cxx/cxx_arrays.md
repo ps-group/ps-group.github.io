@@ -67,7 +67,9 @@ int ages[10] = { 0 };
 Узнать число элементов в массиве можно функцией [std::size](http://en.cppreference.com/w/cpp/iterator/size). Обойти можно, используя цикл по индексам либо range-based for:
 
 ```cpp
-void example()
+#include <iostream>
+
+int main()
 {
     int ages[] = { 17, 18, 29, 30, 16, 27, 22 };
 
@@ -93,9 +95,10 @@ void example()
     // ещё одна фишка: цикл в стиле итераторов
     auto end = std::end(ages);
     int minAge = ages[0];
-    for (auto it = std::begin(ages), it != end; ++it)
+    for (auto it = std::begin(ages); it != end; ++it)
     {
         // если этот элемент меньше минимального, обновляем минимальный возраст.
+        const int age = *it;
         if (age < minAge)
         {
             minAge = age;
