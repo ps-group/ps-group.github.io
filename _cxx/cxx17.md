@@ -33,6 +33,7 @@ redirect_from: "/compilers/cxx17"
 ## Доклады с конференций
 
 - [Антон Полухин. C++17 (C++ SIBERIA 2016)](http://cpp-russia.ru/?page_id=1253)
+- [Алексей Малов. Применение современного C++ в повседневной работе](https://www.youtube.com/watch?v=MKupBSQxguA)
 
 ## Таблицы поддержки C++17 в компиляторах
 
