@@ -115,7 +115,7 @@ void initGenerator(PRNG& generator)
     generator.seed = unsigned(std::time(nullptr));
 }
 
-// Генерирует число в диапазоне [minValue, maxValue).
+// Генерирует число на отрезке [minValue, maxValue].
 unsigned random(PRNG& generator, unsigned minValue, unsigned maxValue)
 {
     // Проверяем корректность аргументов
@@ -123,8 +123,8 @@ unsigned random(PRNG& generator, unsigned minValue, unsigned maxValue)
     // Итеративно изменяем текущее число в генераторе
     generator.seed = (generator.seed * 73129 + 95121);
     
-    // Приводим число к диапазону [minValue, maxValue)
-    return (generator.seed % (maxValue - minValue)) + minValue;
+    // Приводим число к отрезку [minValue, maxValue]
+    return (generator.seed % (maxValue + 1 - minValue)) + minValue;
 }
 
 int main()
@@ -132,15 +132,15 @@ int main()
     PRNG generator;
     initGenerator(generator);
     
-    // Порождаем и выводим 10 чисел в полуинтервале [0, 7).
-    std::cout << "ten numbers in range [0, 7):" << std::endl;
+    // Порождаем и выводим 10 чисел на отрезке [0, 7].
+    std::cout << "ten numbers in range [0, 7]:" << std::endl;
     for (int i = 0; i < 10; ++i)
     {
         std::cout << random(generator, 0, 7) << std::endl;
     }
     
-    // Порождаем и выводим 10 чисел в полуинтервале [10, 20).
-    std::cout << "ten numbers in range [10, 20):" << std::endl;
+    // Порождаем и выводим 10 чисел на отрезке [10, 20].
+    std::cout << "ten numbers in range [10, 20]:" << std::endl;
     for (int i = 0; i < 10; ++i)
     {
         std::cout << random(generator, 10, 20) << std::endl;
@@ -194,7 +194,7 @@ unsigned random(PRNG& generator, unsigned minValue, unsigned maxValue)
     assert(minValue < maxValue);
     
     // Создаём распределение
-    std::uniform_int_distribution<int> distribution(minValue, maxValue);
+    std::uniform_int_distribution<unsigned> distribution(minValue, maxValue);
     
     // Вычисляем псевдослучайное число: вызовем распределение как функцию,
     //  передав генератор произвольных целых чисел как аргумент.
@@ -220,18 +220,172 @@ int main()
     PRNG generator;
     initGenerator(generator);
     
-    // Порождаем и выводим 10 чисел в полуинтервале [0, 7)
-    std::cout << "ten integer numbers in range [0, 7):" << std::endl;
+    // Порождаем и выводим 10 чисел на отрезке [0, 7]
+    std::cout << "ten integer numbers in range [0, 7]:" << std::endl;
     for (int i = 0; i < 10; ++i)
     {
         std::cout << random(generator, 0, 7) << std::endl;
     }
     
-    // Порождаем и выводим 10 чисел в полуинтервале [10, 20)
-    std::cout << "ten float numbers in range [10, 20):" << std::endl;
+    // Порождаем и выводим 10 чисел на отрезке [10, 20]
+    std::cout << "ten float numbers in range [10, 20]:" << std::endl;
     for (int i = 0; i < 10; ++i)
     {
         std::cout << random_float(generator, 10.f, 20.f) << std::endl;
+    }
+}
+```
+
+## Приём №1: выбор случайного значения из предопределённого списка
+
+Допусти, вы хотите случайно выбрать имя для кота. У вас есть список из 10 имён, которые подошли бы коту, но вы хотите реализовать случайный выбор. Достаточно случайно выбрать индекс в массиве имён! Такой же метод подошёл не только для генерации имени, но также для генерации цвета из заранее определённой палитры и для других задач.
+
+Идея проиллюстрирована в коде
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <string>
+#include <random>
+
+struct PRNG
+{
+    std::mt19937 engine;
+};
+
+void initGenerator(PRNG& generator)
+{
+    // Создаём псевдо-устройство для получения случайного зерна.
+    std::random_device device;
+    // Получаем случайное зерно последовательности
+    generator.engine.seed(device());
+}
+
+// Генерирует индекс в диапазоне [0, size)
+size_t random_index(PRNG& generator, size_t size)
+{
+    // Создаём распределение
+    std::uniform_int_distribution<size_t> distribution(0, size - 1);
+    
+    // Вычисляем псевдослучайное число: вызовем распределение как функцию,
+    //  передав генератор произвольных целых чисел как аргумент.
+    return distribution(generator.engine);
+}
+
+int main()
+{
+    std::vector<std::string> names = {
+        "Barsik",
+        "Murzik",
+        "Pushok",
+        "Amor",
+        "Balu",
+        "Vert",
+        "Damar",
+        "Kamelot",
+        "Mavrik",
+        "Napoleon"
+    };
+    
+    PRNG generator;
+    initGenerator(generator);
+    
+    // Порождаем и выводим 3 случайных имёни из заданного списка
+    
+    std::cout << "3 random cat names:" << std::endl;
+    for (int i = 0; i < 3; ++i)
+    {
+        const size_t nameIndex = random_index(generator, names.size());
+        std::cout << names[nameIndex] << std::endl;
+    }
+}
+```
+
+## Приём №2: отбрасываем неподходящее значение
+
+Если предыдущую программу запустить несколько раз, то рано или поздно у вас возникнет ситуация, когда одно и то же имя было выведено дважды. Что, если вам нужно уникальное значение, не выпадавшее прежде за время запуска программы?
+
+Тогда используйте цикл, чтобы запрашивать случайные значения до тех пор, пока очередное значение не попадёт под ваши требования. Будьте аккуратны: если требования нереалистичные, вы получите бесконечный цикл!
+
+Доработаем программу, добавив цикл while в функцию main. Для сохранения уже использованных имён воспользуемся структурой данных [std::set](http://en.cppreference.com/w/cpp/container/set) из заголовка `<set>, представляющей динамическое множество.
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <string>
+#include <set>
+#include <random>
+
+struct PRNG
+{
+    std::mt19937 engine;
+};
+
+void initGenerator(PRNG& generator)
+{
+    // Создаём псевдо-устройство для получения случайного зерна.
+    std::random_device device;
+    // Получаем случайное зерно последовательности
+    generator.engine.seed(device());
+}
+
+// Генерирует индекс в диапазоне [0, size)
+size_t random_index(PRNG& generator, size_t size)
+{
+    // Создаём распределение
+    std::uniform_int_distribution<size_t> distribution(0, size - 1);
+    
+    // Вычисляем псевдослучайное число: вызовем распределение как функцию,
+    //  передав генератор произвольных целых чисел как аргумент.
+    return distribution(generator.engine);
+}
+
+int main()
+{
+    std::vector<std::string> names = {
+        "Barsik",
+        "Murzik",
+        "Pushok",
+        "Amor",
+        "Balu",
+        "Vert",
+        "Damar",
+        "Kamelot",
+        "Mavrik",
+        "Napoleon"
+    };
+    
+    PRNG generator;
+    initGenerator(generator);
+    
+    // Множество, хранящее индексы использованных имён.
+    std::set<size_t> usedIndexes;
+
+    // Порождаем и выводим 3 случайных имёни из заданного списка
+    std::cout << "3 random cat names:" << std::endl;
+    for (int i = 0; i < 3; ++i)
+    {
+        size_t nameIndex = 0;
+        while (true)
+        {
+            // Запрашиваем случайный индекс
+            nameIndex = random_index(generator, names.size());
+            // Проверяем, что индекс ранее не встречался
+            if (usedIndexes.find(nameIndex) == usedIndexes.end())
+            {
+                // Если не встречался, добавляем в множество и выходим
+                //  из цикла: уникальный индекс найден
+                usedIndexes.insert(nameIndex);
+                break;
+            }
+            else
+            {
+                // Отладочная печать отброшенного индекса
+                std::cout << "discard index " << nameIndex << std::endl;
+            }
+        }
+        std::cout << "index: " << nameIndex << std::endl;
+        std::cout << names[nameIndex] << std::endl;
     }
 }
 ```
