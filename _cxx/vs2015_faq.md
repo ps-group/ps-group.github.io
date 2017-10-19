@@ -29,7 +29,7 @@ title: 'F.A.Q. по Visual Studio 2015'
 
 Правильным будет располагать ресурсы программы рядом с исполняемым файлом. Для запуска из Visual Studio в таком случае лучше установить параметр "Working Directory" равным "$(OutDir)".
 
-> Рабочий каталог программы (англ. current directory, или working directory) появился ещё в UNIX. Он задаётся для каждого процесса в системе при запуске. В POSIX (Unix) сущесвует API для запроса и изменения текущей директории: функции [getcwd](http://www.opennet.ru/man.shtml?topic=getcwd&category=3&russian=0) для получения пути к рабочему каталогу и [chdir](http://www.opennet.ru/man.shtml?topic=chdir&category=2&russian=0) для изменения. Пример кроссплатформенного подключения этого API приведён ниже:
+> Рабочий каталог программы (англ. current directory, или working directory) появился ещё в UNIX. Он задаётся для каждого процесса в системе при запуске. В POSIX (Unix) существует API для запроса и изменения текущей директории: функции [getcwd](http://www.opennet.ru/man.shtml?topic=getcwd&category=3&russian=0) для получения пути к рабочему каталогу и [chdir](http://www.opennet.ru/man.shtml?topic=chdir&category=2&russian=0) для изменения. Пример кроссплатформенного подключения этого API приведён ниже:
 
 ```cpp
 #ifdef _WIN32
