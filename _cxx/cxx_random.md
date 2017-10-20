@@ -236,6 +236,31 @@ int main()
 }
 ```
 
+## Особенность платформы: random_device в MinGW
+
+Согласно стандарту C++, принцип работы `std::random_device` отдаётся на откуп разработчикам компилятора и стандартной библиотеки. В компиляторе G++ и его стандартной библиотеке `libstdc++` класс random_device правильно работает на UNIX-платформах, но на Windows в некоторых дистрибутивах MinGW вместо случайных зёрен он возвращает одну и ту же константу!
+
+В качестве обходного манёвра мы можем использовать текущее время в качестве зерна случайности. Для этого изменим функцию initGenerator:
+
+```cpp
+#include <iostream>
+#include <random>
+#include <cassert>
+#include <ctime>
+
+struct PRNG
+{
+    std::mt19937 engine;
+};
+
+void initGenerator(PRNG& generator)
+{
+    // Используем время с 1 января 1970 года в секундах как случайное зерно
+    const unsigned seed = unsigned(std::time(nullptr));
+    generator.engine.seed(seed);
+}
+```
+
 ## Приём №1: выбор случайного значения из предопределённого списка
 
 Допусти, вы хотите случайно выбрать имя для кота. У вас есть список из 10 имён, которые подошли бы коту, но вы хотите реализовать случайный выбор. Достаточно случайно выбрать индекс в массиве имён! Такой же метод подошёл не только для генерации имени, но также для генерации цвета из заранее определённой палитры и для других задач.
@@ -247,6 +272,7 @@ int main()
 #include <vector>
 #include <string>
 #include <random>
+#include <ctime>
 
 struct PRNG
 {
@@ -255,10 +281,9 @@ struct PRNG
 
 void initGenerator(PRNG& generator)
 {
-    // Создаём псевдо-устройство для получения случайного зерна.
-    std::random_device device;
-    // Получаем случайное зерно последовательности
-    generator.engine.seed(device());
+    // Используем время с 1 января 1970 года в секундах как случайное зерно
+    const unsigned seed = unsigned(std::time(nullptr));
+    generator.engine.seed(seed);
 }
 
 // Генерирует индекс в диапазоне [0, size)
@@ -315,6 +340,7 @@ int main()
 #include <string>
 #include <set>
 #include <random>
+#include <ctime>
 
 struct PRNG
 {
@@ -323,10 +349,9 @@ struct PRNG
 
 void initGenerator(PRNG& generator)
 {
-    // Создаём псевдо-устройство для получения случайного зерна.
-    std::random_device device;
-    // Получаем случайное зерно последовательности
-    generator.engine.seed(device());
+    // Используем время с 1 января 1970 года в секундах как случайное зерно
+    const unsigned seed = unsigned(std::time(nullptr));
+    generator.engine.seed(seed);
 }
 
 // Генерирует индекс в диапазоне [0, size)
