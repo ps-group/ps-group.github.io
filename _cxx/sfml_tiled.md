@@ -77,19 +77,19 @@ const char MAP_DATA[] =
 //  использующий основную текстуру карты как источник данных.
 struct TmxObject
 {
-    int GetPropertyInt(std::string name);
-    float GetPropertyFloat(std::string name);
-    std::string GetPropertyString(std::string name);
+    int GetPropertyInt(const std::string &propertyName);
+    float GetPropertyFloat(const std::string &propertyName);
+    std::string GetPropertyString(const std::string &propertyName);
 
     void MoveBy(const sf::Vector2f &movement);
     void MoveTo(const sf::Vector2f &position);
 
     std::string name;
     std::string type;
-    sf::IntRect rect;
+    sf::FloatRect rect;
     std::map<std::string, std::string> properties;
 
-	sf::Sprite sprite;
+    sf::Sprite sprite;
 };
 ```
 
@@ -105,6 +105,7 @@ for (const TmxObject &enemy : pLogic->enemies)
 {
     target.draw(enemy.sprite);
 }
+target.draw(pLogic->player.sprite);
 ```
 
 Методы MoveTo и MoveBy можно использовать для перемещения к заданной точке / на заданное расстояние соответственно:
@@ -124,7 +125,7 @@ player.MoveBy(movement)
 //  например, слой травы поверх слоя земли.
 struct TmxLayer
 {
-    int opacity = 0;
+    sf::Uint8 opacity = 0;
     std::vector<sf::Sprite> tiles;
 };
 ```
@@ -134,20 +135,23 @@ struct TmxLayer
 ```cpp
 class TmxLevel
 {
-public:
+  public:
     // Загружает данные из TMX в память объекта.
     bool LoadFromFile(const std::string &filepath);
 
-    TmxObject GetFirstObject(const std::string &name)const;
-    std::vector<TmxObject> GetAllObjects(const std::string &name)const;
-    sf::Vector2i GetTileSize()const;
+    TmxObject GetFirstObject(const std::string &name) const;
+    std::vector<TmxObject> GetAllObjects(const std::string &name) const;
+    sf::Vector2i GetTileSize() const;
+    float GetTilemapWidth() const;
+    float GetTilemapHeight() const;
+    sf::Vector2f GetTilemapSize() const;
 
     // Рисует все слои тайлов один за другим,
     //  но не рисует объекты (рисованием которых должна заниматься игра).
     // Принимает любую цель для рисования, например, sf::RenderWindow.
-    void Draw(sf::RenderTarget &target)const;
+    void Draw(sf::RenderTarget &target) const;
 
-private:
+  private:
     int m_width = 0;
     int m_height = 0;
     int m_tileWidth = 0;
@@ -162,18 +166,28 @@ private:
 Помимо рисования всех статических элементов карты, данный класс даёт доступ к набору объектов на карте, а также к размеру карты, что даёт возможность использовать их остальной игровой логике. Метод для загрузки карты может выбросить исключение, и его лучше обработать в функции main, как показано ниже — это обеспечит выход из программы с предупреждающим сообщением из консоли и ненулевым кодом возврата, сообщающим системе об ошибке во входных данных.
 
 ```cpp
-int main()
+int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
+
     try
     {
-        TmxLevel level;
-        level.LoadFromFile("res/platformer.tmx");
+        // NOTE: Если при загрузке карты будет выброшено исключение,
+        //  то память утечёт. Избавиться от этого можно с помощью
+        //  замены new/delete на make_unique и unique_ptr.
+        GameView *pGameView = NewGameView({800, 600});
+        GameScene *pGameScene = NewGameScene();
+
+        // Аргумент типа `GameLogic*` будет преобразован в `void*`.
+        EnterGameLoop(*pGameView, UpdateGameScene, DrawGameScene, pGameScene);
     }
     catch (const std::exception &ex)
     {
         std::cerr << ex.what() << std::endl;
         return 1;
     }
+
     return 0;
 }
 ```
@@ -181,7 +195,7 @@ int main()
 Метод `TmxLevel::Draw` был оптимизирован для ускоренного рисования карт огромного размера: невидимые тайлы отсекаются с помощью проверки пересечения с прямоугольником карты.
 
 ```cpp
-void TmxLevel::Draw(sf::RenderTarget &target)const
+void TmxLevel::Draw(sf::RenderTarget &target) const
 {
     const sf::FloatRect viewportRect = target.getView().getViewport();
 
@@ -214,8 +228,6 @@ void TmxLevel::Draw(sf::RenderTarget &target)const
 - `src/TmxLevel.h` and `src/TmxLevel.cpp` — `*.tmx` file parser
 - `lib/tinyxml2/tinyxml2.h` and `lib/tinyxml2/tinyxml2.cpp` — external library Tinyxml2 used to parse TMX format
 - `src/GameScene.h`, `src/GameScene.cpp`, `src/GameView.h`, `src/GameView.cpp`, `src/main.cpp` — small demo application
-
-
 
 Чтобы убедиться, что мы воспроизводим карту правильно, пиксель-в-пиксель, сделаем скриншот игры на фоне редактора, где открыта та же карта:
 
