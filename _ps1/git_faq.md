@@ -1,5 +1,6 @@
 ---
 title: 'F.A.Q. по системе контроля версий Git'
+draft: true
 ---
 
 Git - распределённая система контроля версий. Он доступен в виде утилиты командной строки. Есть и графические оболочки над Git, но у таких программ другие названия: TortoiseGit, Github Client и так далее.
@@ -59,6 +60,18 @@ D:\Projects\CppDistro\workspace>git commit -m "Added A+B program"
 git config --global user.email "ваш.email"
 git config --global user.name "ваше.имя"
 ```
+
+### Фиксация изменений в интерфейсе Visual Studio Code
+
+Вы можете выбирать и фиксировать изменения прямо в Visual Studio Code. Для этого переключите левую панель в режим системы контроля версий. Как только вы это сделаете, вы сможете фиксировать изменения с выбранным сообщением.
+
+![Скриншот](img/ui/vscode_git_commit.png)
+
+### Добавление файлов
+
+### Удаление файлов
+
+TODO: git rm, git rm --cached, фиксация в интерфейсе Visual Studio Code
 
 ## Работа с Github
 
