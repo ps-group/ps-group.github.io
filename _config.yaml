@@ -13,6 +13,9 @@ email: sshambir@gmail.com
 gems:
   - jekyll-redirect-from
 
+plugins:
+  - jekyll-sitemap
+
 collections:
   opengl:
     output: true
