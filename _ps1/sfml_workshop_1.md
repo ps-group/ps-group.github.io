@@ -20,7 +20,7 @@ preview: 'img/preview/sfml_workshop_1.png'
 2. Затем один из вас пишет псевдокод готовой программы
 3. Наконец, вы кодируете решение по очереди
 	- например, можно по очереди писать по одной функции
-	- пока один программист пишет, другой должен внимательно следить и аккуртно поправлять его
+	- пока один программист пишет, другой должен внимательно следить и аккуратно поправлять его
 
 ## Задание workshop1.1
 
@@ -40,7 +40,7 @@ preview: 'img/preview/sfml_workshop_1.png'
 2. Написать псевдокод на уровне "функции с комментариями вместо инструкций" и сохранить псевдокод в отдельном файле
 3. Затем выполнить кодирование, то есть реализовать тела всех функций
 
-Изучить поведение можете с помощью [Интерактивного пример на Javascript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch05/04-follow-mouse-1.html)
+Изучить поведение можете с помощью [Интерактивного пример на JavaScript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch05/04-follow-mouse-1.html)
 
 Справиться с задачей вам поможет слайд из лекции:
 

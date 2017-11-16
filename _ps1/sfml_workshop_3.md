@@ -11,7 +11,7 @@ preview: 'img/preview/sfml_workshop_3.png'
 - нужно соблюдать [Соглашения о кодировании на C++](cxx_coding_style)
 - программа должна быть разделена на части с помощью функций (или методов) и типов данных (например, структур либо классов)
     - вам поможет руководство [Классы в C++ для новичков](/cxx/cxx_simple_class)
-    - вы должны следовать паттерну Game Loop и выделить шаги игрового цикла в отдельные функции (например, в функции createWindow, init, pollEvents, update, drawFrame)
+    - вы должны следовать паттерну Game Loop и выделить шаги игрового цикла в отдельные функции (например, в функции `createWindow`, `init`, `pollEvents`, `update`, `drawFrame`)
     - размер одной функции не превышает 20 строк, в идеале от 1 до 15 строк
 - программа должна быть разделена на несколько файлов
     - вам поможет руководство [Программы из нескольких файлов на C++](/cxx/cxx_multiple_files)
@@ -69,13 +69,13 @@ window.draw(initials);
 - корректно решать [задачу трёх тел](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B4%D0%B0%D1%87%D0%B0_%D1%82%D1%80%D1%91%D1%85_%D1%82%D0%B5%D0%BB) не нужно, достаточно на каждом кадре подсчитывать суммарную силу и затем применять её
 - сила притяжения пропорциональна квадрату расстояния между шариками
 
-Вы можете изучить [интерактивный пример на Javascript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch12/03-gravity-random.html).
+Вы можете изучить [интерактивный пример на JavaScript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch12/03-gravity-random.html).
 
 ### Часть III (2 балла)
 
 > Закон кулоновского отталкивания в векторной форме вы можете найти в статье [Newton's law of universal gravitation](https://en.wikipedia.org/wiki/Coulomb%27s_law#Vector_form)
 
-Добавьте в систему с шариками силы отталкивания, похожие на силы кулоновского отталкивания. В этом случае каждый шарик несёт заряд, и все заряды равны по модулю, но могу иметь разные знаки. Некоторые частицы отталкиваются, некоторые - притягиваются. Гравитационые силы можно убрать или сделать намного менее значимыми, чем кулоновская сила отталкивания.
+Добавьте в систему с шариками силы отталкивания, похожие на силы кулоновского отталкивания. В этом случае каждый шарик несёт заряд, и все заряды равны по модулю, но могу иметь разные знаки. Некоторые частицы отталкиваются, некоторые - притягиваются. Гравитационные силы можно убрать или сделать намного менее значимыми, чем кулоновская сила отталкивания.
 
 ## Задание workshop3.3 (2 балла)
 
@@ -85,7 +85,7 @@ window.draw(initials);
 
 ![Иллюстрация](img/labor/track_cursor.png)
 
-Вы можете изучить [интерактивный пример на Javascript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch03/11-mouse-distance.html).
+Вы можете изучить [интерактивный пример на JavaScript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch03/11-mouse-distance.html).
 
 ## Задание workshop3.4 (3 балла)
 
@@ -97,11 +97,11 @@ window.draw(initials);
 - Клавиши Влево/Вправо наращивают/убавляют угол поворота корабля
 - Корабль должен обладать инерцией, т.е. при нажатии на клавиши-стрелки скорость не сразу возрастает до предельной
 - Скорость поворота корабля ограничена
-- На корабль действует сила, направленная против его движения, и эта сила увеличивется с ростом скорости корабля пропорционально квадрату скорости
+- На корабль действует сила, направленная против его движения, и эта сила увеличивается с ростом скорости корабля пропорционально квадрату скорости
 
 ![Иллюстрация](img/labor/spaceship_example.png)
 
-Вы можете изучить [интерактивный пример на Javascript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch05/11-ship-sim.html).
+Вы можете изучить [интерактивный пример на JavaScript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch05/11-ship-sim.html).
 
 ## Задание workshop3.5 (3 балла)
 
@@ -135,5 +135,5 @@ window.draw(initials);
 
 ![Иллюстрация](img/fig/rects_intersection.png)
 
-Вы можете изучить [интерактивный пример на Javascript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch09/02-boxes.html).
+Вы можете изучить [интерактивный пример на JavaScript](http://users.polytech.unice.fr/~strombon/camash/Foundation%20HTML5%20Animation%20with%20JavaScript/html5-animation-source-code/examples/ch09/02-boxes.html).
 

@@ -66,30 +66,34 @@ void assignShape(sf::ConvexShape & shape, std::vector<sf::Vector2f> const& point
 Теперь можно реализовать функцию для инициализации двух фигур, составляющих пакмана:
 
 ##### вычисление фигуры пакмана
-```cpp
-void initPackmanShape(sf::ConvexShape & topPart, sf::ConvexShape & bottomPart)
-{
-    const float radius = 40;
-    std::vector<sf::Vector2f> points;
-    sf::Vector2f center(radius, radius);
 
-    for (float angle = 30.f; angle <= 180.f; angle += 5.f)
+```cpp
+static void assignPackmanShape(sf::ConvexShape & topShape,
+                               sf::ConvexShape & bottomShape,
+                               const float animationPhase)
+{
+    // Вычисляем половину угла раскрытого рта персонажа packman.
+    const float deviationPhase = 2.f * fabsf(0.5f - animationPhase);
+    const float deviationAngle = 0.5 * deviationPhase * PACKMAN_MOUTH_ANGLE;
+
+    const float radius = PACKMAN_VISIBLE_RADIUS;
+    std::vector<sf::Vector2f> points;
+    sf::Vector2f center(0, 0.25f * radius);
+
+    for (float angle = 180.f; angle >= deviationAngle; angle -= 5.f)
     {
-        points.push_back(GetRadialPoint(angle, radius));
+        points.push_back(getRadialPoint(angle, radius));
     }
     points.push_back(center);
-    AssignShape(topPart, points);
+    assignShape(topShape, points);
     points.clear();
 
-    for (float angle = 180.f; angle <= 330.f; angle += 5.f)
+    for (float angle = 180.f; angle <= 360.f - deviationAngle; angle += 5.f)
     {
-        points.push_back(GetRadialPoint(angle, radius));
+        points.push_back(getRadialPoint(angle, radius));
     }
     points.push_back(center);
-    AssignShape(bottomPart, points);
-
-    topPart.setFillColor(sf::Color::Yellow);
-    bottomPart.setFillColor(sf::Color::Yellow);
+    assignShape(bottomShape, points);
 }
 ```
 
