@@ -202,7 +202,7 @@ unsigned random(PRNG& generator, unsigned minValue, unsigned maxValue)
 }
 
 // Генерирует число с плавающей точкой в диапазоне [minValue, maxValue)
-float random_float(PRNG& generator, float minValue, float maxValue)
+float getRandomFloat(PRNG& generator, float minValue, float maxValue)
 {
     // Проверяем корректность аргументов
     assert(minValue < maxValue);
@@ -231,7 +231,7 @@ int main()
     std::cout << "ten float numbers in range [10, 20]:" << std::endl;
     for (int i = 0; i < 10; ++i)
     {
-        std::cout << random_float(generator, 10.f, 20.f) << std::endl;
+        std::cout << getRandomFloat(generator, 10.f, 20.f) << std::endl;
     }
 }
 ```
@@ -287,7 +287,7 @@ void initGenerator(PRNG& generator)
 }
 
 // Генерирует индекс в диапазоне [0, size)
-size_t random_index(PRNG& generator, size_t size)
+size_t getRandomIndex(PRNG& generator, size_t size)
 {
     // Создаём распределение
     std::uniform_int_distribution<size_t> distribution(0, size - 1);
@@ -320,7 +320,7 @@ int main()
     std::cout << "3 random cat names:" << std::endl;
     for (int i = 0; i < 3; ++i)
     {
-        const size_t nameIndex = random_index(generator, names.size());
+        const size_t nameIndex = getRandomIndex(generator, names.size());
         std::cout << names[nameIndex] << std::endl;
     }
 }
@@ -355,7 +355,7 @@ void initGenerator(PRNG& generator)
 }
 
 // Генерирует индекс в диапазоне [0, size)
-size_t random_index(PRNG& generator, size_t size)
+size_t getRandomIndex(PRNG& generator, size_t size)
 {
     // Создаём распределение
     std::uniform_int_distribution<size_t> distribution(0, size - 1);
@@ -394,7 +394,7 @@ int main()
         while (true)
         {
             // Запрашиваем случайный индекс
-            nameIndex = random_index(generator, names.size());
+            nameIndex = getRandomIndex(generator, names.size());
             // Проверяем, что индекс ранее не встречался
             if (usedIndexes.find(nameIndex) == usedIndexes.end())
             {
