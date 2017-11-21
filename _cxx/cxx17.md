@@ -103,7 +103,7 @@ std::wstring utf8_to_wstring(std::string_view str)
 
 Известный тип данных optional из Boost мигрировал в стандарт под именем `std::optional`. Мы не будем описывать класс в этой статье, отметим лишь основные особенности:
 
-- optional имеет `operator*` и `operator->`, а тажке удобный метод `.value_or(const T &defaultValue)`
+- optional имеет `operator*` и `operator->`, а также удобный метод `.value_or(const T &defaultValue)`
 
 ```cpp
 // nullopt - это специальное значение типа nullopt_t, которое сбрасывает
@@ -315,7 +315,7 @@ std::pair<iterator,bool> emplace( Args&&... args );
 
 ### Методы try_emplace и insert_or_assign в контейнерах map и unordered_map
 
-- Метод [try_emplace](http://en.cppreference.com/w/cpp/container/map/try_emplace) выполняет вставку тогда и только тогда, когда заданного ключа ещё нет в контейенере.
+- Метод [try_emplace](http://en.cppreference.com/w/cpp/container/map/try_emplace) выполняет вставку тогда и только тогда, когда заданного ключа ещё нет в контейнере.
 
 ```cpp
 // Есть перегрузка для key_type const& и key_type&&
@@ -832,4 +832,4 @@ error C2039: 'auto_ptr': is not a member of 'std'
 
 ### Метод unique класса shared_ptr устарел
 
-Метод признан непотокобезопасным, рекомендуется его не использовать. Если у вас есть `shared_ptr`, трудно гарантировать захват находящегося внутри объекта в уникальное владение, т.к. одновременно другой поток может увеличить счётчик ссыло.
+Метод признан непотокобезопасным, рекомендуется его не использовать. Если у вас есть `shared_ptr`, трудно гарантировать захват находящегося внутри объекта в уникальное владение, т.к. одновременно другой поток может увеличить счётчик ссылок.
