@@ -20,7 +20,7 @@ subtitle: Руководство по сборке и установке LLVM н
 
 ## Установка бинарных пакетов в Windows
 
-Для Windows проект LLVM/Clang предоставяет инсталлятор Clang, найти который можно на странице [releases.llvm.org](http://releases.llvm.org/). К сожалению, инсталлятор не предоставляет библиотек и заголовочных файлов LLVM. Для работы с API LLVM, а не с утилитами, потребуется собрать LLVM самостоятельно.
+Для Windows проект LLVM/Clang предоставляет инсталлятор Clang, найти который можно на странице [releases.llvm.org](http://releases.llvm.org/). К сожалению, инсталлятор не предоставляет библиотек и заголовочных файлов LLVM. Для работы с API LLVM, а не с утилитами, потребуется собрать LLVM самостоятельно.
 
 Установить библиотеки LLVM можно с помощью пакетного менеджера NuGet в составе Visual Studio, нужный пакет есть на странице [nuget.org/packages/LLVMLibs](http://www.nuget.org/packages/LLVMLibs)
 
@@ -97,7 +97,7 @@ checkinstall -D -y --nodoc --strip --stripso \
 
 При вызове с параметром `--includedir` утилита выводит путь к заголовочным файлам LLVM, который можно добавить в настройки проекта или скрипты сборки.
 
-При вызове с параметром `--libs` утилита выводит список доступных для компоновщика библиоте LLVM, оформленный в виде флагов GCC-совместимого компоновщика.
+При вызове с параметром `--libs` утилита выводит список доступных для компоновщика библиотек LLVM, оформленный в виде флагов GCC-совместимого компоновщика.
 
 ```
 -lLLVMLTO -lLLVMObjCARCOpts -lLLVMSymbolize -lLLVMDebugInfoPDB -lLLVMDebugInfoDWARF -lLLVMXCoreDisassembler -lLLVMXCoreCodeGen -lLLVMXCoreDesc -lLLVMXCoreInfo -lLLVMXCoreAsmPrinter -lLLVMSystemZDisassemble -lLLVMSystemZCodeGen -lLLVMSystemZAsmParser -lLLVMSystemZDesc -lLLVMSystemZInfo -lLLVMSystemZAsmPrinter -lLLVMSparcDisassembler -lLLVMSparcCodeGen -lLLVMSparcAsmParser -lLLVMSparcDesc -lLLVMSparcInfo -lLLMSparcAsmPrinter -lLLVMPowerPCDisassembler -lLLVMPowerPCCodeGen -lLLVMPowerPCAsmParser -lLLVMPowerPCDesc -lLLVMPowerPCInfo -lLLVMPowerPCAsmPrinter -lLLVMNVPTXCodeGen -lLLVMNVPTXDesc -lLLVMNVPTXInfo -lLLVMNPTXAsmPrinter -lLLVMMSP430CodeGen -lLLVMMSP430Desc -lLLVMMSP430Info -lLLVMMSP430AsmPrinter -lLLVMMipsDisassembler -lLLVMMipsCodeGen -lLLVMMipsAsmParser -lLLVMMipsDesc -lLLVMMipsInfo -lLLVMMipsAsmPrinter -lLVMHexagonDisassembler -lLLVMHexagonCodeGen -lLLVMHexagonAsmParser -lLLVMHexagonDesc -lLLVMHexagonInfo -lLLVMCppBackendCodeGen -lLLVMCppBackendInfo -lLLVMBPFCodeGen -lLLVMBPFDesc -lLLVMBPFInfo -lLLVMBPFAsmrinter -lLLVMARMDisassembler -lLLVMARMCodeGen -lLLVMARMAsmParser -lLLVMARMDesc -lLLVMARMInfo -lLLVMARMAsmPrinter -lLLVMAMDGPUCodeGen -lLLVMAMDGPUAsmParser -lLLVMAMDGPUDesc -lLLVMAMDGPUUtils -lLLVMAMDGPUInf -lLLVMAMDGPUAsmPrinter -lLLVMAArch64Disassembler -lLLVMAArch64CodeGen -lLLVMAArch64AsmParser -lLLVMAArch64Desc -lLLVMAArch64Info -lLLVMAArch64AsmPrinter -lLLVMAArch64Utils -lLLVMMIRParser -lLLVMLibDriverLLVMOption -lgtest_main -lgtest -lLLVMTableGen -lLLVMLineEditor -lLLVMX86Disassembler -lLLVMX86AsmParser -lLLVMX86CodeGen -lLLVMSelectionDAG -lLLVMAsmPrinter -lLLVMX86Desc -lLLVMMCDisassembler -lLLVMX86Ino -lLLVMX86AsmPrinter -lLLVMX86Utils -lLLVMMCJIT -lLLVMPasses -lLLVMipo -lLLVMVectorize -lLLVMLinker -lLLVMIRReader -lLLVMAsmParser -lLLVMDebugInfoCodeView -lLLVMInterpreter -lLLVMCodeGen -lLLVMScalarOptslLLVMInstCombine -lLLVMInstrumentation -lLLVMProfileData -lLLVMBitWriter -lLLVMOrcJIT -lLLVMTransformUtils -lLLVMExecutionEngine -lLLVMTarget -lLLVMAnalysis -lLLVMRuntimeDyld -lLLVMObject -lLLVMMCParser -lLVMBitReader -lLLVMMC -lLLVMCore -lLLVMSupport
