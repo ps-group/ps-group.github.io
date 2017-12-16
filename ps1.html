@@ -26,24 +26,16 @@ permalink: /ps1/
 
 {% include post_box.html post_id='/ps1/project' %}
 
-<!--
-{% assign posts_collection = site.cxx %}
+{% include rich_link.html 
+    preview_url='https://github.com/ps-group/sfml-packman/raw/master/img/preview_2.png'
+    url='https://github.com/ps-group/sfml-packman'
+    title='Пишем клон игры PacMan слой за слоем'
+    subtitle='В этой коллекции примеров слой за слоем на C++/SFML воссоздаётся урезанный клон игры PacMan'
+%}
 
-<h3 class="post-heading">Начни думать. На старте проекта</h3>
-
-{% include post_box.html post_id='/cxx/sfml_packman_1' %}
-{% include post_box.html post_id='/cxx/sfml_packman_2' %}
-{% include post_box.html post_id='/cxx/sfml_packman_3' %}
-
-<h3 class="post-heading">Навались! Реализуем геймплей</h3>
-
-{% include post_box.html post_id='/cxx/sfml_packman_4' %}
-{% include post_box.html post_id='/cxx/sfml_packman_5' %}
-{% include post_box.html post_id='/cxx/sfml_packman_6' %}
-
-<h3 class="post-heading">Уголок перфекциониста. Полируем детали</h3>
-
-{% include post_box.html post_id='/cxx/sfml_packman_7' %}
-{% include post_box.html post_id='/cxx/sfml_packman_8' %}
--->
-
+{%include rich_link.html
+    preview_url='/img/google-table.svg'
+    url='https://docs.google.com/spreadsheets/d/1n7OzeQEDujPDboW3dFn4M4iXhcPvlCR7FQbPRSE4jwM/edit?usp=sharing'
+    title='Схема оценки проекта-игры'
+    subtitle='В таблице записаны критерии оценки и примеры оценивания различных игр'
+%}
