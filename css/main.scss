@@ -212,6 +212,11 @@ $post-box-padding: 4px;
         {
             font-size: $base-font-size;
             display: block;
+
+            a
+            {
+                vertical-align: middle;
+            }
         }
 
         .post-subtitle

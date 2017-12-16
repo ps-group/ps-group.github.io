@@ -1,0 +1,18 @@
+<div class="post-box external-post">
+  {% if include.preview_url %}
+  <div class="post-preview external-post">
+    <img src="{{ include.preview_url }}" alt="Превью" />
+  </div>
+  <div class="post-description external-post">
+    <span class="post-link external-post">
+      <span class="post-title-icon external-post">
+        <img src="/img/url.svg" />
+      </span>
+      <a  href="{{ include.url }}">{{ include.title | escape }}</a>
+    </span>
+    {% if include.subtitle %}
+    <span class="post-subtitle external-post">{{ include.subtitle | escape }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
