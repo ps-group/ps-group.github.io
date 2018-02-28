@@ -1,28 +1,54 @@
 ---
-title: 'Установка библиотек для Windows'
-subtitle: 'Краткая инструкция по установке всех нужных для курса библиотек для Visual Studio'
-redirect_from: '/opengl/windows_env'
+title: 'Установка окружения для Windows'
+subtitle: 'Краткая инструкция по установке Visual Studio, а также других инструментов и библиотек'
 draft: true
 ---
 
-На Windows рекомендуется использовать
+## Установка Visual Studio 2017
 
-- Visual Studio Community Edition последней версии для разработки
-- vcpkg для установки пакетов
-- CMake для сборки некоторых библиотек
+Microsoft предоставляет несколько редакций Visual Studio: большинство из них платные, но мы будем использовать бесплатную редакцию - Community Edition.
 
-Без vcpkg каждую библиотеку придётся ставить по отдельности. Пакетный менеджер vcpkg автоматизирует скачивание и сборку библиотек на машине разработчика.
+>Редакция Community Edition предназначена для инди-разработчиков, обучающихся и для разработчиков OpenSource проектов. Для коммерческой разработки в команде потребуются другие редакции либо среда MonoDevelop.
+
+Загрузите онлайн-инсталлятор Visual Studio 2017 Community Edition: [visualstudio.com/downloads](https://www.visualstudio.com/downloads/)
+
+После загрузки запустите (на медленных машинах запуск может быть долгим).
+В установщике выберите один компонент - “Разработка классических приложений на C++”:
+
+![Скриншот](img/setup/vs2017ce_cpp.png)
+
+На вкладке языковых пакетов уберите пакет “Русский”, выберите “Английский” - с англоязычным интерфейсом гораздо легче найти решение какой-либо проблемы в Интернете:
+
+![Скриншот](img/setup/vs2017ce_en.png)
+
+Запустите установку Visual Studio. Процесс установки может занять 1-2 часа.
+
+После установки Visual Studio вы можете установить плагины, загрузив их с сайта visualstudio и запустив:
+
+* [ClangFormat](https://marketplace.visualstudio.com/items?itemName=LLVMExtensions.ClangFormat)
+* [C++ Debugger Visualizers for VS2017](https://marketplace.visualstudio.com/items?itemName=ArkadyShapkin.CDebuggerVisualizersforVS2017)
+
+## Установка Git
+
+Git - это OpenSource система контроля версий, представленная пакетом инструментов командной строки.
+Скачайте и установите Git для Windows: https://git-scm.com/download/win
+
+Для более комфортной работы с git вы можете установить какой-нибудь графический клиент для Git:
+
+* Source Tree (https://www.sourcetreeapp.com/)
+* Tortoise Git (https://tortoisegit.org/)
+* клиент для работы с Github (https://desktop.github.com/).
 
 ## Установка CMake
 
-Для сборки примеров потребуется CMake. Свои работы можно делать без CMake.
+Для сборки примеров потребуется CMake. Свои работы также рекомендуется делать с помощью CMake.
 
 - Скачайте Cmake [с официального сайта](https://cmake.org/download/)
 - При установке не забудьте поменять опцию, чтобы путь к CMake был добавлен в переменную [PATH](http://superuser.com/questions/284342/what-are-path-and-other-environment-variables-and-how-can-i-set-or-use-them)
 
 ![Скриншот](img/cmake_add_to_path.png)
 
-- Переменные окружения, такие как [PATH](http://superuser.com/questions/284342/what-are-path-and-other-environment-variables-and-how-can-i-set-or-use-them), передаются приложению при старте. Если вы поменяли переменную PATH, изменения вступят в силу после перезапуска программ.
+>Переменные окружения, такие как [PATH](http://superuser.com/questions/284342/what-are-path-and-other-environment-variables-and-how-can-i-set-or-use-them), передаются приложению при старте. Если вы поменяли переменную PATH, изменения вступят в силу после перезапуска программ.
 
 ## Установка и использование vcpkg
 
@@ -43,29 +69,32 @@ cd vcpkg
 powershell -exec bypass scripts\bootstrap.ps1
 :: Теперь в корне репозитория лежит vcpkg.exe, который можно вызывать
 ::  из каталога либо добавить в переменную окружения PATH.
-
-:: Установка библиотеки выполняется командой install
-vcpkg install sdl2:x86-windows-static sdl2:x64-windows-static
 ```
 
-Из команды выше легко понять, что имена пакетов перечисляются по порядку, а в качестве суффикса используется так называемый "триплет": `имя_пакета:триплет`.
+После того, как вы получили `vcpkg.exe`, вы можете устанавливать пакеты командой `install`. Пример:
 
-- Имя пакета задаёт одно из множества имён доступных библиотек.
+```
+vcpkg install sdl2:x86-windows sdl2-image:x86-windows
+```
+
+В команде, представленной выше, имена пакетов перечисляются по порядку, а в качестве суффикса используется так называемый "триплет": `имя_пакета:триплет`.
+
+- Имя пакета задаёт одно из множества имён доступных библиотек, полный список есть в [блоге ]
 - Триплет задаёт архитектуру и режим сборки
 
 Доступные триплеты:
 
 ```
-arm-uwp.cmake
-x64-uwp.cmake
-x64-windows-static.cmake
-x64-windows.cmake
-x86-uwp.cmake
-x86-windows-static.cmake
-x86-windows.cmake
+x64-windows-static
+x64-windows
+x86-windows-static
+x86-windows
+arm-uwp
+x64-uwp
+x86-uwp
 ```
 
-Для данного курса рекомендуются триплеты `x86-windows-static` для сборки 32-битной версии программы и `x64-windows-static` для сборки 64-битной версии. Суффикс static означает, что библиотеки будут собираться статически и вам не потребуется распространять DLL.
+Для данного курса рекомендуются триплеты `x86-windows` для сборки 32-битной версии программы и `x64-windows` для сборки 64-битной версии. Суффикс static означает, что библиотеки будут собираться статически и вам не потребуется распространять DLL. При использовании триплета без суффикса придётся заботиться о наличии DLL при выполнении программы.
 
 Вместо явного указания триплета для каждой библиотеки можно разом указать триплет для всех:
 
@@ -83,6 +112,8 @@ vcpkg integrate install
 :: Удаляем интеграцию - если она вам помешала.
 vcpkg integrate remove
 ```
+
+<!--
 
 ## Установка пакетов для курса
 
@@ -113,3 +144,5 @@ vcpkg --triplet x86-windows-static sdl2 sdl2-image sdl2-mixer sdl2-ttf glbinding
 - Файлы `*.sln` хранят списки проектов и информацию о сборке всего списка проектов в разных конфигурациях. Их следует держать в Git.
 
 Вы можете взять готовый шаблон файла `.gitignore` из репозитория [github.com/github/gitignore](https://github.com/github/gitignore/blob/master/VisualStudio.gitignore). После добавления файла `.gitignore` в корень своего репозитория достаточно сделать commit, добавляющий этот файл.
+
+-->
