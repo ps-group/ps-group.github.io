@@ -166,7 +166,7 @@ TEST_CASE("Squares are computed", "[Square]")
 
 Давайте теперь реализуем функцию `Square` неправильно. Замените объявление функции на следующее определение:
 
-```
+```cpp
 int Square(int value)
 {
     return 1;
@@ -289,7 +289,7 @@ TEST_CASE("Can be constructed", "[Vector2f]")
     REQUIRE(v3.y == -11);
 
     // Универсальное конструирование (C++11) - ещё более универсальное
-    Vector2f v4 = { 18, -110 };
+    Vector2f v4{ 18, -110 };
     REQUIRE(v4.x == 18);
     REQUIRE(v4.y == -110);
 }
