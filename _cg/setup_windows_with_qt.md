@@ -43,6 +43,14 @@ Git - это OpenSource система контроля версий, предс
 
 Загрузить Qt 5.10 можно по адресу [download.qt.io/archive/qt/5.10/5.10.1/](https://download.qt.io/archive/qt/5.10/5.10.1/) (файл "qt-opensource-windows-x86-5.10.1.exe"). После загрузки пройдите через стандартные шаги установщика.
 
+Чтобы избежать регистрации на сайте Qt Project, вы можете просто стереть email в соответствующем окне, и кнопка Skip станет активной.
+
+![Скриншот](img/ui/qt-skip-registration.png)
+
+При установке Qt потребуется установить два компонента: Qt для VS2017 в x64 версии и интеграцию с CDB для QtCreator:
+
+![Скриншот](img/ui/qt-install-components.png)
+
 Кроме того, потребуется плагин к Visual Studio для разработки на Qt, который можно загрузить на [download.qt.io/official_releases/vsaddin/](https://download.qt.io/official_releases/vsaddin/) (файл "qt-vsaddin-msvc2017-2.2.0.vsix").
 
 ## Установка CMake
