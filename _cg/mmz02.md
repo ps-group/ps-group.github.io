@@ -7,7 +7,7 @@ preview: "img/small/mmz02.png"
 
 ## Окно с нарисованным кругом на Qt
 
->Основано на примере [Raster Window Example](http://doc.qt.io/qt-5/qtgui-rasterwindow-example.html)
+>Основано на примере [Raster Window Example](http://doc.qt.io/qt-5/qtgui-rasterwindow-example.html) из документации Qt
 
 ### Создание проекта
 
@@ -260,6 +260,8 @@ void RasterWindow::render(QPainter *painter)
 
 ### Добавляем окну свойство animating
 
+>Код основан на примере [OpenGL Window Example](http://doc.qt.io/qt-5/qtgui-openglwindow-example.html) из документации Qt
+
 Добавьте в класс RasterWindow новые публичные методы "isAnimating" и "setAnimating":
 
 ```cpp
@@ -314,7 +316,7 @@ if (m_isAnimating)
     window.show();
 ```
 
-Соберите программу и запустите. Не видите анимации? Ну конечно, ведь её же нет!
+Соберите программу и запустите. Не видите анимации? Ну конечно, ведь её же нет! Программа рисует порядка 60 кадров в секунду, но кадры пока ешё не отличаются друг от друга.
 
 ### Добавляем класс сцены и анимацию шарика
 
@@ -338,7 +340,6 @@ class PoolTableScene
 public:
     PoolTableScene();
 
-public slots: // Начало специальной секции публичных слотов (специфично для Qt)
     void update(float deltaSeconds);
     void redraw(QPainter& painter);
 
@@ -366,7 +367,7 @@ constexpr float BALL_SPEED_Y = 60;
 constexpr float BALL_SIZE = 40;
 }
 
-PoolTableScene::PoolTableScene(QObject* parent = nullptr)
+PoolTableScene::PoolTableScene(QObject* parent)
     : QObject(parent)
 {
 }
@@ -394,9 +395,28 @@ void PoolTableScene::redraw(QPainter& painter)
 * если объектом уникально владеет функция, она должна гарантировать, что объект будет создан перед использованием и удалён при выходе из функции или даже раньше
     * удаление должно произойти даже при выбросе исключения
 
-В Qt соблюсти эти принципы позволяет идиома parent-child. В современном C++ без Qt для той же цели служит класс "unique_ptr" и функция "make_unique".
+В Qt соблюсти эти принципы позволяет идиома parent-child. В современном C++ без Qt для той же цели служит класс "unique_ptr" и функция "make_unique". В данном случае мы следуем идиомам Qt, поэтому будем использовать отношения parent-child.
 
-Итак, добавьте перед определением класса RasterWindow предварительное объявление класса (class pre-declaration) PoolTableScene:
+Кроме сцены нам потребуется таймер, способный замерять время, прошедшее с предыдущего кадра. Скорость работы системы может быть изменчивой, и нельзя заранее предсказать, сколько времени пройдёт с предыдущего кадра в реальных условиях. Однако, для плавной и физически корректной анимации движения нам при каждом обновлении сцен надо знать промежуток времени, прошедший с предыдущего обновления.
+
+Для измерения времени мы будем использовать [QElapsedTimer](http://doc.qt.io/qt-5/qelapsedtimer.html), который применяется следующим способом:
+
+```cpp
+// ! код только для иллюстрации !
+QElapsedTimer timer;
+timer.start(); // запуск таймера, выполняется один раз
+
+// Выполняем действие долгое время
+slopOperation()
+
+// Получаем число милисекунд, прошедших с предыдущего вызова
+const uint64_t elapsedMilliseconds = timer.elapsed();
+
+// Сбрасываем таймер и повторно запускаем
+timer.restart();
+```
+
+Итак, добавьте перед определением класса RasterWindow предварительное объявление класса PoolTableScene (class pre-declaration):
 
 ```cpp
 class PoolTableScene;
@@ -407,19 +427,106 @@ class RasterWindow : public QWindow
     // ...
 ```
 
-Затем добавьте в класс RasterWindow поле `PoolTableScene *m_scene = nullptr;`
+Затем добавьте в класс RasterWindow два новых поля и два новых приватных метода:
 
+```cpp
+class RasterWindow : public QWindow
+{
+    // ...
 
+private:
+    void renderNow();
+    void renderLater();
+    void updateScene();
+    void renderScene();
 
-### Используем векторную алгебру
+    QBackingStore *m_backingStore = nullptr;
+    PoolTableScene *m_scene = nullptr; // объект сцены
+    QElapsedTimer m_updateTimer; // таймер обновления сцены
+    bool m_isAnimating = false;
+};
+```
 
->Класс Vector2f вы можете взять из репозитория [dive-into-cpp](https://github.com/ps-group/dive-into-cpp). Скопируйте к себе в проект заголовок этого класса.
+Метод updateScene будет содержать получение времени у таймера, перезапуск таймера и обновление сцены. В случае, если кадры рисуются слишком быстро и время, прошедшее с предыдущего кадра, оказалось меньше 1 миллисекунды, обновление сцены будет пропущено.
+
+```cpp
+void RasterWindow::updateScene()
+{
+    const float elapsedSeconds = float(m_updateTimer.elapsed()) / 1000.f;
+
+    // Пропуск обновления в случае, если таймер не успел засечь прошедшее время.
+    if (elapsedSeconds > 0)
+    {
+        m_updateTimer.restart();
+        m_scene->update(elapsedSeconds);
+    }
+}
+```
+
+Метод renderScene будет содержать подготовку объекта QPainter, заполнение буфера кадра белым цветом и затем вызов метода `redraw()` у класса сцены.
+
+```cpp
+void RasterWindow::renderScene()
+{
+    QRect rect(0, 0, width(), height());
+    m_backingStore->beginPaint(rect);
+
+    QPaintDevice *device = m_backingStore->paintDevice();
+    QPainter painter(device);
+
+    painter.fillRect(0, 0, width(), height(), Qt::white);
+    m_scene->redraw(painter);
+    painter.end();
+
+    m_backingStore->endPaint();
+    m_backingStore->flush(rect);
+}
+```
+
+Также мы изменим два существующих метода: конструктор и метод renderNow. В конструкторе мы будем создавать новый объект сцены, связывая его отношением parent-child с классом окна путём передачи указателя this:
+
+```cpp
+RasterWindow::RasterWindow(QWindow *parent)
+    : QWindow(parent)
+    , m_backingStore(new QBackingStore(this))
+    , m_scene(new PoolTableScene(this))
+{
+    setGeometry(100, 100, 400, 400);
+    m_updateTimer.start();
+}
+```
+
+Метод renderNow станет намного проще благодаря выделению кода в методы renderScene и updateScene:
+
+```cpp
+void RasterWindow::renderNow()
+{
+    if (!isExposed())
+    {
+        return;
+    }
+
+    updateScene();
+    renderScene();
+
+    if (m_isAnimating)
+    {
+        renderLater();
+    }
+}
+```
+
+Соберите программу и запустите её. У вас должно появиться окно, в котором будет виден движущийся шарик.
+
+![Скриншот](img/2d/00_rasterwindow_motion.png)
+
+### Задание cg2.1: используем векторную алгебру
+
+>Класс Vector2f вы можете взять из репозитория [dive-into-cpp](https://github.com/ps-group/dive-into-cpp). Вы можете скопировать к себе в проект заголовок этого класса.
 
 Векторная алгебра позволяет писать код выразительнее: вместо раздельных расчётов для каждой координаты вы можете складывать, умножать или обрабатывать иным путём две координаты в 2D пространстве, 3 координаты в 3D и 4 координаты в однородном представлении в 3D графике. Кроме того, современные процессоры и видеокарты (особенно видеокарты) получают ускорение за счёт использования векторных операций и векторизации. Впрочем, о векторизации вашего кода позаботится компилятор (если сможет), а вам нужно заботиться о выразительности кода.
 
-Перепишите код в PoolTableScene, чтобы вместо float использовалась структура "Vector2f".
-
-### Создаём приложение с event loop
+**Задание:** перепишите код в PoolTableScene, чтобы вместо float использовалась структура "Vector2f".
 
 ### Добавляем движение
 
@@ -434,7 +541,6 @@ class RasterWindow : public QWindow
 ### Волновое движение
 
 ### Задание sfml2.1: волновое движение с отталкиванием
-
 
 Выполните задания, соблюдая [стиль кодирования](cxx_coding_style). Готовые задания должны быть выложены на [github](github.com).
 
