@@ -7,7 +7,7 @@ draft: true
 
 - [awesome-opengl](https://github.com/eug/awesome-opengl) - список ссылок для OpenGL, из которого взяты многие ссылки данной статьи
 - [awesome-webgl](https://github.com/sjfricke/awesome-webgl) - список ссылок для WebGL
-- [awesome-gamedev](https://github.com/ellisonleao/magictools#graphics) - список ссылок, содержащий ссылки на калалоги графических ресурсов
+- [awesome-gamedev](https://github.com/ellisonleao/magictools#graphics) - список ссылок, содержащий ссылки на каталоги графических ресурсов
 
 ## Документация библиотек
 
@@ -16,7 +16,7 @@ draft: true
     - Например, есть [PDF со спецификацией OpenGL 3.3 Core Profile](https://khronos.org/registry/OpenGL/specs/gl/glspec33.core.pdf) и [PDF со спецификацией GLSL 3.3](https://khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.3.30.pdf)
 - Документация для WebGL1 есть на сайте [developer.mozilla.org](https://developer.mozilla.org/ru/docs/Web/API/WebGL_API)
     - Там же можно найти [все методы WebGLRenderingContext](https://developer.mozilla.org/en/docs/Web/API/WebGLRenderingContext)
-- Библиотека SDL2 используется для создания окон, контекста OpenGL и для абстрагирования от операционой системы.
+- Библиотека SDL2 используется для создания окон, контекста OpenGL и для абстрагирования от операционной системы.
     - Документацию по функциям SDL2 вы найдёте на сайте [wiki.libsdl.org](https://wiki.libsdl.org/APIByCategory)
 
 Документацию остальных библиотек можно найти в сети Интернет.
@@ -37,7 +37,7 @@ draft: true
 
 ## Редакторы шейдеров
 
-Есть онлайн-редакторы шейдеров, работающие в стиле песочницы: вы пишете шейдер для закраски готового геометрического тела (например, модели обезъяны). Все онлайн-редакторы построены на технологии WebGL.
+Есть онлайн-редакторы шейдеров, работающие в стиле песочницы: вы пишете шейдер для закраски готового геометрического тела (например, модели обезьяны). Все онлайн-редакторы построены на технологии WebGL.
 
 - [GLSLbin](http://glslb.in/) - песочница для разработки фрагментных шейдеров
 - [SHDR Editor](http://shdr.bkcore.com/) - редактор, просмотрщик и валидатор шейдеров
@@ -46,7 +46,7 @@ draft: true
 
 - [Онлайн генератор карт нормалей](http://cpetry.github.io/NormalMap-Online/)
 
-## Вебсайты
+## Веб-сайты
 
 * [Learn OpenGL](https://learnopengl.com) от Joey de Vries
 * [OpenGL Step by Step](http://ogldev.atspace.co.uk) от Etay Meiri
