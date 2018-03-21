@@ -733,6 +733,8 @@ std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2& center, R
 Добавим в main следующий код в метод initializeShapes, вызов которого надо поместить в конец метода initialize:
 
 ```cpp
+void SimpleScene::initializeShapes()
+{
 	// Привязываем вершинный массив
 	glBindVertexArray(m_vao);
 
@@ -756,10 +758,21 @@ std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2& center, R
 	// Выполняем привязку вершинных данных в контексте текущего VAO.
 	bindVertexData(verticies);
 
-m_trianglesCount = verticies.size();
+	m_trianglesCount = verticies.size();
+}
 ```
 
 ### Устанавливаем матрицу проецирования
+
+Казалось бы, что может быть проще, чем наложить виртуальные координаты холста на координаты окна? Однако, OpenGL устроен иначе: он расчитан на 3D графику, в которой координаты виртуального мира не совпадают с координатами окна. Более того, начало координат OpenGL находится в нижнем левом углу, а не в верхнем левом!
+
+![Скриншт](img/2d/2d_coords.png)
+
+Ради нужд 3D графики все координаты вершин проецируются внутрь куба размерами 2x2x2 условных единиц с помощью матрицы проецирования. Поскольку мы хотим получить 2D координаты, да ещё и совмещённые с привычными координатами окна, нам нужна матрица орторафического проецирования, которая растянет координаты вершин обратно из куба 2x2x2 в координаты окна. Для этой цели мы напишем метод `setProjectionMatrix`, выполняющий две задачи:
+
+- вычислить матрицу ортографического проецирования из куба на координаты окна с помощью функции [glm::ortho](http://glm.g-truc.net/0.9.1/api/a00237.html#gad25e5b029ebefac5b657861378c17aa8)
+- установить эту матрицу как константу в шейдерной программе с помощью [glUniformMatrix4fv](http://docs.gl/gl3/glUniform)
+
 
 ```cpp
 void SimpleScene::setProjectionMatrix(unsigned width, unsigned height)
@@ -793,3 +806,5 @@ void SimpleScene::redraw(unsigned width, unsigned height)
 	glDrawArrays(GL_TRIANGLES, 0, m_trianglesCount);
 }
 ```
+
+Теперь вы наконец можете собрать, запустить и увидеть готовый результат!
