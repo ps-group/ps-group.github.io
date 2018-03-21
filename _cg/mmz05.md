@@ -68,6 +68,7 @@ $(SolutionDir);$(IncludePath)
 
 ```cpp
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QMessageBox>
 #include <libplatform/libplatform.h>
 #include <iostream>
 
@@ -83,7 +84,7 @@ int main(int argc, char *argv[])
 		window.show();
 		return app.exec();
 	}
-	catch (const std::exception& ex)
+	catch (const std::exception &ex)
 	{
 		std::cerr << ex.what() << std::endl;
 		QMessageBox::warning( 
@@ -157,19 +158,27 @@ window.setScene(std::make_unique<SimpleScene>());
 
 На современных Linux/Mac OSX ситуация лучше: если видеокарта устаревшая, то новые возможности OpenGL буду эмулироваться программно. Это работает медленее и нагружает центральный процессор, зато вам доступна новая версия OpenGL.
 
-Как использовать OpenGL без привязки к версии платформы? Для этой цели есть библиотека glbinding. Библиотека состоит из серии заголовков, каждый из которых предоставляет функции-замещения для каждой из версий OpenGL. Например:
+Как использовать OpenGL без привязки к версии платформы? Для этой в Qt5 есть класс QOpenGLFunctions_3_3_Core (и серия похожих классов). Вы можете унаследовать от него свой класс сцены
 
 ```cpp
-#include <glbinding/Binding.h>
-#include <glbinding/gl33core/gl.h>
-
-// Функции OpenGL теперь доступны в пространстве имён gl33core
-
-// Используем функции из gl33core без указания namespace в пределах текущего cpp файла.
-using namespace gl33core;
+class SimpleScene
+	: public platform::IRenderScene
+	, private QOpenGLFunctions_3_3_Core
+{
+	// ...
+};
 ```
 
-### Устанавливаем glbinding
+Также добавьте инициализацию функций OpenGL в метод initialize:
+
+```cpp
+void SimpleScene::initialize()
+{
+	QOpenGLFunctions_3_3_Core::initializeOpenGLFunctions();
+}
+```
+
+### Устанавливаем glm
 
 >Подробное описание vcpkg и список пакетов можно найти здесь: [blogs.msdn.microsoft.com/vcblog/2016/09/19/vcpkg-a-tool-to-acquire-and-build-c-open-source-libraries-on-windows](https://blogs.msdn.microsoft.com/vcblog/2016/09/19/vcpkg-a-tool-to-acquire-and-build-c-open-source-libraries-on-windows/)
 
@@ -220,27 +229,6 @@ x86-uwp
 
 ```
 vcpkg integrate install
-```
-
-### Используем glbinding
-
-Перейдите к "SimpleScene.cpp" и добавьте в него подключение заголовков glbinding.
-
-```cpp
-#include <glbinding/Binding.h>
-#include <glbinding/gl33core/gl.h>
-
-using namespace gl33core;
-```
-
-Затем в метод "SimpleScene::initialize" добавьте один из двух вариантов инициализации glbinding на свой вкус, но не оба варианта:
-
-```cpp
-// Все функции из OpenGL3.3 Core Profile запрашиваются немедленно, на этом вызове
-glbinding::Binding::initialize(false);
-
-// Каждая функция из OpenGL3.3 Core Profile запрашивается в момент первого использования
-glbinding::Binding::initialize(false);
 ```
 
 ## Как работает OpenGL
@@ -396,7 +384,7 @@ glm::vec4 RandomColorGenerator::GenerateColor()
 
 Создайте анонимное пространство имён и добавьте в него константы-строки, содержащие исходные коды вершинного и фрагментного шейдеров.
 
->Анонимное пространство имён прячет константыи и функции от других единиц трансляции (cpp-файлов), тем самым избавляя вас от неожиданных конфликтов имён функций.
+>Анонимное пространство имён прячет константы и функции от других единиц трансляции (cpp-файлов), тем самым избавляя вас от неожиданных конфликтов имён функций.
 
 ```cpp
 namespace
@@ -451,22 +439,27 @@ QOpenGLShader m_fragmentShader{ QOpenGLShader::Fragment };
 QOpenGLShaderProgram m_program;
 ```
 
-После этого в метод `initialize()` добавьте вызов компиляции шейдеров и компоновки программы:
+После этого в метод `initialize()` добавьте вызов нового приватного метода `initializeShaders()`, в котором будет размещена компиляция шейдеров и компоновка программы:
 
 ```cpp
-if (!m_vertexShader.compileSourceCode(kVertexShaderCode))
+void SimpleScene::initializeShaders()
 {
-	throw m_vertexShader.log().toUtf8().toStdString();
-}
-if (!m_fragmentShader.compileSourceCode(kFragmentShaderCode))
-{
-	throw m_fragmentShader.log().toUtf8().toStdString();
-}
-m_program.addShader(&m_vertexShader);
-m_program.addShader(&m_fragmentShader);
-if (!m_program.link())
-{
-	throw m_program.log().toUtf8().toStdString();
+	if (!m_vertexShader.compileSourceCode(kVertexShaderCode))
+	{
+		QString log = m_vertexShader.log();
+		throw log.toUtf8().toStdString();
+	}
+	if (!m_fragmentShader.compileSourceCode(kFragmentShaderCode))
+	{
+		QString log = m_fragmentShader.log();
+		throw log.toUtf8().toStdString();
+	}
+	m_program.addShader(&m_vertexShader);
+	m_program.addShader(&m_fragmentShader);
+	if (!m_program.link())
+	{
+		throw m_program.log().toUtf8().toStdString();
+	}
 }
 ```
 
@@ -474,7 +467,7 @@ if (!m_program.link())
 
 В старых версиях OpenGL существовали стандартные атрибуты (свойства) вершин: координаты, текстурные координаты, цвет и так далее. Однако, стандартизация ограничивала возможности программиста. Поэтому в современном OpenGL вершина может иметь какие угодно числовые или векторные величины, описывающие её содержимое. Способ интерпретации вершинных данных вы определяете самостоятельно в шейдерах.
 
-Наши шейдеры ожидают два атрибута на каждую вершину: двумерные координаты и четырёхмерный цвет (RGBA). Поэтому мы поместим внутрь анонимного пространства имён определение структуры, которую мы назовём VertexP2C4:
+Наши шейдеры ожидают два атрибута на каждую вершину: двумерные координаты и четырёхмерный цвет (RGBA). Поэтому мы поместим в начале заголовка "SimpleScene.h" определение структуры, которую мы назовём VertexP2C4:
 
 ```cpp
 struct VertexP2C4
@@ -484,11 +477,15 @@ struct VertexP2C4
 };
 ```
 
-```cpp
-void BindVertexData(const std::vector<VertexP2C4>& verticies, const QOpenGLShaderProgram& program)
-{
-	const GLuint programId = shader.getNativeHandle();
+Далее мы должны сообщить драйверу видеокарты смещения атрибутов вершины в памяти. Дело в том, что на видеокарту мы будем загружать целые массивы вершин, и внутри массива будут так назваемые interleaved массивы атрибутов. Другими словами, несколько массивов атрибутов как будто бы сплетены в единый массив вершинных данных:
 
+![Иллюстрация](img/2d/interleaved_arrays.png)
+
+Во время компиляции шейдера видеодрайвер назначил каждому атрибуту его собственный целочисленный идентификатор. Мы должны получить у шейдерной программы идентификаторы атрибутов, а затем для каждого атрибута указать смещения в памяти, с помощью которых OpenGL сможет в непрерывном массиве памяти найти нужные байты. Этим займётся приватный метод bindVertexData:
+
+```cpp
+void SimpleScene::bindVertexData(const std::vector<VertexP2C4>& verticies, const QOpenGLShaderProgram& program)
+{
 	// OpenGL должен получить байтовые смещения полей относительно структуры VertexP2C4.
 	const void* colorOffset = reinterpret_cast<void*>(offsetof(VertexP2C4, rgba));
 	const void* posOffset = reinterpret_cast<void*>(offsetof(VertexP2C4, xy));
@@ -509,76 +506,56 @@ void BindVertexData(const std::vector<VertexP2C4>& verticies, const QOpenGLShade
 }
 ```
 
-Добавьте в SimpleScene поле m_vertexBuffer:
+### Vertex Buffer Object и Vertex Array Object
 
-`unsigned m_vertexBuffer = 0;`
+Vertex Buffer Object - это объект видеодрайвера, представляющий область пользовательских данных на видеокарте. Для программиста VBO доступен в виде целочисленного идентификатора.
+
+Чтобы хранить целочисленный идентификатор VBO, добавьте в SimpleScene поле `GLuint m_vbo = 0;`.
+
+Кроме того, мы будем хранить Vertex Array Object - объект, позволяющий оптимизировать смену состояний видеодрайвера. Пока что мы используем VAO просто потому, что OpenGL требует хотя бы одного VAO, поэтому добавьте в класс ещё одно поле: `GLuint m_vao = 0;`
+
+Затем в функцию initialize добавьте инициализацию VBO и VAO:
 
 ```cpp
 // Создаём Vertex Buffer Object (VBO) для загрузки данных,
 //  в этот буфер мы запишем параметры вершин для видеокарты.
-glGenBuffers(1, &vbo);
-glBindBuffer(GL_ARRAY_BUFFER, vbo);
+glGenBuffers(1, &m_vbo);
+glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 
 // Создаём Vertex Array Object (VAO), который хранит связи между данными
 //  в VBO и переменными шейдера.
-GLuint vao = 0;
-glGenVertexArrays(1, &vao);
-glBindVertexArray(vao);
-
-// Генерируем список вершин треугольников, представляющих круг,
-//  каждый треугольник будет раскрашен в собственный цвет.
-RandomColorGenerator colorGen;
-std::vector<VertexP2C4> verticies = TesselateCircle(50, { 350, 280 }, colorGen);
-
-// Генерируем список вершин треугольников, представляющих пятиугольник,
-//  добавляем его к списку вершин круга.
-const std::vector<glm::vec2> convexPoints = {
-	{ 100, 200 },
-	{ 250, 210 },
-	{ 220, 290 },
-	{ 130, 300 },
-	{ 100, 250 },
-};
-const std::vector<VertexP2C4> convexVerticies = TesselateConvex(convexPoints, colorGen);
-std::copy(convexVerticies.begin(), convexVerticies.end(), std::back_inserter(verticies));
-
-// Выполняем привязку вершинных данных в контексте текущего VAO.
-BindVertexData(verticies, shader);
-
-// Устанавливаем матрицу ортографического проецирования.
-SetProjectionMatrix(window, shader);
+glGenVertexArrays(1, &m_vao);
+glBindVertexArray(m_vao);
 ```
 
-### Удаление объектов
+В конце добавьте деструктор классу SimpleScene, который будет очищать данные:
 
 ```cpp
-glClear(GL_COLOR_BUFFER_BIT);
-glDeleteBuffers(1, &vbo);
-glDeleteVertexArrays(1, &vao);
-```
-
-### Устанавливаем матрицу проецирования
-
-```cpp
-void SetProjectionMatrix(const sf::Window& window, const sf::Shader& shader)
+SimpleScene::~SimpleScene()
 {
-	// Вычисляем матрицу ортографического проецирования
-	const glm::mat4 mat = glm::ortho(0.f, float(window.getSize().x), float(window.getSize().y), 0.f);
-	const GLuint programId = shader.getNativeHandle();
-
-	// Передаём матрицу как константу в графической программе
-	glUniformMatrix4fv(glGetUniformLocation(programId, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(mat));
+	glDeleteBuffers(1, &m_vbo);
+	glDeleteVertexArrays(1, &m_vbo);
 }
 ```
 
-### Тесселяция простых фигур
+### Тесселяция фигур
 
 ```cpp
+constexpr float PI = 3.1415926f;
+
+glm::vec2 euclidean(float radius, float angleRadians)
+{
+	return {
+		radius * sin(angleRadians),
+		radius * cos(angleRadians)
+	};
+}
+
 // Генерирует список вершин треугольников для выпуклого многоугольника, заданного вершинами и центром.
 //  @param center - геометрический центр многоугольника
 //  @param hullPoints - вершины многоугольника
 //  @param colorGen - генератор цвета полученных треугольников
-std::vector<VertexP2C4> TesselateConvexByCenter(const glm::vec2& center, const std::vector<glm::vec2>& hullPoints, IColorGenerator& colorGen)
+std::vector<VertexP2C4> tesselateConvexByCenter(const glm::vec2& center, const std::vector<glm::vec2>& hullPoints, RandomColorGenerator& colorGen)
 {
 	const size_t size = hullPoints.size();
 	std::vector<VertexP2C4> verticies;
@@ -597,16 +574,16 @@ std::vector<VertexP2C4> TesselateConvexByCenter(const glm::vec2& center, const s
 }
 
 // Генерирует список вершин треугольников для выпуклого многоугольника, заданного вершинами.
-std::vector<VertexP2C4> TesselateConvex(const std::vector<glm::vec2>& verticies, IColorGenerator& colorGen)
+std::vector<VertexP2C4> tesselateConvex(const std::vector<glm::vec2>& verticies, RandomColorGenerator& colorGen)
 {
 	// Центр выпуклого многоугольника - это среднее арифметическое его вершин
-	const glm::vec2 center = std::reduce(verticies.begin(), verticies.end()) / float(verticies.size());
-	return TesselateConvexByCenter(center, verticies, colorGen);
+	const glm::vec2 center = std::accumulate(verticies.begin(), verticies.end(), glm::vec2()) / float(verticies.size());
+	return tesselateConvexByCenter(center, verticies, colorGen);
 }
 
 // Функция делит круг на треугольники,
 //  возвращает массив с вершинами треугольников.
-std::vector<VertexP2C4> TesselateCircle(float radius, const glm::vec2& center, IColorGenerator& colorGen)
+std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2& center, RandomColorGenerator& colorGen)
 {
 	assert(radius > 0);
 
@@ -614,25 +591,61 @@ std::vector<VertexP2C4> TesselateCircle(float radius, const glm::vec2& center, I
 	// Внешняя сторона каждого треугольника имеет длину 2.
 	constexpr float step = 2;
 	// Число треугольников равно длине окружности, делённой на шаг по окружности.
-	const auto pointCount = static_cast<unsigned>(radius * 2 * M_PI / step);
+	const auto pointCount = static_cast<unsigned>(radius * 2 * PI / step);
 
 	// Вычисляем точки-разделители на окружности.
 	std::vector<glm::vec2> points(pointCount);
 	for (unsigned pi = 0; pi < pointCount; ++pi)
 	{
-		const auto angleRadians = static_cast<float>(2.f * M_PI * pi / pointCount);
-		points[pi] = center + math::euclidean(radius, angleRadians);
+		const auto angleRadians = static_cast<float>(2.f * PI * pi / pointCount);
+		points[pi] = center + euclidean(radius, angleRadians);
 	}
 
-	return TesselateConvexByCenter(center, points, colorGen);
+	return tesselateConvexByCenter(center, points, colorGen);
 }
 ```
 
-### Выполняем рисование
+### Устанавливаем матрицу проецирования
 
 ```cpp
-// На каждом кадре привязываем VAO
-glBindVertexArray(vao);
-// Рисуем треугольники, используя вершины из полуинтервала [0, verticies.size)
-glDrawArrays(GL_TRIANGLES, 0, verticies.size());
+void SimpleScene::setProjectionMatrix(unsigned width, unsigned height)
+{
+	// Вычисляем матрицу ортографического проецирования
+	const glm::mat4 mat = glm::ortho(0.f, float(width), float(height), 0.f);
+
+	// Передаём матрицу как константу в графической программе
+	glUniformMatrix4fv(m_program.uniformLocation("u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(mat));
+}
+```
+
+### Реализуем метод redraw
+
+```cpp
+void SimpleScene::redraw(unsigned width, unsigned height)
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// Устанавливаем матрицу ортографического проецирования.
+	setProjectionMatrix(width, height);
+
+	// Генерируем список вершин треугольников, представляющих круг,
+	//  каждый треугольник будет раскрашен в собственный цвет.
+	RandomColorGenerator colorGen;
+	std::vector<VertexP2C4> verticies = tesselateCircle(50, { 350, 280 }, colorGen);
+
+	// Генерируем список вершин треугольников, представляющих пятиугольник,
+	//  добавляем его к списку вершин круга.
+	const std::vector<glm::vec2> convexPoints = {
+		{ 100, 200 },
+		{ 250, 210 },
+		{ 220, 290 },
+		{ 130, 300 },
+		{ 100, 250 },
+	};
+	const std::vector<VertexP2C4> convexVerticies = tesselateConvex(convexPoints, colorGen);
+	std::copy(convexVerticies.begin(), convexVerticies.end(), std::back_inserter(verticies));
+
+	// Выполняем привязку вершинных данных в контексте текущего VAO.
+	bindVertexData(verticies, m_program);
+}
 ```
