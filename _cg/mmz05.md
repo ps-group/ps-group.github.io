@@ -693,7 +693,7 @@ glm::vec2 euclidean(float radius, float angle)
 ```cpp
 constexpr float PI = 3.1415926f;
 
-glm::vec2 euclidean(float radius, float angleRadians)
+glm::vec2 euclidean(float radius, float angle)
 {
 	return { radius * cos(angle), radius * sin(angle) };
 }
