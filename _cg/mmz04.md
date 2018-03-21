@@ -11,9 +11,11 @@ preview: "img/small/mmz04.png"
 
 После установки плагина вам становятся доступны две команды: "форматировать выделенное" и "форматировать документ"
 
+![Иллюстрация](img/ui/vs-clang-format-menu.png)
+
 В настройках Visual Studio рекомендуется отключить добавление отступа для содержимого namespace:
 
-![](img/ui/indent_namespacce_contents.png)
+![Иллюстрация](img/ui/indent_namespacce_contents.png)
 
 ## Задание cg4.2 - спроектировать разделение Model и View для сцены с бильярдом
 
