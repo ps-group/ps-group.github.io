@@ -394,7 +394,7 @@ namespace
 //  1) передаёт цвет фрагментному шейдеру
 //  2) выполняет ортографическое проецирование вершины,
 //     по сути проецируя вершину на плоскость экрана.
-const char kVertexShaderCode[] = R"**(#version 130
+const char kVertexShaderCode[] = R"**(#version 110
 in vec2 i_position;
 in vec4 i_color;
 out vec4 v_color;
@@ -408,7 +408,7 @@ void main()
 
 // Этот фрагментный шейдер устанавливает фрагменту переданный из
 //  вершинного шейдера цвет.
-static const char kFragmentShaderCode[] = R"**(#version 130
+static const char kFragmentShaderCode[] = R"**(#version 110
 in vec4 v_color;
 void main()
 {
@@ -429,14 +429,16 @@ void main()
 
 ![Схема](img/glsl/shader_program_overview.png)
 
-Для сборки шейдера мы могли бы (и в будущем мы будем) использовать API OpenGL. Но сегодня мы используем готовый класс [QOpenGLShaderProgram](http://doc.qt.io/qt-5/qopenglshaderprogram.html).
+Для сборки шейдера мы будем использовать API OpenGL. Примерная схема вызовов (без обработки ошибок) выглядит следующим образом:
+
+![Схема](img/glsl/shader_build_calls.png)
 
 Добавьте классу SimpleScene три поля:
 
 ```cpp
-QOpenGLShader m_vertexShader{ QOpenGLShader::Vertex };
-QOpenGLShader m_fragmentShader{ QOpenGLShader::Fragment };
-QOpenGLShaderProgram m_program;
+GLuint m_vertexShader = 0;
+GLuint m_fragmentShader = 0;
+GLuint m_program = 0;
 ```
 
 После этого в метод `initialize()` добавьте вызов нового приватного метода `initializeShaders()`, в котором будет размещена компиляция шейдеров и компоновка программы:
@@ -444,22 +446,98 @@ QOpenGLShaderProgram m_program;
 ```cpp
 void SimpleScene::initializeShaders()
 {
-	if (!m_vertexShader.compileSourceCode(kVertexShaderCode))
+	m_vertexShader = compileShader(GL_VERTEX_SHADER, kVertexShaderCode);
+	m_fragmentShader = compileShader(GL_FRAGMENT_SHADER, kFragmentShaderCode);
+	m_program = linkProgram({ m_vertexShader, m_fragmentShader });
+}
+```
+
+Приватный метод compileShader будет выполнять компиляцию шейдера и проверку статуса компиляции:
+
+```cpp
+GLuint SimpleScene::compileShader(GLenum type, const std::string & source)
+{
+	// Выделяем ресурс шейдера
+	GLuint shader = glCreateShader(type);
+
+	// Передаём исходный код шейдера видеодрайверу
+	const auto length = static_cast<int>(source.length());
+	const char* sourceLine = source.data();
+	glShaderSource(shader, 1, (const GLchar**)&sourceLine, &length);
+
+	// Просим видеодрайвер скомпилировать шейдер и проверяем статус
+	glCompileShader(shader);
+
+	GLint ok = 0;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+	if (ok == GL_FALSE)
 	{
-		QString log = m_vertexShader.log();
-		throw log.toUtf8().toStdString();
+		// При неудаче есть лог ошибок, который мы соберём
+		// и в первую очередь надо узнать длину лога.
+		GLint logLength = 0;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+
+		// Зная длину, выделяем строку нужного размера и копируем в неё лог
+		std::string log(logLength, '\0');
+		GLsizei ignored = 0;
+		glGetShaderInfoLog(shader, log.size(), &ignored, (GLchar*)log.data());
+
+		// Бросаем исключение, прикрепив к нему лог
+		throw std::runtime_error("shader compilation failed: " + log);
 	}
-	if (!m_fragmentShader.compileSourceCode(kFragmentShaderCode))
+
+	return shader;
+}
+```
+
+Приватный метод linkProgram выполняет компоновку программы из шейдеров:
+
+```cpp
+GLuint SimpleScene::linkProgram(const std::vector<GLuint>& shaders)
+{
+	// Запрашиваем у видеодрайера новый объект.
+	GLuint obj = glCreateProgram();
+
+	// Прикрепляем ранее скомпилированные шейдеры.
+	for (GLuint shader : shaders)
 	{
-		QString log = m_fragmentShader.log();
-		throw log.toUtf8().toStdString();
+		glAttachShader(obj, shader);
 	}
-	m_program.addShader(&m_vertexShader);
-	m_program.addShader(&m_fragmentShader);
-	if (!m_program.link())
+
+	// Просим видеодрайвер выполнить компоновку и проверяем статус.
+	glLinkProgram(obj);
+
+	GLint status = 0;
+	glGetProgramiv(obj, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE)
 	{
-		throw m_program.log().toUtf8().toStdString();
+		// При неудаче есть лог ошибок, который мы соберём
+		// и в первую очередь надо узнать длину лога.
+		GLint logLength = 0;
+		glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &logLength);
+
+		// Зная длину, выделяем строку нужного размера и копируем в неё лог
+		std::string log(logLength, '\0');
+		GLsizei ignored = 0;
+		glGetProgramInfoLog(obj, log.size(), &ignored, (GLchar*)log.data());
+
+		// Бросаем исключение, прикрепив к нему лог
+		throw std::runtime_error("program linking failed " + log);
 	}
+
+	return obj;
+}
+```
+
+В конце добавьте в деструктор SimpleScene удаление шейдерной программы и шейдеров:
+
+
+```cpp
+SimpleScene::~SimpleScene()
+{
+	glDeleteProgram(m_program);
+	glDeleteProgram(m_vertexShader);
+	glDeleteProgram(m_fragmentShader);
 }
 ```
 
@@ -484,20 +562,20 @@ struct VertexP2C4
 Во время компиляции шейдера видеодрайвер назначил каждому атрибуту его собственный целочисленный идентификатор. Мы должны получить у шейдерной программы идентификаторы атрибутов, а затем для каждого атрибута указать смещения в памяти, с помощью которых OpenGL сможет в непрерывном массиве памяти найти нужные байты. Этим займётся приватный метод bindVertexData:
 
 ```cpp
-void SimpleScene::bindVertexData(const std::vector<VertexP2C4>& verticies, const QOpenGLShaderProgram& program)
+void SimpleScene::bindVertexData(const std::vector<VertexP2C4> &verticies)
 {
 	// OpenGL должен получить байтовые смещения полей относительно структуры VertexP2C4.
-	const void* colorOffset = reinterpret_cast<void*>(offsetof(VertexP2C4, rgba));
-	const void* posOffset = reinterpret_cast<void*>(offsetof(VertexP2C4, xy));
+	const void *colorOffset = reinterpret_cast<void *>(offsetof(VertexP2C4, rgba));
+	const void *posOffset = reinterpret_cast<void *>(offsetof(VertexP2C4, xy));
 	const size_t stride = sizeof(VertexP2C4);
 
 	// Привязываем атрибут i_color к данным в вершинном буфере.
-	const int colorLocation = program.attributeLocation("i_color");
+	const int colorLocation = glGetAttribLocation(m_program, "i_color");
 	glEnableVertexAttribArray(colorLocation);
 	glVertexAttribPointer(colorLocation, glm::vec4().length(), GL_FLOAT, GL_FALSE, stride, colorOffset);
 
 	// Привязываем атрибут i_position к данным в вершинном буфере.
-	const int posLocation = program.attributeLocation("i_position");
+	const int posLocation = glGetAttribLocation(m_program, "i_position");
 	glEnableVertexAttribArray(posLocation);
 	glVertexAttribPointer(posLocation, glm::vec2().length(), GL_FLOAT, GL_FALSE, stride, posOffset);
 
@@ -533,24 +611,31 @@ glBindVertexArray(m_vao);
 ```cpp
 SimpleScene::~SimpleScene()
 {
+	glDeleteProgram(m_program);
+	glDeleteProgram(m_vertexShader);
+	glDeleteProgram(m_fragmentShader);
 	glDeleteBuffers(1, &m_vbo);
 	glDeleteVertexArrays(1, &m_vbo);
 }
 ```
 
-### Тесселяция фигур
+
+### Триангуляция пятиугольника
+
+Среди всех многоугольников в компьютерной графике предпочитают выпуклые многоугольники (*англ.* convex), т.к. их проще всего разделить на треугольники. [Согласно википедии](https://ru.wikipedia.org/wiki/%D0%92%D1%8B%D0%BF%D1%83%D0%BA%D0%BB%D1%8B%D0%B9_%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%D1%83%D0%B3%D0%BE%D0%BB%D1%8C%D0%BD%D0%B8%D0%BA):
+
+>Выпуклым многоугольником называется многоугольник, все точки которого лежат по одну сторону от любой прямой, проходящей через две его соседние вершины.
+
+Благодаря этому мы можем разделить выпуклый многоугольник на треугольники с помощью центральной точки. Таким образом мы создадим своего рода веер треугольников.
+
+![Иллюстрация](img/2d/ellipse_triangulation.png)
+
+Следует учесть, что многие вершины будут продублированы — каждая внешняя вершина входит в состав двух треугольников, но при этом треугольники могут иметь разный цвет, а цвета определяются вершинами.
+
+
+Добавьте в анонимное пространство имён функции тесселяции многоугольника:
 
 ```cpp
-constexpr float PI = 3.1415926f;
-
-glm::vec2 euclidean(float radius, float angleRadians)
-{
-	return {
-		radius * sin(angleRadians),
-		radius * cos(angleRadians)
-	};
-}
-
 // Генерирует список вершин треугольников для выпуклого многоугольника, заданного вершинами и центром.
 //  @param center - геометрический центр многоугольника
 //  @param hullPoints - вершины многоугольника
@@ -580,6 +665,38 @@ std::vector<VertexP2C4> tesselateConvex(const std::vector<glm::vec2>& verticies,
 	const glm::vec2 center = std::accumulate(verticies.begin(), verticies.end(), glm::vec2()) / float(verticies.size());
 	return tesselateConvexByCenter(center, verticies, colorGen);
 }
+```
+
+## Тесселяция круга
+
+Разделить круг на треугольники легко с помощью тригонометрии: достаточно пройтись по углам от 0° до 360° с некоторым шагом, например, 1°. Каждый угол вместе с радиусом задаёт точку в полярных координатах.
+
+![Иллюстрация](img/2d/polar_coords.png)
+
+Перевести полярные координаты в декартовы очень легко — достаточно вспомнить одно из определений синуса и косинуса:
+
+![Иллюстрация](img/2d/trigonometric_functions.png)
+
+Декартовы координаты по-английски называются Эвклидовыми (euclidean), и мы назовём функцию соответствующе:
+
+```cpp
+// Переводит полярные координаты {radius, angle} в декартовы.
+// Угол задаётся в радианах.
+glm::vec2 euclidean(float radius, float angle)
+{
+	return { radius * cos(angle), radius * sin(angle) };
+}
+```
+
+Теперь мы можем описать функцию для триангуляции (тесселяции) круга:
+
+```cpp
+constexpr float PI = 3.1415926f;
+
+glm::vec2 euclidean(float radius, float angle)
+{
+	return { radius * cos(angle), radius * sin(angle) };
+}
 
 // Функция делит круг на треугольники,
 //  возвращает массив с вершинами треугольников.
@@ -605,28 +722,21 @@ std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2& center, R
 }
 ```
 
-### Устанавливаем матрицу проецирования
+## Выполняем триангуляцию двух фигур
+
+Теперь мы можем триангулировать фигуры, чтобы получить результат, который вы видите на скриншоте:
+
+![Скриншот](img/normal/cc02.png)
+
+Прежде всего добавьте в SimpleScene новое поле `size_t m_trianglesCount = 0;` - позже число треугольников потребуется нам для рисования.
+
+Добавим в main следующий код в метод initializeShapes, вызов которого надо поместить в конец метода initialize:
 
 ```cpp
-void SimpleScene::setProjectionMatrix(unsigned width, unsigned height)
+void SimpleScene::initializeShapes()
 {
-	// Вычисляем матрицу ортографического проецирования
-	const glm::mat4 mat = glm::ortho(0.f, float(width), float(height), 0.f);
-
-	// Передаём матрицу как константу в графической программе
-	glUniformMatrix4fv(m_program.uniformLocation("u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(mat));
-}
-```
-
-### Реализуем метод redraw
-
-```cpp
-void SimpleScene::redraw(unsigned width, unsigned height)
-{
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	// Устанавливаем матрицу ортографического проецирования.
-	setProjectionMatrix(width, height);
+	// Привязываем вершинный массив
+	glBindVertexArray(m_vao);
 
 	// Генерируем список вершин треугольников, представляющих круг,
 	//  каждый треугольник будет раскрашен в собственный цвет.
@@ -637,15 +747,64 @@ void SimpleScene::redraw(unsigned width, unsigned height)
 	//  добавляем его к списку вершин круга.
 	const std::vector<glm::vec2> convexPoints = {
 		{ 100, 200 },
-		{ 250, 210 },
-		{ 220, 290 },
-		{ 130, 300 },
-		{ 100, 250 },
+	{ 250, 210 },
+	{ 220, 290 },
+	{ 130, 300 },
+	{ 100, 250 },
 	};
 	const std::vector<VertexP2C4> convexVerticies = tesselateConvex(convexPoints, colorGen);
 	std::copy(convexVerticies.begin(), convexVerticies.end(), std::back_inserter(verticies));
 
 	// Выполняем привязку вершинных данных в контексте текущего VAO.
-	bindVertexData(verticies, m_program);
+	bindVertexData(verticies);
+
+	m_trianglesCount = verticies.size();
 }
 ```
+
+### Устанавливаем матрицу проецирования
+
+Казалось бы, что может быть проще, чем наложить виртуальные координаты холста на координаты окна? Однако, OpenGL устроен иначе: он расчитан на 3D графику, в которой координаты виртуального мира не совпадают с координатами окна. Более того, начало координат OpenGL находится в нижнем левом углу, а не в верхнем левом!
+
+![Скриншт](img/2d/2d_coords.png)
+
+Ради нужд 3D графики все координаты вершин проецируются внутрь куба размерами 2x2x2 условных единиц с помощью матрицы проецирования. Поскольку мы хотим получить 2D координаты, да ещё и совмещённые с привычными координатами окна, нам нужна матрица орторафического проецирования, которая растянет координаты вершин обратно из куба 2x2x2 в координаты окна. Для этой цели мы напишем метод `setProjectionMatrix`, выполняющий две задачи:
+
+- вычислить матрицу ортографического проецирования из куба на координаты окна с помощью функции [glm::ortho](http://glm.g-truc.net/0.9.1/api/a00237.html#gad25e5b029ebefac5b657861378c17aa8)
+- установить эту матрицу как константу в шейдерной программе с помощью [glUniformMatrix4fv](http://docs.gl/gl3/glUniform)
+
+
+```cpp
+void SimpleScene::setProjectionMatrix(unsigned width, unsigned height)
+{
+	// Вычисляем матрицу ортографического проецирования
+	const glm::mat4 mat = glm::ortho(0.f, float(width), float(height), 0.f);
+
+	// Передаём матрицу как константу в графической программе
+	glUniformMatrix4fv(glGetUniformLocation(m_program, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(mat));
+}
+```
+
+### Реализуем метод redraw
+
+Метод redraw будет с использованием полученных размеров окна устанавливать так называемый Viewport, привязывать шейдерную программу и VAO, а затем очищть изображение, устанавливать матрицу проецирования, наконец, вызывать glDrawArrays для отрисовки всех вершин.
+
+```cpp
+void SimpleScene::redraw(unsigned width, unsigned height)
+{
+	glViewport(0, 0, width, height);
+	glUseProgram(m_program);
+	glBindVertexArray(m_vao);
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// Устанавливаем матрицу ортографического проецирования.
+	setProjectionMatrix(width, height);
+
+	// Рисуем отдельные треугольники, то есть интерпретируем массив вершин
+	//  как тройки вершин треугольников
+	glDrawArrays(GL_TRIANGLES, 0, m_trianglesCount);
+}
+```
+
+Теперь вы наконец можете собрать, запустить и увидеть готовый результат!
