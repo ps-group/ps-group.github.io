@@ -383,26 +383,51 @@ std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2 &center, c
 3. Выполнить привязку атрибутов вершин к шейдерным переменным - также на шаге инициализации сцены
 4. При рисовании кадра вызвать [glDrawArrays](http://docs.gl/gl3/glDrawArrays)
 
+Требования:
+
+* Процедура триангуляции должна находиться в модуле `TesselateUtils`
+* Процедура триангуляции должна принимать число концов у звезды в качестве параметра
+* Если концов менее 5, процедура должна вернуть пустой массив вершинных данных.
+
+Триангуляцию рекомендуется выполнять следующим образом:
+
 ![Иллюстрация](img/2d/star_triangulation.png)
 
 ## Загрузка шейдера из файла
 
-`copy_res.bat "$(ProjectDir)" "$(OutDir)"`
+Загружать шейдеры из файлов удобнее: в этом случае вы сможете хранить шейдеры в своём проекте как исходный код, разрабатывать их в удобном редакторе и затем лишь подгружать в программу.
 
-![Иллюстрация](img/ui/add_batch_copy_res.png)
+Для загрузки шейдера из файла мы воспользуемся классом `platform::ResourceLoader`. Этот класс определён в libplatform следующим образом:
 
-`QtLabs2D\x64\Debug`
-
+```cpp
+class ResourceLoader
+{
+public:
+	// Загружает ресурс из файла в виде строки.
+	// @param relativePath - путь относительно каталога, где лежит исполняемый файл программы.
+	static std::string loadAsString(const std::string &relativePath);
+};
 ```
-@echo off
-echo Copying resources...
 
-set ProjectDir=%1
-set OutDir=%2
+Доработаем метод initializeShaders, чтобы загружать шейдеры из файлов, находящихся в проекте:
 
-echo F | xcopy /Y "%ProjectDir%draw2d.frag" "%OutDir%draw2d.frag"
-echo F | xcopy /Y "%ProjectDir%draw2d.vert" "%OutDir%draw2d.vert"
+```cpp
+void SimpleScene::initializeShaders()
+{
+	platform::ResourceLoader loader;
+
+	std::vector<glcore::ShaderObject> shaders;
+	shaders.emplace_back(glcore::compileShader(GL_VERTEX_SHADER, loader.loadAsString("draw2d.vert")));
+	shaders.emplace_back(glcore::compileShader(GL_FRAGMENT_SHADER, loader.loadAsString("draw2d.frag")));
+	m_program = glcore::linkProgram(shaders);
+}
 ```
+
+Теперь мы можем добавить сами шейдеры. Добавлять их можно через шаблон "Text File", указывая собственное расширение файла:
+
+![Скриншот](img/ui/create_shader_file.png)
+
+Создайте в проекте файл "draw2d.frag" следующего содержания:
 
 ```glsl
 #version 110
@@ -414,6 +439,8 @@ void main()
     gl_FragColor = v_color;
 }
 ```
+
+Создайте в проекте файл "draw2d.vert" следующего содержания:
 
 ```glsl
 #version 110
@@ -430,12 +457,155 @@ void main()
 }
 ```
 
-## Вершинный шейдер: скручивание
+Теперь соберите программу и запустите в отладчике.
+
+О нет! Вы получили исключение при запуске. И это логично, потому что файлы были добавлены в ваш проект, а собранный `.exe` находится в другом каталоге (в каталоге "..\QtLabs2D\x64\Debug"). Мы можем решить проблему двумя путями:
+
+* Простой и неправильный: скопировать файлы вручную
+* Автоматический и правильный: написать скрипт
+
+Скрипт можно сделать в виде bat-файла. Добавьте в проект файл "copy_res.bat" следующего содержания:
+
+```
+@echo off
+echo Copying resources...
+
+set ProjectDir=%1
+set OutDir=%2
+
+echo F | xcopy /Y "%ProjectDir%draw2d.frag" "%OutDir%draw2d.frag"
+echo F | xcopy /Y "%ProjectDir%draw2d.vert" "%OutDir%draw2d.vert"
+```
+
+Теперь этот скрипт надо правильно запустить. Перейдите в настройках проекта в раздел "Build Events -> Pre-Link Event" и добавьте команду запуска `copy_res.bat "$(ProjectDir)" "$(OutDir)"`
+
+* переменная ProjectDir будет раскрыта системой сборки в путь к исходному коду проекта
+* переменная OutDir будет раскрыта системой сборки в путь к выходному каталогу
+
+![Иллюстрация](img/ui/add_batch_copy_res.png)
+
+Теперь запустите повторную сборку проекта: в контекстном меню выберите "Project Only -> Link Only ...". Запустите программу &mdash; всё снова должно заработать.
+
+Не забудьте удалить из кода константы kFragmentShaderCode и kVertexShaderCode
+
+## Скручивание в вершинном шейдере
+
+Нужно добавить скручивание звезды в вершинном шейдере, примерно таким образом:
+
+![Иллюстрация](img/2d/twisting_preview.png)
+
+Разберёмся, как это вычислить. Скручивание можно сделать пропорциональным расстоянию от точки (0, 0).
+
+* В таком случае угол поворота точки вокруг центра будет равен произведению расстояния от точки (0, 0) и коэффициента скрутки (twisting)
+* Поворот точки выполняется умножением на матрицу поворота
+
+![Формула](img/2d/twisting_equation.png)
+
+Начнём с вершинного шейдера, в котором мы и будем выполнять вычисления. Мы добавим в шейдер ещё одну uniform переменную `u_twisting` и, опираясь на неё, реализуем скручивание:
+
+```glsl
+#version 110
+
+in vec2 i_position;
+in vec4 i_color;
+out vec4 v_color;
+uniform mat4 u_projection_matrix;
+uniform float u_twisting;
+
+void main()
+{
+	float angle = u_twisting * length(i_position.xy);
+	float s = sin(angle);
+	float c = cos(angle);
+	vec2 twisted_pos;
+	twisted_pos.x = c * i_position.x - s * i_position.y;
+	twisted_pos.y = s * i_position.x + c * i_position.y;
+
+	v_color = i_color;
+	gl_Position = u_projection_matrix * vec4(twisted_pos, 0.0, 1.0);
+}
+```
+
+Теперь шейдер подготовлен, и осталось только реализовать передачу uniform переменной со стороны C++
+
+### Передаём параметр twisting со стороны C++
+
+Чтобы скручивание работало относительно центра окна, нам надо изменить матрицу проецирования. Возможно, потребуется также переместить фигуру-звезду в центр. В любом случае, обновите метод setProjectionMatrix:
+
+```
+void SimpleScene::setProjectionMatrix(unsigned width, unsigned height)
+{
+	// Вычисляем матрицу ортографического проецирования
+	const glm::mat4 mat = glm::ortho(-0.5f * float(width), 0.5f * float(width), -0.5f * float(height), 0.5f * float(height));
+
+	// Передаём матрицу как константу в графической программе
+	glUniformMatrix4fv(glGetUniformLocation(m_program, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(mat));
+}
+```
+
+Запустите программу и убедитесь, что звезда находится в центре. Если нет, то вам надо поправить координаты звезды.
+
+Добавьте в класс сцены приватный метод updateTwisting (который будет обновлять значение uniform переменной на каждом кадре) и поле m_totalTime:
+
+```cpp
+void updateTwisting();
+
+float m_totalTime = 0;
+```
+
+Вызов `updateTwisting()` добавьте в метод redraw перед вызовом setProjectionMatrix.
+
+В методе update добавьте обновление времени:
+
+```cpp
+void SimpleScene::update(float deltaSeconds)
+{
+	m_totalTime += deltaSeconds;
+}
+```
+
+Мы будем вычислять коэффициент скручивания на основе периода, используя деление по модулю и зеркалирование значения (чтобы разделить этапы увеличения/уменьшения скрутки).
+
+Добавьте реализацию метода updateTwisting:
+
+```cpp
+void SimpleScene::updateTwisting()
+{
+	constexpr float kTwistingPeriodSec = 4.0f;
+	constexpr float kTwistingHalfPeriodSec = 0.5f * kTwistingPeriodSec;
+	constexpr float kTwistingAmplitude = 0.02f;
+
+	const float twistingPhase = std::abs(kTwistingHalfPeriodSec - fmodf(m_totalTime, kTwistingPeriodSec)) / kTwistingHalfPeriodSec;
+	const float twisting = kTwistingAmplitude * (twistingPhase - 0.25f * kTwistingPeriodSec);
+
+	glUniform1f(glGetUniformLocation(m_program, "u_twisting"), twisting);
+}
+```
+
+Запустите - и вы должны увидеть анимацию закручивания звезды.
+
+## Задание: закручивание + масштабирование
+
+Доработайте вершинный шейдер, чтобы помимо закручивания происходило ещё и масштабирование фигуры (от масштаба x1.0 до x2.0). Для расчёта коэффициента масштабирования используйте ту же самую uniform переменную u_twisting.
+
+## Задание: закручивание + масштабирование + раскраска
+
+Доработайте фрагментный шейдер, чтобы он также использовал переменную u_twisting - для того, чтобы плавно менять цвет с синего на красный. Для смешивания двух цветов используйте встроенную функцию [mix](http://docs.gl/sl4/mix)
+
+<!--
 
 ## Фрагментный шейдер: шахматная окраска
 
-### Добавляем квадрат
+## Задание: добавляем квадрат
+
+Нужно добавить квадрат, который будет рисоваться с отдельным шейдером из отдельного VBO.
+
+* Создайте ещё по одному объекту ShaderProgram, VBO, VAO в полях класса сцены
+* Подготовьте тесселяцию квадрата: квадрат можно разделить на треугольники по диагонали
+
 
 ### Закрашиваем квадрат в шейдере
 
 ## Фрагментный шейдер: рисуем фигуры в шейдере
+
+-->
