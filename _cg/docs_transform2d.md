@@ -5,8 +5,6 @@ draft: true
 
 Класс `math::Transform2D` находится в `libmath` и представляет аффинную трансформацию, состоящую из масштабирования, ориентирующего поворота и перемещения объекта.
 
-## Определение класса
-
 В динамичной программе матрица трансформации объекта меняется на каждом кадре. Если вы храните матрицу, то будет трудно изменить отдельный компонент, не затронув остальные. Например, если матрица содержит translate, то любой rotate будет выполняться относительно начала координат, а не центра фигуры.
 
 Удобнее хранить и изменять исходные компоненты трансформации. Обычно хватает трёх компонентов:
@@ -14,6 +12,10 @@ draft: true
 - масштабирующий scale
 - ориентирующий rotate
 - задающий позицию translate
+
+Компоненты накапливаются по отдельности: если вы добавили к трансформации вращение (rotate), оно никак не повлияет на последуюшие добавления смещения позиции (translate), и наоборот.
+
+## Определение класса
 
 ```cpp
 #pragma once
@@ -35,18 +37,30 @@ struct Transform2D
 public:
 	// Позиция фигуры относительно центра мира.
 	glm::vec2 position{ 0, 0 };
+
 	// Угол собственного поворота фигуры в радианах.
 	float orientation{ 0 };
+
 	// Множители размера фигуры по двум осям.
 	glm::vec2 size{ 1, 1 };
 
-	void RotateBy(float radians);
-	void ScaleBy(const glm::vec2& scale);
-	void ScaleBy(const float scale);
-	void MoveBy(const glm::vec2& distance);
+	// Добавляет вращение на заданное число радиан.
+	void rotateBy(float radians);
 
-	glm::mat3 ToMat3() const;
-	glm::mat4 ToMat4() const;
+	// Добавляет масштабирование с указанными множителями масштабирования для двух осей.
+	void scaleBy(const glm::vec2& scale);
+
+	// Добавляет масштабирование с указанным множителем масштабирования.
+	void scaleBy(const float scale);
+
+	// Добавляет перемещение на указанное расстояние.
+	void moveBy(const glm::vec2& distance);
+
+	// Создаёт матрицу 3x3 для выполнения аффинного преобразования, эквивалентного текущему состоянию класса.
+	glm::mat3 toMat3() const;
+
+	// Создаёт матрицу 4x4 для выполнения аффинного преобразования, эквивалентного текущему состоянию класса.
+	glm::mat4 toMat4() const;
 };
 }
 ```
@@ -56,22 +70,22 @@ public:
 Реализовать изменение трансформации очень просто:
 
 ```cpp
-void Transform2D::RotateBy(float radians)
+void Transform2D::rotateBy(float radians)
 {
 	this->orientation += radians;
 }
 
-void Transform2D::ScaleBy(const glm::vec2& scale)
+void Transform2D::scaleBy(const glm::vec2& scale)
 {
 	this->size += size;
 }
 
-void Transform2D::ScaleBy(const float scale)
+void Transform2D::scaleBy(const float scale)
 {
 	this->size += size;
 }
 
-void Transform2D::MoveBy(const glm::vec2& distance)
+void Transform2D::moveBy(const glm::vec2& distance)
 {
 	this->position += distance;
 }
@@ -79,12 +93,14 @@ void Transform2D::MoveBy(const glm::vec2& distance)
 
 Для превращения Transform2D в матрицу трансформации надо выполнить несколько умножений матриц.
 
-> Компоненты трансформации применяются в строго определённом порядке, при изменении которого компоненты потеряют свой текущий смысл — например, компонент поворота, применённый после компонента перемещения, перестанет быть ориентацией фигуры и станет поворотом вокруг центра системы координат.
+Компоненты трансформации применяются в строго определённом порядке, при изменении которого компоненты потеряют свой текущий смысл — например, компонент поворота, применённый после компонента перемещения, перестанет быть ориентацией фигуры и станет поворотом вокруг центра системы координат.
+
+Так выглядит преобзование класса в матрицу 3x3, удобную для трансформаций в 2D пространстве:
 
 ```cpp
 // Метод использует расширение GLM_GTX_matrix_transform_2d
 // См. https://glm.g-truc.net/0.9.9/api/a00209.html
-glm::mat3 Transform2D::ToMat3() const
+glm::mat3 Transform2D::toMat3() const
 {
 	glm::mat3 mat;
 	mat = glm::translate(mat, position);
@@ -93,10 +109,14 @@ glm::mat3 Transform2D::ToMat3() const
 
 	return mat;
 }
+```
 
+Так выглядит преобразование класса в матрицу 3x3, удобную для трансформаций в 3D пространстве или для передачи в шейдеры на языке GLSL:
+
+```cpp
 // Метод использует расширения GLM_GTC_matrix_transform
 // См. https://glm.g-truc.net/0.9.9/api/a00169.html
-glm::mat4 Transform2D::ToMat4() const
+glm::mat4 Transform2D::toMat4() const
 {
 	glm::mat4 mat;
 	mat = glm::translate(mat, { position.x, position.y, 0 });

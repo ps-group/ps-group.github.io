@@ -747,10 +747,10 @@ void SimpleScene::initializeShapes()
 	//  добавляем его к списку вершин круга.
 	const std::vector<glm::vec2> convexPoints = {
 		{ 100, 200 },
-	{ 250, 210 },
-	{ 220, 290 },
-	{ 130, 300 },
-	{ 100, 250 },
+		{ 250, 210 },
+		{ 220, 290 },
+		{ 130, 300 },
+		{ 100, 250 },
 	};
 	const std::vector<VertexP2C4> convexVerticies = tesselateConvex(convexPoints, colorGen);
 	std::copy(convexVerticies.begin(), convexVerticies.end(), std::back_inserter(verticies));
