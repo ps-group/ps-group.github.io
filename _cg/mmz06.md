@@ -1,7 +1,7 @@
 ---
-title: "Знакомство с шейдерами"
+title: 'Знакомство с шейдерами'
 preview: 'img/small/mmz06.png'
-subtitle: В статье мы познакомимся с более сложными вершинными шейдерами, а также научимся использовать RAII при работе с OpenGL в C++.
+subtitle: 'В статье мы познакомимся с более сложными вершинными шейдерами, а также научимся использовать RAII при работе с OpenGL в C++.'
 ---
 
 >Вам пригодится плагин [GLSL language integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) для Visual Studio. С этим плагином будет работать подсветка кода для GLSL (для файлов  с расширениями  glsl, frag, vert, geom, comp, tesse, tessc).
@@ -392,6 +392,10 @@ std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2 &center, c
 Триангуляцию рекомендуется выполнять следующим образом:
 
 ![Иллюстрация](img/2d/star_triangulation.png)
+
+В расчёте вершин указанных треугольников вам поможет следующая подсказка:
+
+![Иллюстрация](img/2d/star_triangulation_2.png)
 
 ## Загрузка шейдера из файла
 

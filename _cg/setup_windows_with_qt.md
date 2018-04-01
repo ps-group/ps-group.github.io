@@ -1,7 +1,7 @@
 ---
 title: 'Установка окружения для Windows'
+preview: 'img/small/mmz_setup.png'
 subtitle: 'Краткая инструкция по установке Visual Studio, Qt SDK, а также других инструментов и библиотек'
-draft: true
 ---
 
 ## Установка Visual Studio 2017
