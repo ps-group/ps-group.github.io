@@ -36,7 +36,7 @@ subtitle: 'В статье описаны соглашения для курса
 
 Мы используем автоматическое форматирование кода с помощью clang-format. Перед сдачей работы вы обязаны проверить, что ваш код отформатирован.
 
-Наш стиль отличается от стандартного стиля ClangFormat. Чтобы включить этот стиль, скачайте [наш конфиг .clang-format](https://gist.github.com/sergey-shambir/2615539b624758270ec70b1aa9a61bc2) и сохраните его под именем `.clang-format` в одном из каталогов выше каталога проекта.
+Наш стиль отличается от стандартного стиля ClangFormat. Чтобы включить этот стиль, скачайте [наш файл конфигурации .clang-format](https://gist.github.com/sergey-shambir/2615539b624758270ec70b1aa9a61bc2) и сохраните его под именем `.clang-format` в одном из каталогов выше каталога проекта.
 
 - Для Visual Studio есть плагин [ClangFormat](https://marketplace.visualstudio.com/items?itemName=HansWennborg.ClangFormat)
     - этот плагин имеет удобную опцию "Format on Save" в настройках

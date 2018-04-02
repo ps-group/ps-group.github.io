@@ -255,7 +255,7 @@ bool glm::intersectRayTriangle(vec3 const& rayOrigin, vec3 const& rayDirection, 
 
 ## Декомпозиция матрицы 4x4 на составляющие
 
-В GLM есть расширение, позволяющее провести разделение матрицы на базовые аффинные и неаффинные преобразования. Подробнее об этом рассказано:
+В GLM есть расширение, позволяющее провести разделение матрицы на базовые аффинные и проективные преобразования. Подробнее об этом рассказано:
 
 - [в вопросе "glm - Decompose mat4 into translation and rotation?" на stackoverflow](http://stackoverflow.com/questions/17918033/)
 - [в документации GLM (glm.g-truc.net)](https://glm.g-truc.net/0.9.6/api/a00204.html)
