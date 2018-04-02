@@ -4,9 +4,477 @@ preview: 'img/small/mmz07.jpg'
 subtitle: 'В статье вы научитесь ловко использовать математический аппарат векторов и матриц анимирования объектов и реализации виртуальной камеры.'
 ---
 
+>Вам пригодится плагин [GLSL language integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) для Visual Studio. С этим плагином будет работать подсветка кода для GLSL (для файлов  с расширениями  glsl, frag, vert, geom, comp, tesse, tessc).
+
+## Клонируем репозиторий, создаём ветку
+
+Для освоения OpenGL мы будем использовать репозиторий с примерами [cg-course-2018/QtLabs2D](https://github.com/cg-course-2018/QtLabs2D). Если вы ещё не клонировали к себе этот репозиторий, клонируйте его. После этого вы можете переключиться на ветку stable в интерфейсе своего клиента git или в консоли.
+
+>Вы должны переключиться в существующую ветку, а не в новую. Возможно, перед началом потребуется синхронизировать репозитории (`git fetch origin`).
+
+```
+git checkout stable
+```
+
+Теперь на основе ветки stable создайте ветку `tmp_{NAME}`, где вместо `{NAME}` — ваше имя на латиннице. Если ветка уже существовала, удалите её.
+
+```
+git branch -D tmp_sergey
+git checkout -b tmp_sergey
+```
+
+Ветку не нужно будет отправлять на удалённый репозиторий. Она временная.
+
 ## Создаём проект
 
-## Подготавливаем сцену
+В наборе проектов QtLabs2D из шаблона Qt GUI Application создайте новый проект приложения с названием "Sample07". Обратите внимание, что проект должен располагаться в подкаталоге "samples" ради наведения порядка. При создании проекта рекомендуется установить опцию "Precompiled header":
+
+![Иллюстрация](img/2d/vs_create_sample06_pch.png)
+
+Удалите все файлы, кроме "main.cpp", "stdafx.cpp", "stdafx.h". Перейдите к настройкам проекта и добавьте в пути поиска заголовочных файлов путь к подкаталогу "libs" в корне репозитория. Это можно сделать, используя переменную SolutionDir:
+
+```
+$(SolutionDir)libs;$(IncludePath)
+```
+
+![Иллюстрация](img/ui/vc_include_dirs_libs.png)
+
+Затем нужно добавить ссылку на проекты libplatform, libglcore и libmath, чтобы система сборки автоматически выполняла компоновку с ними.
+
+![Иллюстрация](img/ui/vs_add_reference.png)
+
+
+### Создаём функцию main
+
+Функция main возьмёт на себя следующие задачи:
+
+* установка размеров окна и параметров OpenGL
+* создание окна `RenderWindow` и сцены `AnimatedScene`
+* вывод текста исключения в случае фатальной ошибки
+
+```cpp
+#include "stdafx.h"
+
+#include "AnimatedScene.h"
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QMessageBox>
+#include <iostream>
+#include <libplatform/libplatform.h>
+
+int main(int argc, char *argv[])
+{
+	QApplication app(argc, argv);
+	platform::CatchAndDisplay([&] {
+		// Окно размером 800x600, используем OpenGL Core Profile и multisampling со значением 8
+		QSurfaceFormat format;
+		format.setVersion(3, 3);
+		format.setSamples(8);
+		format.setProfile(QSurfaceFormat::CoreProfile);
+		format.setRenderableType(QSurfaceFormat::RenderableType::OpenGL);
+		platform::RenderWindowOptions opts = { 800, 600, format };
+
+		platform::RenderWindow window(opts);
+		window.setScene(std::make_unique<AnimatedScene>());
+
+		window.show();
+		return app.exec();
+	});
+}
+```
+
+
+### Создаём класс сцены AnimatedScene
+
+Создайте файлы заголовка и реализации класса. Содержимое заголовка будет следующим:
+
+```cpp
+#pragma once
+#include "TesselateUtils.h"
+#include <libglcore/libglcore.h>
+#include <libplatform/IRenderScene.h>
+
+class AnimatedScene
+	: public platform::IRenderScene
+{
+public:
+	AnimatedScene();
+	~AnimatedScene();
+
+	void initialize() final;
+	void update(float deltaSeconds) final;
+	void redraw(unsigned width, unsigned height) final;
+	bool keyReleaseEvent(platform::IKeyEvent &event) final;
+
+private:
+	void bindVertexData(const std::vector<VertexP2C4> &verticies);
+	void initializeShaders();
+	void setProjectionMatrix(unsigned width, unsigned height);
+	void animateShape(std::vector<VertexP2C4> &verticies);
+	glm::vec2 animate(const glm::vec2 &point, float phase);
+
+	glcore::ProgramObject m_program;
+	glcore::VBO m_vbo;
+	glcore::VAO m_vao;
+
+	size_t m_trianglesCount = 0;
+	float m_totalTime = 0;
+};
+```
+
+Обратите внимание на методы `keyReleaseEvent` и `animateShape`. Эти методы в дальнейшем будут точками расширения для реализации анимации фигуры и управления камерой.
+
+```cpp
+#include "stdafx.h"
+#include "AnimatedScene.h"
+#include <algorithm>
+#include <glbinding/gl32core/gl.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/vec2.hpp>
+#include <libplatform/ResourceLoader.h>
+
+namespace
+{
+glm::vec2 animateMoveAlongY(const glm::vec2 &point, float phase)
+{
+	constexpr float kAmplitudePx = 50;
+	const float deviation = std::abs(0.5f - phase) / 0.5f;
+	return {
+		point.x,
+		point.y + kAmplitudePx * deviation
+	};
+}
+} // namespace
+
+// Используем функции из gl32core, экспортированные библиотекой glbinding.
+using namespace gl32core;
+
+AnimatedScene::AnimatedScene() = default;
+
+AnimatedScene::~AnimatedScene() = default;
+
+void AnimatedScene::initialize()
+{
+	glcore::initGLBinding();
+	initializeShaders();
+
+	m_vao = glcore::createVAO();
+	glBindVertexArray(m_vao);
+
+	// Загружаем данные в вершинный буфер.
+	m_vbo = glcore::createVBO();
+}
+
+void AnimatedScene::update(float deltaSeconds)
+{
+	m_totalTime += deltaSeconds;
+}
+
+void AnimatedScene::redraw(unsigned width, unsigned height)
+{
+	glViewport(0, 0, width, height);
+	glUseProgram(m_program);
+	glBindVertexArray(m_vao);
+
+	// Генерируем список вершин треугольников, представляющих полярную розу.
+	std::vector<VertexP2C4> verticies = tesselatePolarRose(100.0f, 7, glm::vec2{ 0, 0 }, glm::vec4{ 0.72, 0.2, 1, 0 });
+	animateShape(verticies);
+
+	// Загружаем вершины на видеокарту
+	glcore::setStreamBufferData(m_vbo, GL_ARRAY_BUFFER, verticies);
+
+	// Выполняем привязку вершинных данных в контексте текущего VAO и VBO.
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	bindVertexData(verticies);
+
+	// Запоминаем число примитивов.
+	m_trianglesCount = verticies.size();
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// Устанавливаем матрицу ортографического проецирования.
+	setProjectionMatrix(width, height);
+
+	glDrawArrays(GL_TRIANGLES, 0, m_trianglesCount);
+}
+
+bool AnimatedScene::keyReleaseEvent(platform::IKeyEvent &event)
+{
+	using platform::Key;
+
+	switch (event.getKey())
+	{
+	case Key::Equal:
+		// TODO: zoom camera in.
+		break;
+	case Key::Minus:
+		// TODO: zoom camera out.
+		break;
+	case Key::Left:
+		// TODO: move camera left.
+		break;
+	case Key::Right:
+		// TODO: move camera right.
+		break;
+	case Key::Up:
+		// TODO: move camera up.
+		break;
+	case Key::Down:
+		// TODO: move camera down.
+		break;
+	}
+	return false;
+}
+
+void AnimatedScene::initializeShaders()
+{
+	platform::ResourceLoader loader;
+
+	std::vector<glcore::ShaderObject> shaders;
+	shaders.emplace_back(glcore::compileShader(GL_VERTEX_SHADER, loader.loadAsString("draw2d.vert")));
+	shaders.emplace_back(glcore::compileShader(GL_FRAGMENT_SHADER, loader.loadAsString("draw2d.frag")));
+	m_program = glcore::linkProgram(shaders);
+}
+
+void AnimatedScene::bindVertexData(const std::vector<VertexP2C4> &verticies)
+{
+	// OpenGL должен получить байтовые смещения полей относительно структуры VertexP2C4.
+	const void *colorOffset = reinterpret_cast<void *>(offsetof(VertexP2C4, rgba));
+	const void *posOffset = reinterpret_cast<void *>(offsetof(VertexP2C4, xy));
+	const size_t stride = sizeof(VertexP2C4);
+
+	// Привязываем атрибут i_color к данным в вершинном буфере.
+	const int colorLocation = glGetAttribLocation(m_program, "i_color");
+	glEnableVertexAttribArray(colorLocation);
+	glVertexAttribPointer(colorLocation, glm::vec4().length(), GL_FLOAT, GL_FALSE, stride, colorOffset);
+
+	// Привязываем атрибут i_position к данным в вершинном буфере.
+	const int posLocation = glGetAttribLocation(m_program, "i_position");
+	glEnableVertexAttribArray(posLocation);
+	glVertexAttribPointer(posLocation, glm::vec2().length(), GL_FLOAT, GL_FALSE, stride, posOffset);
+}
+
+void AnimatedScene::setProjectionMatrix(unsigned width, unsigned height)
+{
+	// Вычисляем матрицу ортографического проецирования
+	const glm::mat4 mat = glm::ortho(-0.5f * float(width), 0.5f * float(width), -0.5f * float(height), 0.5f * float(height));
+
+	// Передаём матрицу как константу в графической программе
+	glUniformMatrix4fv(glGetUniformLocation(m_program, "u_projection_matrix"), 1, GL_FALSE, glm::value_ptr(mat));
+}
+
+void AnimatedScene::animateShape(std::vector<VertexP2C4> &verticies)
+{
+	constexpr float kAnimationPeriodSec = 2.0;
+	for (auto &v : verticies)
+	{
+		const float phase = std::fmod(m_totalTime, kAnimationPeriodSec) / kAnimationPeriodSec;
+		assert(phase >= 0.f && phase <= 1.f);
+		v.xy = animate(v.xy, phase);
+	}
+}
+
+glm::vec2 AnimatedScene::animate(const glm::vec2 &point, float phase)
+{
+	return animateMoveAlongY(point, phase);
+}
+```
+
+После добавления сцены проект всё ещё не соберётся - не хватает заголовка `TesselateUtils.h`. Далее мы создадим его.
+
+### Добавляем модуль TesselateUtils
+
+Модуль TesselateUtils будет хранить процедуры, используемые для тесселяции (триангуляции) фигур. Таким будет заголовок:
+
+```cpp
+#pragma once
+
+#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
+#include <vector>
+
+struct VertexP2C4
+{
+	glm::vec2 xy;
+	glm::vec4 rgba;
+};
+
+// Генерирует список вершин треугольников по методу веера треугольников, образованного центром и вершинами фигуры.
+//  @param center - геометрический центр многоугольника
+//  @param hullPoints - вершины фигуры
+//  @param fillColor - цвет полученных треугольников
+std::vector<VertexP2C4> tesselateTriangleFan(const glm::vec2 &center, const std::vector<glm::vec2> &hullPoints, const glm::vec4 &fillColor);
+
+// Генерирует список вершин треугольников для выпуклого многоугольника, заданного вершинами.
+std::vector<VertexP2C4> tesselateConvex(const std::vector<glm::vec2> &verticies, const glm::vec4 &fillColor);
+
+// Функция делит круг на треугольники,
+//  возвращает массив с вершинами треугольников.
+std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2 &center, const glm::vec4 &fillColor);
+
+// Генерирует список вершин треугольников для фигуры Polar Rose (Полярная Роза),
+//  возвращает массив с вершинами треугольников.
+//  @param outerRadius - радиус окружности, описывающей полярную розу
+//  @param petelsCount - число лепестков, не менее 3
+//  @param center - геометрический центр фигуры
+//  @param fillColor - цвет полученных треугольников
+std::vector<VertexP2C4> tesselatePolarRose(float outerRadius, unsigned petelsCount, const glm::vec2 &center, const glm::vec4 &fillColor);
+```
+
+Реализация будет следующей:
+
+```cpp
+#include "stdafx.h"
+#include "TesselateUtils.h"
+
+namespace
+{
+
+constexpr float PI = 3.1415926f;
+
+glm::vec2 euclidean(float radius, float angleRadians)
+{
+	return {
+		radius * sin(angleRadians),
+		radius * cos(angleRadians)
+	};
+}
+
+} // namespace
+
+std::vector<VertexP2C4> tesselateTriangleFan(const glm::vec2 &center, const std::vector<glm::vec2> &hullPoints, const glm::vec4 &fillColor)
+{
+	const size_t size = hullPoints.size();
+	std::vector<VertexP2C4> verticies;
+	verticies.reserve(3u * size);
+	for (size_t pointIndex = 0; pointIndex < size; ++pointIndex)
+	{
+		// Добавляем три вершины треугольника в список.
+		const size_t nextPointIndex = (pointIndex + 1) % size;
+		verticies.push_back({ hullPoints.at(pointIndex), fillColor });
+		verticies.push_back({ hullPoints.at(nextPointIndex), fillColor });
+		verticies.push_back({ center, fillColor });
+	}
+
+	return verticies;
+}
+
+std::vector<VertexP2C4> tesselateConvex(const std::vector<glm::vec2> &verticies, const glm::vec4 &fillColor)
+{
+	// Центр выпуклого многоугольника - это среднее арифметическое его вершин
+	const glm::vec2 center = std::accumulate(verticies.begin(), verticies.end(), glm::vec2()) / float(verticies.size());
+	return tesselateTriangleFan(center, verticies, fillColor);
+}
+
+std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2 &center, const glm::vec4 &fillColor)
+{
+	assert(radius > 0);
+
+	// Круг аппроксимируется с помощью треугольников.
+	// Внешняя сторона каждого треугольника имеет длину 2.
+	constexpr float step = 2;
+	// Число треугольников равно длине окружности, делённой на шаг по окружности.
+	const auto pointCount = static_cast<unsigned>(radius * 2 * PI / step);
+
+	// Вычисляем точки-разделители на окружности.
+	std::vector<glm::vec2> points(pointCount);
+	for (unsigned pi = 0; pi < pointCount; ++pi)
+	{
+		const auto angleRadians = static_cast<float>(2.f * PI * pi / pointCount);
+		points[pi] = center + euclidean(radius, angleRadians);
+	}
+
+	return tesselateTriangleFan(center, points, fillColor);
+}
+
+std::vector<VertexP2C4> tesselatePolarRose(float outerRadius, unsigned petelsCount, const glm::vec2 &center, const glm::vec4 &fillColor)
+{
+	assert(outerRadius > 0);
+	assert(petelsCount >= 3);
+
+	// Фигуры аппроксимируется с помощью треугольников.
+	// Внешняя сторона каждого треугольника имеет длину 2.
+	constexpr float step = 2;
+	// Число треугольников равно длине описанной окружности, делённой на шаг по окружности.
+	const auto pointCount = static_cast<unsigned>(outerRadius * 2 * PI / step);
+
+	// Вычисляем точки-разделители на границе фигуры.
+	std::vector<glm::vec2> points(pointCount);
+	for (unsigned pi = 0; pi < pointCount; ++pi)
+	{
+		const auto factor = static_cast<float>(petelsCount) / 2.f;
+		const auto angleRadians = static_cast<float>(2.f * PI * pi / pointCount);
+		const auto radius = static_cast<float>(outerRadius * std::abs(std::cos(factor * angleRadians)));
+
+		points[pi] = center + euclidean(radius, angleRadians);
+	}
+
+	return tesselateTriangleFan(center, points, fillColor);
+}
+```
+
+### Добавляем файлы шейдеров
+
+Теперь мы можем добавить сами шейдеры. Добавлять их можно через шаблон "Text File", указывая собственное расширение файла:
+
+![Скриншот](img/ui/create_shader_file.png)
+
+Создайте в проекте файл "draw2d.frag" следующего содержания:
+
+```glsl
+#version 130
+
+in vec4 v_color;
+out vec4 out_fragColor;
+
+void main()
+{
+    out_fragColor = v_color;
+}
+```
+
+Создайте в проекте файл "draw2d.vert" следующего содержания:
+
+```glsl
+#version 130
+
+in vec2 i_position;
+in vec4 i_color;
+out vec4 v_color;
+uniform mat4 u_projection_matrix;
+
+void main()
+{
+	v_color = i_color;
+	gl_Position = u_projection_matrix * vec4(i_position.xy, 0.0, 1.0);
+}
+```
+
+Добавьте в проект файл "copy_res.bat" следующего содержания:
+
+```
+@echo off
+echo Copying resources...
+
+set ProjectDir=%1
+set OutDir=%2
+
+echo F | xcopy /Y "%ProjectDir%draw2d.frag" "%OutDir%draw2d.frag"
+echo F | xcopy /Y "%ProjectDir%draw2d.vert" "%OutDir%draw2d.vert"
+```
+
+Теперь этот скрипт надо правильно запустить. Перейдите в настройках проекта в раздел "Build Events -> Pre-Link Event" и добавьте команду запуска `copy_res.bat "$(ProjectDir)" "$(OutDir)"`
+
+* переменная ProjectDir будет раскрыта системой сборки в путь к исходному коду проекта
+* переменная OutDir будет раскрыта системой сборки в путь к выходному каталогу
+
+![Иллюстрация](img/ui/add_batch_copy_res.png)
+
+### Собираем проект
+
+Соберите и запустите проект. Вы должны получить следующий результат:
+
+![Скриншот](img/normal/mmz07_01.gif)
 
 ## Аффинные преобразования
 
@@ -157,7 +625,7 @@ subtitle: 'В статье вы научитесь ловко использов
 * добавьте в вершинный шейдер uniform-переменную `uniform mat4 u_world_matrix;`, в которую вы будете записывать матрицу преобразования
 * добавьте в вершинный шейдер умножение на u_world_matrix
 * не забудьте о порядке умножения матриц: преобразование проецирования должно выполняться последним
-* удалите код, который преобразует каждую вершину каждой фигуры перед заполнением буфера вершин, хранимого на стороне видеокарты
+* удалите код, который преобразует каждую вершину фигуры перед заполнением буфера вершин, хранимого на стороне видеокарты
 * буфер вершин теперь статичный, и вы можете перенести инициализацию буфера в метод `AnimatedScene::initialize`, тем самым сэкономив на передаче данных видеокарт
 * добавьте для каждого объекта на сцене в `AnimatedScene::redraw` вычисление текущей матрицы преобразования с учётом анимации
 * для этого разберите функцию animate на части, часть выкиньте, а другую часть переиспользуйте для определения матрицы преобразания
@@ -213,4 +681,4 @@ subtitle: 'В статье вы научитесь ловко использов
     * добавьте в вершинный шейдер uniform-переменную `uniform mat4 u_view_matrix;`, в которую вы будете записывать матрицу преобразования из мировых координат в координаты наблюдателя
     * не забудьте о порядке умножения матриц: преобразование проецирования должно выполняться последним, а преобразование из локальных координат в мировые должно происходить до преобразования камеры
     * добавьте в C++ коде передачу значения uniform переменной так же, как это сделано для "u_projection_matrix"
-    * добавьте вместо `// TODO: implement zoom` и других подобных заглушек изменение параметров камеры
+    * добавьте вместо `// TODO: zoom camera in.` и других подобных заглушек изменение параметров камеры
