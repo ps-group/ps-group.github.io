@@ -7,5 +7,5 @@ DIRECTORY=$1
 if [ -d "$DIRECTORY" ]; then
   yaspeller --ignore-latin --ignore-digits --dictionary "$SCRIPT_DIR/dict_ru.json" --report html -e ".md" "$DIRECTORY"
 else
-  echo ERROR: "$DIRECTORY" does not exist
+  echo ERROR: directory "'$DIRECTORY'" does not exist
 fi
