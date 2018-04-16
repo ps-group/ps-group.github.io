@@ -116,7 +116,7 @@ private:
 	glcore::VBO m_vbo;
 	glcore::VAO m_vao;
 
-	size_t m_trianglesCount = 0;
+	size_t m_vertexCount = 0;
 	float m_totalTime = 0;
 };
 ```
@@ -188,14 +188,14 @@ void AnimatedScene::redraw(unsigned width, unsigned height)
 	bindVertexData(verticies);
 
 	// Запоминаем число примитивов.
-	m_trianglesCount = verticies.size();
+	m_vertexCount = verticies.size();
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Устанавливаем матрицу ортографического проецирования.
 	setProjectionMatrix(width, height);
 
-	glDrawArrays(GL_TRIANGLES, 0, m_trianglesCount);
+	glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
 }
 
 bool AnimatedScene::keyReleaseEvent(platform::IKeyEvent &event)

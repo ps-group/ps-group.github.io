@@ -728,7 +728,7 @@ std::vector<VertexP2C4> tesselateCircle(float radius, const glm::vec2& center, R
 
 ![Скриншот](img/normal/cc02.png)
 
-Прежде всего добавьте в SimpleScene новое поле `size_t m_trianglesCount = 0;` - позже число треугольников потребуется нам для рисования.
+Прежде всего добавьте в SimpleScene новое поле `size_t m_vertexCount = 0;` - позже число треугольников потребуется нам для рисования.
 
 Добавим в main следующий код в метод initializeShapes, вызов которого надо поместить в конец метода initialize:
 
@@ -758,7 +758,7 @@ void SimpleScene::initializeShapes()
 	// Выполняем привязку вершинных данных в контексте текущего VAO.
 	bindVertexData(verticies);
 
-	m_trianglesCount = verticies.size();
+	m_vertexCount = verticies.size();
 }
 ```
 
@@ -803,7 +803,7 @@ void SimpleScene::redraw(unsigned width, unsigned height)
 
 	// Рисуем отдельные треугольники, то есть интерпретируем массив вершин
 	//  как тройки вершин треугольников
-	glDrawArrays(GL_TRIANGLES, 0, m_trianglesCount);
+	glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
 }
 ```
 
