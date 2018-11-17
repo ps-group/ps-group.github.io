@@ -445,7 +445,7 @@ int main()
 
 В C++17 появились две функции для безопасного и предсказуемого преобразования из диапазона `char*` в числа и обратно, прекрасно дополняющие функции to_string (to_wstring). Однако, функции [to_chars](http://en.cppreference.com/w/cpp/utility/to_chars) и [from_chars](http://en.cppreference.com/w/cpp/utility/from_chars) лучше использовать в библиотеках и утилитах, и не вызывать напрямую в повседневном коде.
 
-Старый подход для конвертации строки в число подразумевал применение strtoi (strtod, strtoll) либо ostringstream:
+Старый подход для конвертации строки в число подразумевал применение strtoi (strtod, strtoll) либо istringstream:
 
 ```cpp
 // ! устаревший код !
@@ -457,8 +457,8 @@ template<class T>
 T atoi_14(const std::string &str)
 {
     T res{};
-    std::ostringstream oss(str);
-    oss >> res;
+    std::istringstream iss(str);
+    iss >> res;
     return res;
 }
 ```
