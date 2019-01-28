@@ -41,6 +41,9 @@ collections:
   cxx:
     output: true
     permalink: '/cxx/:path'
+  android:
+    output: true
+    permalink: '/android/:path'
 defaults:
     - scope:
         type: opengl
@@ -76,5 +79,9 @@ defaults:
         layout: article
     - scope:
         type: cxx
+      values:
+        layout: article
+    - scope:
+        type: android
       values:
         layout: article
